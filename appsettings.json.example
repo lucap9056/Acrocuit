@@ -1,0 +1,19 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "JwtSettings": {
+    "Issuer": "Acrocuit",
+    "Audience": "AcrocuitClient",
+    "SecretKey": "REPLACE_WITH_YOUR_OWN_SECRET",
+    "AccessTokenExpiryMinutes": 60,
+    "RefreshTokenExpiryDays": 7
+  },
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Database=Acrocuit;User Id=sa;Password=REPLACE_ME;TrustServerCertificate=True"
+  }
+}
