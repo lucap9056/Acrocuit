@@ -197,41 +197,28 @@ public class DevicesController(AppDbContext db) : ControllerBase
     [HttpGet("{deviceId}/upstream")]
     public async Task<IActionResult> GetDeviceUpstream(CurrentUser user, int deviceId, CancellationToken cancellationToken)
     {
-        var deviceExists = await db.Devices
-            .AnyAsync(d => d.Id == deviceId && d.Space.SpaceGroup.Owners.Any(o => o.UserId == user.UserId), cancellationToken);
+        var result = await SpGetDeviceUpstream.ExecuteAsync(db, user.UserId, deviceId, cancellationToken);
 
-        if (!deviceExists)
+        if (!result.Found)
         {
             return NotFound();
         }
 
-        var breakerIds = await db.DeviceBreakers
-            .Where(x => x.DeviceId == deviceId)
-            .Select(x => x.BreakerId)
-            .ToListAsync(cancellationToken);
-
-        var upstreams = new List<DeviceUpstreamModel>();
-
-        foreach (var breakerId in breakerIds)
+        var upstreams = result.Chains.Select(c => new DeviceUpstreamModel
         {
-            var chain = await SpGetBreakerUpstreamChain.ExecuteAsync(db, breakerId, cancellationToken);
-
-            upstreams.Add(new DeviceUpstreamModel
-            {
-                BreakerId = breakerId,
-                Chain = [
-                    .. chain.Select(n => new BreakerModel
-                    {
-                        Id = n.Id,
-                        Name = n.Name,
-                        BreakerGroupId = n.BreakerGroupId,
-                        SpaceGroupId = n.SpaceGroupId,
-                        DisplayOrder = n.DisplayOrder,
-                        UpstreamBreakerId = n.UpstreamBreakerId
-                    })
-                ]
-            });
-        }
+            BreakerId = c.RootBreakerId,
+            Chain = [
+                .. c.Chain.Select(n => new BreakerModel
+                {
+                    Id = n.Id,
+                    Name = n.Name,
+                    BreakerGroupId = n.BreakerGroupId,
+                    SpaceGroupId = n.SpaceGroupId,
+                    DisplayOrder = n.DisplayOrder,
+                    UpstreamBreakerId = n.UpstreamBreakerId
+                })
+            ]
+        }).ToList();
 
         return Ok(upstreams);
     }

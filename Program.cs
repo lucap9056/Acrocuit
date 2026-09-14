@@ -57,7 +57,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     string[] storedProcedureScripts =
     [
-        SpGetBreakerUpstreamChain.CreateScript,
+        SpGetDeviceUpstream.CreateScript,
         SpGetBreakerDownstream.CreateScript,
         SpAddDeviceBreaker.CreateScript,
         SpSetBreakerUpstream.CreateScript
