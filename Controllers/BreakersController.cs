@@ -204,6 +204,8 @@ public class BreakersController(AppDbContext db) : ControllerBase
     [HttpPatch("{breakerId}/upstream")]
     public async Task<IActionResult> SetBreakerUpstream(CurrentUser user, int breakerId, [FromBody] SetBreakerUpstreamRequest request, CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
         var result = await SpSetBreakerUpstream.ExecuteAsync(db, user.UserId, breakerId, request.UpstreamBreakerId, cancellationToken);
 
         if (result is SetBreakerUpstreamResult.SelfReference or SetBreakerUpstreamResult.WouldCreateCycle)
@@ -215,6 +217,8 @@ public class BreakersController(AppDbContext db) : ControllerBase
         {
             return NotFound();
         }
+
+        await transaction.CommitAsync(cancellationToken);
 
         var breaker = await db.Breakers
             .Where(b => b.Id == breakerId)

@@ -2,6 +2,7 @@ using System.Data;
 using Acrocuit.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Acrocuit.StoredProcedures;
 
@@ -37,7 +38,7 @@ public static class SpSetBreakerUpstream
             DECLARE @SpaceGroupId INT;
 
             SELECT @SpaceGroupId = b.SpaceGroupId
-            FROM Breaker b
+            FROM Breaker b WITH (UPDLOCK, ROWLOCK)
             INNER JOIN BreakerGroup bg ON bg.Id = b.BreakerGroupId
             INNER JOIN SpaceGroupOwner so ON so.SpaceGroupId = bg.SpaceGroupId
             WHERE b.Id = {BREAKER_ID} AND so.UserId = {USER_ID};
@@ -56,7 +57,7 @@ public static class SpSetBreakerUpstream
                     RETURN;
                 END
 
-                IF NOT EXISTS (SELECT 1 FROM Breaker WHERE Id = {UPSTREAM_BREAKER_ID} AND SpaceGroupId = @SpaceGroupId)
+                IF NOT EXISTS (SELECT 1 FROM Breaker WITH (UPDLOCK, ROWLOCK) WHERE Id = {UPSTREAM_BREAKER_ID} AND SpaceGroupId = @SpaceGroupId)
                 BEGIN
                     SET {RESULT} = 3;
                     RETURN;
@@ -66,13 +67,13 @@ public static class SpSetBreakerUpstream
 
                 ;WITH UpstreamChain AS (
                     SELECT b.Id, b.UpstreamBreaker
-                    FROM Breaker b
+                    FROM Breaker b WITH (UPDLOCK, ROWLOCK)
                     WHERE b.Id = {UPSTREAM_BREAKER_ID}
 
                     UNION ALL
 
                     SELECT p.Id, p.UpstreamBreaker
-                    FROM Breaker p
+                    FROM Breaker p WITH (UPDLOCK, ROWLOCK)
                     INNER JOIN UpstreamChain c ON p.Id = c.UpstreamBreaker
                 )
                 SELECT @HasCycle = 1
@@ -105,6 +106,7 @@ public static class SpSetBreakerUpstream
             using var command = connection.CreateCommand();
             command.CommandText = Name;
             command.CommandType = CommandType.StoredProcedure;
+            command.Transaction = db.Database.CurrentTransaction?.GetDbTransaction();
 
             var resultParam = new SqlParameter(RESULT, SqlDbType.Int) { Direction = ParameterDirection.Output };
             command.Parameters.Add(new SqlParameter(USER_ID, userId));
