@@ -60,7 +60,11 @@ using (var scope = app.Services.CreateScope())
         SpGetDeviceUpstream.CreateScript,
         SpGetBreakerDownstream.CreateScript,
         SpAddDeviceBreaker.CreateScript,
-        SpSetBreakerUpstream.CreateScript
+        SpSetBreakerUpstream.CreateScript,
+        SpAddBreaker.CreateScript,
+        SpAddSpace.CreateScript,
+        SpSetBreaker.CreateScript,
+        SpSetSpace.CreateScript
     ];
 
     foreach (var script in storedProcedureScripts)

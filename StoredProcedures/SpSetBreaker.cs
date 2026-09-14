@@ -5,22 +5,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Acrocuit.StoredProcedures;
 
-public enum SetBreakerUpstreamResult
+public enum SetBreakerResult
 {
     Success = 0,
-    BreakerNotFound = 1,
-    SelfReference = 2,
-    UpstreamNotFound = 3,
-    WouldCreateCycle = 4
+    BreakerNotFound = 1
 }
 
-public static class SpSetBreakerUpstream
+public static class SpSetBreaker
 {
-    public const string Name = "sp_SetBreakerUpstream";
+    public const string Name = "sp_SetBreaker";
 
     private const string USER_ID = "@UserId";
     private const string BREAKER_ID = "@BreakerId";
-    private const string UPSTREAM_BREAKER_ID = "@UpstreamBreakerId";
+    private const string BREAKER_NAME = "@Name";
+    private const string DISPLAY_ORDER = "@DisplayOrder";
     private const string OUT_NAME = "@OutName";
     private const string OUT_BREAKER_GROUP_ID = "@OutBreakerGroupId";
     private const string OUT_SPACE_GROUP_ID = "@OutSpaceGroupId";
@@ -33,7 +31,8 @@ public static class SpSetBreakerUpstream
         CREATE OR ALTER PROCEDURE {Name}
             {USER_ID} INT,
             {BREAKER_ID} INT,
-            {UPSTREAM_BREAKER_ID} INT = NULL,
+            {BREAKER_NAME} NVARCHAR(255) = NULL,
+            {DISPLAY_ORDER} INT = NULL,
             {OUT_NAME} NVARCHAR(255) OUTPUT,
             {OUT_BREAKER_GROUP_ID} INT OUTPUT,
             {OUT_SPACE_GROUP_ID} INT OUTPUT,
@@ -46,65 +45,54 @@ public static class SpSetBreakerUpstream
             SET XACT_ABORT ON;
             BEGIN TRANSACTION;
 
-            SELECT {OUT_SPACE_GROUP_ID} = b.SpaceGroupId
-            FROM Breaker b WITH (UPDLOCK, ROWLOCK)
-            INNER JOIN BreakerGroup bg ON bg.Id = b.BreakerGroupId
+            DECLARE @BreakerGroupId INT, @CurrentOrder INT;
+
+            SELECT @BreakerGroupId = b.BreakerGroupId, @CurrentOrder = b.DisplayOrder
+            FROM Breaker b
+            INNER JOIN BreakerGroup bg WITH (UPDLOCK, ROWLOCK) ON bg.Id = b.BreakerGroupId
             INNER JOIN SpaceGroupOwner so ON so.SpaceGroupId = bg.SpaceGroupId
             WHERE b.Id = {BREAKER_ID} AND so.UserId = {USER_ID};
 
-            IF {OUT_SPACE_GROUP_ID} IS NULL
+            IF @BreakerGroupId IS NULL
             BEGIN
                 ROLLBACK TRANSACTION;
                 SET {RESULT} = 1;
                 RETURN;
             END
 
-            IF {UPSTREAM_BREAKER_ID} IS NOT NULL
+            IF {DISPLAY_ORDER} IS NOT NULL AND {DISPLAY_ORDER} <> @CurrentOrder
             BEGIN
-                IF {UPSTREAM_BREAKER_ID} = {BREAKER_ID}
+                DECLARE @Delta INT = {DISPLAY_ORDER} - @CurrentOrder;
+
+                IF ABS(@Delta) = 1
                 BEGIN
-                    ROLLBACK TRANSACTION;
-                    SET {RESULT} = 2;
-                    RETURN;
+                    UPDATE Breaker
+                    SET DisplayOrder = CASE WHEN Id = {BREAKER_ID} THEN {DISPLAY_ORDER} ELSE @CurrentOrder END
+                    WHERE BreakerGroupId = @BreakerGroupId AND (Id = {BREAKER_ID} OR DisplayOrder = {DISPLAY_ORDER});
                 END
-
-                IF NOT EXISTS (SELECT 1 FROM Breaker WITH (UPDLOCK, ROWLOCK) WHERE Id = {UPSTREAM_BREAKER_ID} AND SpaceGroupId = {OUT_SPACE_GROUP_ID})
+                ELSE IF @Delta > 0
                 BEGIN
-                    ROLLBACK TRANSACTION;
-                    SET {RESULT} = 3;
-                    RETURN;
+                    UPDATE Breaker
+                    SET DisplayOrder = CASE WHEN Id = {BREAKER_ID} THEN {DISPLAY_ORDER} ELSE DisplayOrder - 1 END
+                    WHERE BreakerGroupId = @BreakerGroupId AND DisplayOrder >= @CurrentOrder AND DisplayOrder <= {DISPLAY_ORDER};
                 END
-
-                DECLARE @HasCycle BIT = 0;
-
-                ;WITH UpstreamChain AS (
-                    SELECT b.Id, b.UpstreamBreaker
-                    FROM Breaker b WITH (UPDLOCK, ROWLOCK)
-                    WHERE b.Id = {UPSTREAM_BREAKER_ID}
-
-                    UNION ALL
-
-                    SELECT p.Id, p.UpstreamBreaker
-                    FROM Breaker p WITH (UPDLOCK, ROWLOCK)
-                    INNER JOIN UpstreamChain c ON p.Id = c.UpstreamBreaker
-                )
-                SELECT @HasCycle = 1
-                FROM UpstreamChain
-                WHERE Id = {BREAKER_ID};
-
-                IF @HasCycle = 1
+                ELSE
                 BEGIN
-                    ROLLBACK TRANSACTION;
-                    SET {RESULT} = 4;
-                    RETURN;
+                    UPDATE Breaker
+                    SET DisplayOrder = CASE WHEN Id = {BREAKER_ID} THEN {DISPLAY_ORDER} ELSE DisplayOrder + 1 END
+                    WHERE BreakerGroupId = @BreakerGroupId AND DisplayOrder >= {DISPLAY_ORDER} AND DisplayOrder <= @CurrentOrder;
                 END
             END
 
-            UPDATE Breaker SET UpstreamBreaker = {UPSTREAM_BREAKER_ID} WHERE Id = {BREAKER_ID};
+            IF {BREAKER_NAME} IS NOT NULL
+            BEGIN
+                UPDATE Breaker SET Name = {BREAKER_NAME} WHERE Id = {BREAKER_ID};
+            END
 
             SELECT
                 {OUT_NAME} = Name,
                 {OUT_BREAKER_GROUP_ID} = BreakerGroupId,
+                {OUT_SPACE_GROUP_ID} = SpaceGroupId,
                 {OUT_DISPLAY_ORDER} = DisplayOrder,
                 {OUT_UPSTREAM_BREAKER_ID} = UpstreamBreaker
             FROM Breaker
@@ -116,9 +104,9 @@ public static class SpSetBreakerUpstream
         END
         """;
 
-    public readonly record struct Result(SetBreakerUpstreamResult Status, string Name, int BreakerGroupId, int SpaceGroupId, int DisplayOrder, int? UpstreamBreakerId);
+    public readonly record struct Result(SetBreakerResult Status, string Name, int BreakerGroupId, int SpaceGroupId, int DisplayOrder, int? UpstreamBreakerId);
 
-    public static async Task<Result> ExecuteAsync(AppDbContext db, int userId, int breakerId, int? upstreamBreakerId, CancellationToken cancellationToken)
+    public static async Task<Result> ExecuteAsync(AppDbContext db, int userId, int breakerId, string? name, int? displayOrder, CancellationToken cancellationToken)
     {
         var connection = db.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
@@ -142,7 +130,8 @@ public static class SpSetBreakerUpstream
 
             command.Parameters.Add(new SqlParameter(USER_ID, userId));
             command.Parameters.Add(new SqlParameter(BREAKER_ID, breakerId));
-            command.Parameters.Add(new SqlParameter(UPSTREAM_BREAKER_ID, (object?)upstreamBreakerId ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter(BREAKER_NAME, (object?)name ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter(DISPLAY_ORDER, (object?)displayOrder ?? DBNull.Value));
             command.Parameters.Add(outNameParam);
             command.Parameters.Add(outBreakerGroupIdParam);
             command.Parameters.Add(outSpaceGroupIdParam);
@@ -152,9 +141,9 @@ public static class SpSetBreakerUpstream
 
             await command.ExecuteNonQueryAsync(cancellationToken);
 
-            var status = (SetBreakerUpstreamResult)(int)resultParam.Value;
+            var status = (SetBreakerResult)(int)resultParam.Value;
 
-            return status == SetBreakerUpstreamResult.Success
+            return status == SetBreakerResult.Success
                 ? new Result(
                     status,
                     (string)outNameParam.Value,

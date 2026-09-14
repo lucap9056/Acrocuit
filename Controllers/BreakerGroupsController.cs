@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
 using Acrocuit.Auth;
 using Acrocuit.Data;
 using Acrocuit.Models;
+using Acrocuit.StoredProcedures;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -202,54 +202,21 @@ public class BreakerGroupsController(AppDbContext db) : ControllerBase
     [HttpPost("{breakerGroupId}/breakers")]
     public async Task<IActionResult> AddBreaker(CurrentUser user, int breakerGroupId, [FromBody] CreateBreakerModel request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var result = await SpAddBreaker.ExecuteAsync(db, user.UserId, breakerGroupId, request.Name, request.UpstreamBreakerId, cancellationToken);
 
-        var breakerGroup = await db.BreakerGroups
-            .Where(b => b.Id == breakerGroupId && b.Space.SpaceGroup.Owners.Any(o => o.UserId == user.UserId))
-            .Select(b => new { b.SpaceGroupId })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (breakerGroup is null)
+        if (result.Status is not AddBreakerResult.Success)
         {
             return NotFound();
         }
 
-        if (request.UpstreamBreakerId is int upstreamBreakerId)
-        {
-            var upstreamExists = await db.Breakers
-                .AnyAsync(b => b.Id == upstreamBreakerId && b.SpaceGroupId == breakerGroup.SpaceGroupId, cancellationToken);
-
-            if (!upstreamExists)
-            {
-                return NotFound();
-            }
-        }
-
-        var maxDisplayOrder = await db.Breakers
-            .Where(b => b.BreakerGroupId == breakerGroupId)
-            .MaxAsync(b => (int?)b.DisplayOrder, cancellationToken) ?? 0;
-
-        var breaker = new Breaker
-        {
-            Name = request.Name,
-            BreakerGroupId = breakerGroupId,
-            SpaceGroupId = breakerGroup.SpaceGroupId,
-            DisplayOrder = maxDisplayOrder + 1,
-            UpstreamBreakerId = request.UpstreamBreakerId
-        };
-
-        db.Breakers.Add(breaker);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
         return Ok(new BreakerModel
         {
-            Id = breaker.Id,
-            Name = breaker.Name,
-            BreakerGroupId = breaker.BreakerGroupId,
-            SpaceGroupId = breaker.SpaceGroupId,
-            DisplayOrder = breaker.DisplayOrder,
-            UpstreamBreakerId = breaker.UpstreamBreakerId
+            Id = result.BreakerId,
+            Name = request.Name,
+            BreakerGroupId = breakerGroupId,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            UpstreamBreakerId = request.UpstreamBreakerId
         });
     }
 }

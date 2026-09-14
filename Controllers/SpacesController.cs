@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
 using Acrocuit.Auth;
 using Acrocuit.Data;
 using Acrocuit.Models;
+using Acrocuit.StoredProcedures;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -78,47 +78,21 @@ public class SpaceController(AppDbContext db) : ControllerBase
     [HttpPut("{spaceId}")]
     public async Task<IActionResult> SetSpace(CurrentUser user, int spaceId, [FromBody] SetSpaceRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var result = await SpSetSpace.ExecuteAsync(db, user.UserId, spaceId, request.Name, request.DisplayOrder, cancellationToken);
 
-        var current = await db.Spaces
-            .Where(s => s.Id == spaceId && s.SpaceGroup.Owners.Any(o => o.UserId == user.UserId))
-            .Select(s => new { s.SpaceGroupId, s.DisplayOrder })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (current is null)
+        if (result.Status is not SetSpaceResult.Success)
         {
             return NotFound();
         }
 
-        if (request.DisplayOrder is int newOrder && newOrder != current.DisplayOrder)
+        return Ok(new SpaceModel
         {
-            int spaceGroupId = current.SpaceGroupId;
-            var oldOrder = current.DisplayOrder;
-            await UpdateSpaceOrder(spaceGroupId, spaceId, oldOrder, newOrder, cancellationToken);
-        }
-
-        if (request.Name is not null)
-        {
-            await db.Spaces
-                .Where(s => s.Id == spaceId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Name, request.Name), cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        var space = await db.Spaces
-            .Where(s => s.Id == spaceId)
-            .Select(s => new SpaceModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                SpaceGroupId = s.SpaceGroupId,
-                DisplayOrder = s.DisplayOrder,
-                BackgroundImageUpdatedAt = s.BackgroundImageUpdatedAt
-            })
-            .FirstAsync(cancellationToken);
-
-        return Ok(space);
+            Id = spaceId,
+            Name = result.Name,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            BackgroundImageUpdatedAt = result.BackgroundImageUpdatedAt
+        });
     }
 
     [HttpDelete("{spaceId}")]
@@ -146,74 +120,21 @@ public class SpaceController(AppDbContext db) : ControllerBase
     [HttpPatch("{spaceId}/order")]
     public async Task<IActionResult> SetSpaceOrder(CurrentUser user, int spaceId, SetSpaceOrderRequest request, CancellationToken cancellationToken)
     {
+        var result = await SpSetSpace.ExecuteAsync(db, user.UserId, spaceId, null, request.DisplayOrder, cancellationToken);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-
-        var current = await db.Spaces
-            .Where(s => s.Id == spaceId && s.SpaceGroup.Owners.Any(o => o.UserId == user.UserId))
-            .Select(s => new { s.SpaceGroupId, s.DisplayOrder })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (current is null)
+        if (result.Status is not SetSpaceResult.Success)
         {
             return NotFound();
         }
 
-        if (request.DisplayOrder is int newOrder && newOrder != current.DisplayOrder)
+        return Ok(new SpaceModel
         {
-            int spaceGroupId = current.SpaceGroupId;
-            var oldOrder = current.DisplayOrder;
-            await UpdateSpaceOrder(spaceGroupId, spaceId, oldOrder, newOrder, cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        var space = await db.Spaces
-            .Where(s => s.Id == spaceId)
-            .Select(s => new SpaceModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                SpaceGroupId = s.SpaceGroupId,
-                DisplayOrder = s.DisplayOrder,
-                BackgroundImageUpdatedAt = s.BackgroundImageUpdatedAt
-            })
-            .FirstAsync(cancellationToken);
-
-        return Ok(space);
-    }
-
-    private async Task UpdateSpaceOrder(int spaceGroupId, int spaceId, int oldOrder, int newOrder, CancellationToken cancellationToken)
-    {
-        var delta = newOrder - oldOrder;
-
-        if (Math.Abs(delta) == 1)
-        {
-            await db.Spaces
-                .Where(s => s.SpaceGroupId == spaceGroupId && (s.Id == spaceId || s.DisplayOrder == newOrder))
-                .ExecuteUpdateAsync(s => s.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == spaceId ? newOrder : oldOrder),
-                    cancellationToken);
-        }
-        else if (delta > 0)
-        {
-            await db.Spaces
-                .Where(s => s.SpaceGroupId == spaceGroupId && s.DisplayOrder >= oldOrder && s.DisplayOrder <= newOrder)
-                .ExecuteUpdateAsync(s => s.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == spaceId ? newOrder : x.DisplayOrder - 1),
-                    cancellationToken);
-        }
-        else
-        {
-            await db.Spaces
-                .Where(s => s.SpaceGroupId == spaceGroupId && s.DisplayOrder >= newOrder && s.DisplayOrder <= oldOrder)
-                .ExecuteUpdateAsync(s => s.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == spaceId ? newOrder : x.DisplayOrder + 1),
-                    cancellationToken);
-        }
+            Id = spaceId,
+            Name = result.Name,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            BackgroundImageUpdatedAt = result.BackgroundImageUpdatedAt
+        });
     }
 
     /*

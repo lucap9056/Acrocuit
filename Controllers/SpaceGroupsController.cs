@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
 using Acrocuit.Auth;
 using Acrocuit.Data;
 using Acrocuit.Models;
+using Acrocuit.StoredProcedures;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -146,38 +146,20 @@ public class SpaceGroupsController(AppDbContext db) : ControllerBase
     [HttpPost("{spaceGroupId}/spaces")]
     public async Task<IActionResult> AddSpace(CurrentUser user, int spaceGroupId, [FromBody] CreateSpaceModel request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var result = await SpAddSpace.ExecuteAsync(db, user.UserId, spaceGroupId, request.Name, cancellationToken);
 
-        var spaceGroupExists = await db.SpaceGroupOwners
-            .AnyAsync(o => o.UserId == user.UserId && o.SpaceGroupId == spaceGroupId, cancellationToken);
-
-        if (!spaceGroupExists)
+        if (result.Status is not AddSpaceResult.Success)
         {
             return NotFound();
         }
 
-        var maxDisplayOrder = await db.Spaces
-            .Where(s => s.SpaceGroupId == spaceGroupId)
-            .MaxAsync(s => (int?)s.DisplayOrder, cancellationToken) ?? 0;
-
-        var space = new Space
-        {
-            Name = request.Name,
-            SpaceGroupId = spaceGroupId,
-            DisplayOrder = maxDisplayOrder + 1
-        };
-
-        db.Spaces.Add(space);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
         return Ok(new SpaceModel
         {
-            Id = space.Id,
-            Name = space.Name,
-            SpaceGroupId = space.SpaceGroupId,
-            DisplayOrder = space.DisplayOrder,
-            BackgroundImageUpdatedAt = space.BackgroundImageUpdatedAt
+            Id = result.SpaceId,
+            Name = request.Name,
+            SpaceGroupId = spaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            BackgroundImageUpdatedAt = result.BackgroundImageUpdatedAt
         });
     }
 }

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
 using Acrocuit.Auth;
 using Acrocuit.Data;
 using Acrocuit.Models;
@@ -95,46 +94,22 @@ public class BreakersController(AppDbContext db) : ControllerBase
     [HttpPut("{breakerId}")]
     public async Task<IActionResult> SetBreaker(CurrentUser user, int breakerId, [FromBody] SetBreakerRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var result = await SpSetBreaker.ExecuteAsync(db, user.UserId, breakerId, request.Name, request.DisplayOrder, cancellationToken);
 
-        var current = await db.Breakers
-            .Where(b => b.Id == breakerId && b.BreakerGroup.Space.SpaceGroup.Owners.Any(o => o.UserId == user.UserId))
-            .Select(b => new { b.BreakerGroupId, b.DisplayOrder })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (current is null)
+        if (result.Status is not SetBreakerResult.Success)
         {
             return NotFound();
         }
 
-        if (request.DisplayOrder is int newOrder && newOrder != current.DisplayOrder)
+        return Ok(new BreakerModel
         {
-            await UpdateBreakerOrder(current.BreakerGroupId, breakerId, current.DisplayOrder, newOrder, cancellationToken);
-        }
-
-        if (request.Name is not null)
-        {
-            await db.Breakers
-                .Where(b => b.Id == breakerId)
-                .ExecuteUpdateAsync(b => b.SetProperty(x => x.Name, request.Name), cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        var breaker = await db.Breakers
-            .Where(b => b.Id == breakerId)
-            .Select(b => new BreakerModel
-            {
-                Id = b.Id,
-                Name = b.Name,
-                BreakerGroupId = b.BreakerGroupId,
-                SpaceGroupId = b.SpaceGroupId,
-                DisplayOrder = b.DisplayOrder,
-                UpstreamBreakerId = b.UpstreamBreakerId
-            })
-            .FirstAsync(cancellationToken);
-
-        return Ok(breaker);
+            Id = breakerId,
+            Name = result.Name,
+            BreakerGroupId = result.BreakerGroupId,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            UpstreamBreakerId = result.UpstreamBreakerId
+        });
     }
 
     [HttpDelete("{breakerId}")]
@@ -161,39 +136,22 @@ public class BreakersController(AppDbContext db) : ControllerBase
     [HttpPatch("{breakerId}/order")]
     public async Task<IActionResult> SetBreakerOrder(CurrentUser user, int breakerId, [FromBody] SetBreakerOrderRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var result = await SpSetBreaker.ExecuteAsync(db, user.UserId, breakerId, null, request.DisplayOrder, cancellationToken);
 
-        var current = await db.Breakers
-            .Where(b => b.Id == breakerId && b.BreakerGroup.Space.SpaceGroup.Owners.Any(o => o.UserId == user.UserId))
-            .Select(b => new { b.BreakerGroupId, b.DisplayOrder })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (current is null)
+        if (result.Status is not SetBreakerResult.Success)
         {
             return NotFound();
         }
 
-        if (request.DisplayOrder != current.DisplayOrder)
+        return Ok(new BreakerModel
         {
-            await UpdateBreakerOrder(current.BreakerGroupId, breakerId, current.DisplayOrder, request.DisplayOrder, cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        var breaker = await db.Breakers
-            .Where(b => b.Id == breakerId)
-            .Select(b => new BreakerModel
-            {
-                Id = b.Id,
-                Name = b.Name,
-                BreakerGroupId = b.BreakerGroupId,
-                SpaceGroupId = b.SpaceGroupId,
-                DisplayOrder = b.DisplayOrder,
-                UpstreamBreakerId = b.UpstreamBreakerId
-            })
-            .FirstAsync(cancellationToken);
-
-        return Ok(breaker);
+            Id = breakerId,
+            Name = result.Name,
+            BreakerGroupId = result.BreakerGroupId,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            UpstreamBreakerId = result.UpstreamBreakerId
+        });
     }
 
     public class SetBreakerUpstreamRequest
@@ -204,68 +162,27 @@ public class BreakersController(AppDbContext db) : ControllerBase
     [HttpPatch("{breakerId}/upstream")]
     public async Task<IActionResult> SetBreakerUpstream(CurrentUser user, int breakerId, [FromBody] SetBreakerUpstreamRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-
         var result = await SpSetBreakerUpstream.ExecuteAsync(db, user.UserId, breakerId, request.UpstreamBreakerId, cancellationToken);
 
-        if (result is SetBreakerUpstreamResult.SelfReference or SetBreakerUpstreamResult.WouldCreateCycle)
+        if (result.Status is SetBreakerUpstreamResult.SelfReference or SetBreakerUpstreamResult.WouldCreateCycle)
         {
             return BadRequest();
         }
 
-        if (result is not SetBreakerUpstreamResult.Success)
+        if (result.Status is not SetBreakerUpstreamResult.Success)
         {
             return NotFound();
         }
 
-        await transaction.CommitAsync(cancellationToken);
-
-        var breaker = await db.Breakers
-            .Where(b => b.Id == breakerId)
-            .Select(b => new BreakerModel
-            {
-                Id = b.Id,
-                Name = b.Name,
-                BreakerGroupId = b.BreakerGroupId,
-                SpaceGroupId = b.SpaceGroupId,
-                DisplayOrder = b.DisplayOrder,
-                UpstreamBreakerId = b.UpstreamBreakerId
-            })
-            .FirstAsync(cancellationToken);
-
-        return Ok(breaker);
+        return Ok(new BreakerModel
+        {
+            Id = breakerId,
+            Name = result.Name,
+            BreakerGroupId = result.BreakerGroupId,
+            SpaceGroupId = result.SpaceGroupId,
+            DisplayOrder = result.DisplayOrder,
+            UpstreamBreakerId = result.UpstreamBreakerId
+        });
     }
 
-    private async Task UpdateBreakerOrder(int breakerGroupId, int breakerId, int oldOrder, int newOrder, CancellationToken cancellationToken)
-    {
-        var delta = newOrder - oldOrder;
-
-        if (Math.Abs(delta) == 1)
-        {
-            await db.Breakers
-                .Where(b => b.BreakerGroupId == breakerGroupId && (b.Id == breakerId || b.DisplayOrder == newOrder))
-                .ExecuteUpdateAsync(b => b.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == breakerId ? newOrder : oldOrder),
-                    cancellationToken);
-        }
-        else if (delta > 0)
-        {
-            await db.Breakers
-                .Where(b => b.BreakerGroupId == breakerGroupId && b.DisplayOrder >= oldOrder && b.DisplayOrder <= newOrder)
-                .ExecuteUpdateAsync(b => b.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == breakerId ? newOrder : x.DisplayOrder - 1),
-                    cancellationToken);
-        }
-        else
-        {
-            await db.Breakers
-                .Where(b => b.BreakerGroupId == breakerGroupId && b.DisplayOrder >= newOrder && b.DisplayOrder <= oldOrder)
-                .ExecuteUpdateAsync(b => b.SetProperty(
-                    x => x.DisplayOrder,
-                    x => x.Id == breakerId ? newOrder : x.DisplayOrder + 1),
-                    cancellationToken);
-        }
-    }
 }
