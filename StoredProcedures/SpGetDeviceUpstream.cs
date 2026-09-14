@@ -34,7 +34,6 @@ public static class SpGetDeviceUpstream
             BEGIN
                 SET {FOUND} = 0;
                 SELECT
-                    CAST(0 AS INT) AS RootBreakerId,
                     CAST(0 AS INT) AS Id,
                     CAST('' AS NVARCHAR(255)) AS Name,
                     CAST(0 AS INT) AS BreakerGroupId,
@@ -48,29 +47,29 @@ public static class SpGetDeviceUpstream
             SET {FOUND} = 1;
 
             ;WITH BreakerChain AS (
-                SELECT db.BreakerId AS RootBreakerId, b.Id, b.Name, b.BreakerGroupId, b.SpaceGroupId, b.DisplayOrder, b.UpstreamBreaker, 0 AS Depth
+                SELECT b.Id, b.Name, b.BreakerGroupId, b.SpaceGroupId, b.DisplayOrder, b.UpstreamBreaker
                 FROM DeviceBreaker db
                 INNER JOIN Breaker b ON b.Id = db.BreakerId
                 WHERE db.DeviceId = {DEVICE_ID}
 
                 UNION ALL
 
-                SELECT c.RootBreakerId, p.Id, p.Name, p.BreakerGroupId, p.SpaceGroupId, p.DisplayOrder, p.UpstreamBreaker, c.Depth + 1
+                SELECT p.Id, p.Name, p.BreakerGroupId, p.SpaceGroupId, p.DisplayOrder, p.UpstreamBreaker
                 FROM Breaker p
                 INNER JOIN BreakerChain c ON p.Id = c.UpstreamBreaker
             )
-            SELECT RootBreakerId, Id, Name, BreakerGroupId, SpaceGroupId, DisplayOrder, UpstreamBreaker
+            SELECT DISTINCT Id, Name, BreakerGroupId, SpaceGroupId, DisplayOrder, UpstreamBreaker
             FROM BreakerChain
-            ORDER BY RootBreakerId, Depth;
+            ORDER BY Id;
         END
         """;
 
     public readonly record struct Node(int Id, string Name, int BreakerGroupId, int SpaceGroupId, int DisplayOrder, int? UpstreamBreakerId);
-    public readonly record struct Result(bool Found, List<(int RootBreakerId, List<Node> Chain)> Chains);
+    public readonly record struct Result(bool Found, List<Node> Breakers);
 
     public static async Task<Result> ExecuteAsync(AppDbContext db, int userId, int deviceId, CancellationToken cancellationToken)
     {
-        var chains = new List<(int RootBreakerId, List<Node> Chain)>();
+        var breakers = new List<Node>();
 
         var connection = db.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
@@ -93,7 +92,6 @@ public static class SpGetDeviceUpstream
 
             using (var reader = await command.ExecuteReaderAsync(cancellationToken))
             {
-                var rootBreakerIdOrdinal = reader.GetOrdinal("RootBreakerId");
                 var idOrdinal = reader.GetOrdinal("Id");
                 var nameOrdinal = reader.GetOrdinal("Name");
                 var breakerGroupIdOrdinal = reader.GetOrdinal("BreakerGroupId");
@@ -101,21 +99,9 @@ public static class SpGetDeviceUpstream
                 var displayOrderOrdinal = reader.GetOrdinal("DisplayOrder");
                 var upstreamBreakerOrdinal = reader.GetOrdinal("UpstreamBreaker");
 
-                List<Node>? currentChain = null;
-                var currentRootBreakerId = 0;
-
                 while (await reader.ReadAsync(cancellationToken))
                 {
-                    var rootBreakerId = reader.GetInt32(rootBreakerIdOrdinal);
-
-                    if (currentChain is null || rootBreakerId != currentRootBreakerId)
-                    {
-                        currentChain = [];
-                        currentRootBreakerId = rootBreakerId;
-                        chains.Add((rootBreakerId, currentChain));
-                    }
-
-                    currentChain.Add(new Node(
+                    breakers.Add(new Node(
                         reader.GetInt32(idOrdinal),
                         reader.GetString(nameOrdinal),
                         reader.GetInt32(breakerGroupIdOrdinal),
@@ -125,7 +111,7 @@ public static class SpGetDeviceUpstream
                 }
             }
 
-            return new Result((bool)foundParam.Value, chains);
+            return new Result((bool)foundParam.Value, breakers);
         }
         finally
         {

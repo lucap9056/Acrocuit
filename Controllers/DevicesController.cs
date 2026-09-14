@@ -188,12 +188,6 @@ public class DevicesController(AppDbContext db) : ControllerBase
         };
     }
 
-    public class DeviceUpstreamModel
-    {
-        public int BreakerId { get; set; }
-        public List<BreakerModel> Chain { get; set; } = [];
-    }
-
     [HttpGet("{deviceId}/upstream")]
     public async Task<IActionResult> GetDeviceUpstream(CurrentUser user, int deviceId, CancellationToken cancellationToken)
     {
@@ -204,23 +198,19 @@ public class DevicesController(AppDbContext db) : ControllerBase
             return NotFound();
         }
 
-        var upstreams = result.Chains.Select(c => new DeviceUpstreamModel
-        {
-            BreakerId = c.RootBreakerId,
-            Chain = [
-                .. c.Chain.Select(n => new BreakerModel
-                {
-                    Id = n.Id,
-                    Name = n.Name,
-                    BreakerGroupId = n.BreakerGroupId,
-                    SpaceGroupId = n.SpaceGroupId,
-                    DisplayOrder = n.DisplayOrder,
-                    UpstreamBreakerId = n.UpstreamBreakerId
-                })
-            ]
-        }).ToList();
+        var breakers = result.Breakers
+            .Select(n => new BreakerModel
+            {
+                Id = n.Id,
+                Name = n.Name,
+                BreakerGroupId = n.BreakerGroupId,
+                SpaceGroupId = n.SpaceGroupId,
+                DisplayOrder = n.DisplayOrder,
+                UpstreamBreakerId = n.UpstreamBreakerId
+            })
+            .ToList();
 
-        return Ok(upstreams);
+        return Ok(breakers);
     }
 
     [HttpDelete("{deviceId}/breakers/{breakerId}")]
