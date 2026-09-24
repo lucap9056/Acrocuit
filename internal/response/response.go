@@ -1,11 +1,11 @@
 package response
 
 import (
-	"log"
+	"acrocuit/internal/logs"
 	"net/http"
-	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Response[T any] struct {
@@ -36,7 +36,7 @@ func AbortError(c *gin.Context, status int, message string) {
 
 func Recovery() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
-		log.Printf("panic recovered: %v\n%s", recovered, debug.Stack())
+		logs.Out.Error("panic recovered", zap.Any("panic", recovered), zap.String("path", c.Request.URL.Path), zap.Stack("stack"))
 		AbortError(c, http.StatusInternalServerError, "internal server error")
 	})
 }
