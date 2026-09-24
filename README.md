@@ -75,15 +75,15 @@ The API listens on the URL configured by ASP.NET Core's default launch profile, 
 
 ## Docker Support
 
-A ready-to-use SQL Server + app stack is provided under `docker/`.
+A ready-to-use SQL Server + app stack is provided under `docker.net/`.
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker.net/docker-compose.yml up -d --build
 ```
 
 This starts:
 - `mssql`: SQL Server 2022 with a health check gating the app's startup.
-- `app`: the Acrocuit API, built from `docker/Dockerfile`, exposed on `http://localhost:5153`.
+- `app`: the Acrocuit API, built from `docker.net/Dockerfile`, exposed on `http://localhost:5153`.
 
 After the stack is healthy, apply migrations against it (e.g. from the host, pointing `ConnectionStrings__Default` at the exposed SQL Server port) before calling the API.
 

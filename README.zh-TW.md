@@ -75,15 +75,15 @@ API 會依 ASP.NET Core 預設的啟動設定監聽，並在 `Development` 環�
 
 ## Docker 支援
 
-`docker/` 目錄下提供了可直接使用的 SQL Server + app 服務棧。
+`docker.net/` 目錄下提供了可直接使用的 SQL Server + app 服務棧。
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker.net/docker-compose.yml up -d --build
 ```
 
 此指令會啟動：
 - `mssql`：SQL Server 2022，並透過 health check 確保其就緒後才啟動 app。
-- `app`：Acrocuit API，由 `docker/Dockerfile` 建置，對外暴露於 `http://localhost:5153`。
+- `app`：Acrocuit API，由 `docker.net/Dockerfile` 建置，對外暴露於 `http://localhost:5153`。
 
 服務棧健康後，請先對其套用 migrations（例如從主機端，將 `ConnectionStrings__Default` 指向對外暴露的 SQL Server port），再呼叫 API。
 
