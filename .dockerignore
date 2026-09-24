@@ -1,18 +1,15 @@
 bin/
-obj/
-.vs/
 .git/
 .github/
-Debug/
-docker/
+debug/
+docker*/
+*.md
+*.http
+.env
 
 *.http
 *.md
 
-appsettings.json
-appsettings.Development.json
-
-init.sql
 .dockerignore
 .gitignore
 .gitattributes
