@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: acrocuit-postgres
+    environment:
+      POSTGRES_USER: "acrocuit"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "acrocuit"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # 首次初始化時 entrypoint 會先起一個只聽 unix socket 的暫時 server，走 TCP 才不會在它重啟前誤判 healthy
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U acrocuit -d acrocuit"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  dbinit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: dbinit
+    container_name: acrocuit-dbinit
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_DSN: "postgres://acrocuit:postgres@postgres:5432/acrocuit?sslmode=disable"
+    restart: "no"
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: app
+    container_name: acrocuit-go-app
+    depends_on:
+      dbinit:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: "development"
+      DATABASE_DSN: "postgres://acrocuit:postgres@postgres:5432/acrocuit?sslmode=disable"
+      JWT_ISSUER: "Acrocuit"
+      JWT_AUDIENCE: "AcrocuitClient"
+      JWT_SECRET_KEY: "local-dev-only-secret-00000000000000000000"
+      JWT_ACCESS_TOKEN_EXPIRY_MINUTES: "60"
+      JWT_REFRESH_TOKEN_EXPIRY_DAYS: "7"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:
