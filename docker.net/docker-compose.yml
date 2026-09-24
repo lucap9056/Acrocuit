@@ -20,7 +20,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker.net/Dockerfile
     container_name: acrocuit-app
     depends_on:
       mssql:
