@@ -77,6 +77,10 @@ func (ctr *authController) Login(c *gin.Context) {
 	}
 
 	secret, err := ctr.Users.GetUserSecret(c.Request.Context(), req.Username)
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		internalError(c, err)
+		return
+	}
 	if err != nil || !verifyPassword(req.Password, secret) {
 		response.Error(c, http.StatusUnauthorized, "Invalid username or password.")
 		return

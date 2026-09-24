@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -75,7 +76,11 @@ func (u *pgUsers) GetUserSecret(ctx context.Context, username string) (*models.U
 	`
 
 	secret := &models.UserSecret{}
-	if err := u.pool.QueryRow(ctx, query, username).Scan(secret.Values(fields)...); err != nil {
+	err = u.pool.QueryRow(ctx, query, username).Scan(secret.Values(fields)...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
 		return nil, err
 	}
 
