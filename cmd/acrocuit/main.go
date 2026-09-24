@@ -3,24 +3,32 @@ package main
 import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/handlers"
+	"acrocuit/internal/logs"
 	"acrocuit/internal/response"
 	"acrocuit/internal/setup"
 	"acrocuit/internal/storage"
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lucap9056/go-lifecycle/v2/lifecycle"
 	"github.com/lucap9056/go-lifecycle/v2/runner"
+	"go.uber.org/zap"
 )
 
 func main() {
-	err := runner.Run(func(lc *lifecycle.Coordinator) error {
-		cfg := setup.Load()
+	cfg := setup.Load()
 
+	logs.InitLogger(cfg.Logging)
+	defer logs.Sync()
+
+	if cfg.Environment != "development" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	err := runner.Run(func(lc *lifecycle.Coordinator) error {
 		jwt := auth.NewJWTService(cfg.JWT)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -32,7 +40,7 @@ func main() {
 		lc.OnExit(s.Close)
 
 		r := gin.New()
-		r.Use(response.Recovery())
+		r.Use(logs.RequestLogger(), response.Recovery())
 		handlers.New(r, s, jwt)
 
 		server := &http.Server{Addr: cfg.HTTP.Addr, Handler: r}
@@ -41,12 +49,13 @@ func main() {
 				lc.Exitf("server error: %v", err)
 			}
 		}()
+		logs.Out.Info("server started", zap.String("addr", cfg.HTTP.Addr), zap.String("environment", cfg.Environment))
 
 		lc.OnExit(func() {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			if err := server.Shutdown(shutdownCtx); err != nil {
-				log.Printf("server shutdown: %v", err)
+				logs.Out.Error("server shutdown failed", zap.Error(err))
 			}
 		})
 
@@ -54,6 +63,6 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("acrocuit: %v", err)
+		logs.Out.Fatal("acrocuit exited with error", zap.Error(err))
 	}
 }

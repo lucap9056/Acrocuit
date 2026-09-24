@@ -37,6 +37,11 @@ func handleStorageErr(c *gin.Context, err error) {
 	case errors.Is(err, storage.ErrSelfReference), errors.Is(err, storage.ErrCycleDetected):
 		response.Error(c, http.StatusBadRequest, err.Error())
 	default:
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 	}
+}
+
+func internalError(c *gin.Context, err error) {
+	_ = c.Error(err)
+	response.Error(c, http.StatusInternalServerError, "internal server error")
 }

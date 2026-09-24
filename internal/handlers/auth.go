@@ -52,7 +52,7 @@ func (ctr *authController) Register(c *gin.Context) {
 
 	salt := make([]byte, pbkdf2SaltLength)
 	if _, err := rand.Read(salt); err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 	hash := hashPassword(req.Password, salt)
@@ -63,7 +63,7 @@ func (ctr *authController) Register(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 
@@ -84,12 +84,12 @@ func (ctr *authController) Login(c *gin.Context) {
 
 	accessToken, err := ctr.jwt.GenerateAccessToken(secret.UserId, req.Username)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 	refreshToken, err := ctr.jwt.GenerateRefreshToken(secret.UserId, req.Username)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 
@@ -110,12 +110,12 @@ func (ctr *authController) Refresh(c *gin.Context) {
 
 	accessToken, err := ctr.jwt.GenerateAccessToken(userId, username)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 	refreshToken, err := ctr.jwt.GenerateRefreshToken(userId, username)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, "internal server error")
+		internalError(c, err)
 		return
 	}
 

@@ -2,6 +2,7 @@ package setup
 
 import (
 	"acrocuit/internal/auth"
+	"acrocuit/internal/logs"
 	"os"
 	"strconv"
 	"time"
@@ -12,7 +13,7 @@ type Config struct {
 	HTTP        *HTTPConfig
 	Database    *DatabaseConfig
 	JWT         *auth.Config
-	Logging     *LoggingConfig
+	Logging     *logs.Config
 }
 
 type HTTPConfig struct {
@@ -22,10 +23,6 @@ type HTTPConfig struct {
 
 type DatabaseConfig struct {
 	DSN string
-}
-
-type LoggingConfig struct {
-	Level string
 }
 
 func Load() *Config {
@@ -45,8 +42,15 @@ func Load() *Config {
 			AccessTokenExpiry:  time.Duration(getEnvInt("JWT_ACCESS_TOKEN_EXPIRY_MINUTES", 15)) * time.Minute,
 			RefreshTokenExpiry: time.Duration(getEnvInt("JWT_REFRESH_TOKEN_EXPIRY_DAYS", 7)) * 24 * time.Hour,
 		},
-		Logging: &LoggingConfig{
-			Level: getEnv("LOG_LEVEL", "info"),
+		Logging: &logs.Config{
+			Level:      getEnv("LOG_LEVEL", "info"),
+			StdFormat:  getEnv("LOG_STD_FORMAT", ""),
+			FilePath:   getEnv("LOG_FILE_PATH", ""),
+			FileFormat: getEnv("LOG_FILE_FORMAT", ""),
+			MaxSize:    getEnvInt("LOG_MAX_SIZE", 50),
+			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 3),
+			MaxAge:     getEnvInt("LOG_MAX_AGE", 28),
+			Compress:   getEnvBool("LOG_COMPRESS", true),
 		},
 	}
 }
@@ -68,4 +72,16 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+	return b
 }
