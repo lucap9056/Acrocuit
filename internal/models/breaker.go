@@ -16,16 +16,16 @@ type Breaker struct {
 	SpaceGroupId      int    `json:"-"`
 	UpstreamBreakerId *int   `json:"-"`
 
-	BreakerGroup   *BreakerGroup `json:"break_group"`
-	UpsteamBreaker *Breaker      `json:"upstream_breaker"`
+	BreakerGroup    *BreakerGroup `json:"breaker_group"`
+	UpstreamBreaker *Breaker      `json:"upstream_breaker"`
 }
 
 func (b *Breaker) Build() {
 	if b.BreakerGroup == nil && b.BreakerGroupId != 0 {
 		b.BreakerGroup = &BreakerGroup{Id: b.BreakerGroupId, SpaceGroupId: b.SpaceGroupId}
 	}
-	if b.UpsteamBreaker == nil && b.UpstreamBreakerId != nil {
-		b.UpsteamBreaker = &Breaker{Id: *b.UpstreamBreakerId, SpaceGroupId: b.SpaceGroupId}
+	if b.UpstreamBreaker == nil && b.UpstreamBreakerId != nil {
+		b.UpstreamBreaker = &Breaker{Id: *b.UpstreamBreakerId, SpaceGroupId: b.SpaceGroupId}
 	}
 }
 
