@@ -2,14 +2,11 @@ English | [繁體中文](README.zh-TW.md)
 
 <div align="center">
 	<h1>Acrocuit</h1>
-
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](Acrocuit.csproj)
-[![EF Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)](Acrocuit.csproj)
 </div>
 
 ---
 
-Acrocuit is a backend for recording how a building's electrical wiring is routed, built with ASP.NET Core 8 and Entity Framework Core. It models a building as a hierarchy of space groups, spaces, breaker groups, and breakers, and lets devices be wired to one or more breakers so switches, lights, and multi-way wiring scenarios can all be documented accurately — it does not control devices, only records the wiring topology.
+Acrocuit models a building as a hierarchy of space groups, spaces, breaker groups, and breakers, and lets devices be wired to one or more breakers, so the circuit routing and topology of switches and appliances can be recorded accurately.
 
 ## Core Features
 
@@ -20,76 +17,51 @@ Acrocuit is a backend for recording how a building's electrical wiring is routed
 
 ## Getting Started
 
-### Prerequisites
-
-- .NET SDK 8.0 (see `global.json`).
-- A SQL Server instance (or use the provided Docker Compose setup).
-
-### Installation
+### Docker
 
 ```bash
-git clone https://github.com/lucap9056/Acrocuit.git
-cd Acrocuit
-
-dotnet restore
+docker compose -f docker/docker-compose.yml up -d --build
 ```
+
+Starts PostgreSQL, applies the schema via `dbinit`, then serves the API on `http://localhost:8080`. Reset the database with `docker compose -f docker/docker-compose.yml down -v`.
+
+### Local
+
+```bash
+export DATABASE_DSN="postgres://user:pass@localhost:5432/acrocuit?sslmode=disable"
+export JWT_SECRET_KEY="REPLACE_WITH_YOUR_OWN_SECRET"
+
+go run ./cmd/dbinit
+go run ./cmd/acrocuit
+```
+
+`dbinit` is idempotent, but it does not alter existing tables — recreate the database to apply table structure changes.
 
 ### Configuration
 
-Copy the example settings file and fill in your own secrets:
+| Variable | Default |
+| :--- | :--- |
+| `DATABASE_DSN` | required |
+| `JWT_SECRET_KEY` | required |
+| `JWT_ISSUER` / `JWT_AUDIENCE` | `Acrocuit` / `AcrocuitClient` |
+| `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` / `JWT_REFRESH_TOKEN_EXPIRY_DAYS` | `15` / `7` |
+| `HTTP_ADDR` | `:8080` |
+| `APP_ENV` | `production` |
+| `LOG_LEVEL` | `info` |
+| `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console (`json` optional) |
+| `LOG_FILE_PATH` | disabled |
+
+## Testing
+
+`tests/api_test.go` has one test per endpoint; each sends a single request to a running server and logs the response.
 
 ```bash
-cp appsettings.json.example appsettings.json
+ACROCUIT_ACCESS_TOKEN=... ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 ```
-
-```json
-{
-  "JwtSettings": {
-    "SecretKey": "REPLACE_WITH_YOUR_OWN_SECRET"
-  },
-  "ConnectionStrings": {
-    "Default": "Server=localhost;Database=Acrocuit;User Id=sa;Password=REPLACE_ME;TrustServerCertificate=True"
-  }
-}
-```
-
-`appsettings.json` is gitignored and must never be committed.
-
-### Database
-
-Schema is managed entirely through EF Core migrations:
-
-```bash
-dotnet ef database update
-```
-
-Stored procedures and triggers (under `StoredProcedures/` and `Triggers/`) are not part of the migrations — they are applied automatically at application startup via idempotent `CREATE OR ALTER` scripts.
-
-### Running
-
-```bash
-dotnet run
-```
-
-The API listens on the URL configured by ASP.NET Core's default launch profile, with Swagger UI available in the `Development` environment.
-
-## Docker Support
-
-A ready-to-use SQL Server + app stack is provided under `docker.net/`.
-
-```bash
-docker compose -f docker.net/docker-compose.yml up -d --build
-```
-
-This starts:
-- `mssql`: SQL Server 2022 with a health check gating the app's startup.
-- `app`: the Acrocuit API, built from `docker.net/Dockerfile`, exposed on `http://localhost:5153`.
-
-After the stack is healthy, apply migrations against it (e.g. from the host, pointing `ConnectionStrings__Default` at the exposed SQL Server port) before calling the API.
 
 ## API Overview
 
-All endpoints except `/auth/*` require a Bearer access token.
+All endpoints except `/auth/*` require a Bearer access token. Responses are wrapped as `{ "success", "data", "error" }` with `snake_case` fields.
 
 | Resource | Base Route |
 | :--- | :--- |
@@ -97,5 +69,5 @@ All endpoints except `/auth/*` require a Bearer access token.
 | Space Groups | `/space-groups` |
 | Spaces | `/spaces` |
 | Breaker Groups | `/breaker-groups` |
-| Breakers | `/breakers` (includes `/breakers/{id}/downstream`, `/breakers/{id}/upstream`) |
+| Breakers | `/breakers` (includes `/breakers/{id}/upstream`, `/breakers/{id}/downstream`) |
 | Devices | `/devices` (includes `/devices/{id}/breakers`, `/devices/{id}/upstream`) |

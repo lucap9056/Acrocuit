@@ -2,14 +2,11 @@
 
 <div align="center">
 	<h1>Acrocuit</h1>
-
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](Acrocuit.csproj)
-[![EF Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)](Acrocuit.csproj)
 </div>
 
 ---
 
-Acrocuit 是一個使用 ASP.NET Core 8 與 Entity Framework Core 打造的空間電路走向紀錄工具。它將建築物建模為 `空間群組 → 空間 → 斷路器群組 → 斷路器` 的階層結構，並讓裝置能連接到一個或多個斷路器，藉此準確記錄開關、燈具與多切開關等接線情境——它不控制裝置，只記錄電路的走向與拓樸。
+Acrocuit 將建築物建模為 `空間群組 → 空間 → 斷路器群組 → 斷路器` 的階層結構，並讓裝置能連接到一個或多個斷路器，藉此準確記錄開關、電器的電路走向與拓樸。
 
 ## 核心功能
 
@@ -20,76 +17,51 @@ Acrocuit 是一個使用 ASP.NET Core 8 與 Entity Framework Core 打造的空�
 
 ## 開始使用
 
-### 先決條件
-
-- .NET SDK 8.0（詳見 `global.json`）。
-- 一個 SQL Server 執行個體（或直接使用提供的 Docker Compose 環境）。
-
-### 安裝
+### Docker
 
 ```bash
-git clone https://github.com/lucap9056/Acrocuit.git
-cd Acrocuit
-
-dotnet restore
+docker compose -f docker/docker-compose.yml up -d --build
 ```
+
+啟動 PostgreSQL，透過 `dbinit` 套用 schema，並在 `http://localhost:8080` 提供 API。以 `docker compose -f docker/docker-compose.yml down -v` 重置資料庫。
+
+### 本機
+
+```bash
+export DATABASE_DSN="postgres://user:pass@localhost:5432/acrocuit?sslmode=disable"
+export JWT_SECRET_KEY="REPLACE_WITH_YOUR_OWN_SECRET"
+
+go run ./cmd/dbinit
+go run ./cmd/acrocuit
+```
+
+`dbinit` 可重複執行，但不會修改既有 table——table 結構變更需重建資料庫才會生效。
 
 ### 設定
 
-複製範例設定檔並填入自己的機敏資訊：
+| 變數 | 預設值 |
+| :--- | :--- |
+| `DATABASE_DSN` | 必填 |
+| `JWT_SECRET_KEY` | 必填 |
+| `JWT_ISSUER` / `JWT_AUDIENCE` | `Acrocuit` / `AcrocuitClient` |
+| `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` / `JWT_REFRESH_TOKEN_EXPIRY_DAYS` | `15` / `7` |
+| `HTTP_ADDR` | `:8080` |
+| `APP_ENV` | `production` |
+| `LOG_LEVEL` | `info` |
+| `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console（可選 `json`） |
+| `LOG_FILE_PATH` | 停用 |
+
+## 測試
+
+`tests/api_test.go` 為每個端點各提供一個 test，對執行中的 server 送出單一 request 並記錄回應。
 
 ```bash
-cp appsettings.json.example appsettings.json
+ACROCUIT_ACCESS_TOKEN=... ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 ```
-
-```json
-{
-  "JwtSettings": {
-    "SecretKey": "REPLACE_WITH_YOUR_OWN_SECRET"
-  },
-  "ConnectionStrings": {
-    "Default": "Server=localhost;Database=Acrocuit;User Id=sa;Password=REPLACE_ME;TrustServerCertificate=True"
-  }
-}
-```
-
-`appsettings.json` 已加入 `.gitignore`，不得提交到版本控制。
-
-### 資料庫
-
-Schema 完全由 EF Core migrations 管理：
-
-```bash
-dotnet ef database update
-```
-
-Stored procedure 與 trigger（位於 `StoredProcedures/` 與 `Triggers/`）不屬於 migrations 的一部分，而是在應用程式啟動時，透過具備冪等性的 `CREATE OR ALTER` 腳本自動套用。
-
-### 執行
-
-```bash
-dotnet run
-```
-
-API 會依 ASP.NET Core 預設的啟動設定監聽，並在 `Development` 環境下提供 Swagger UI。
-
-## Docker 支援
-
-`docker.net/` 目錄下提供了可直接使用的 SQL Server + app 服務棧。
-
-```bash
-docker compose -f docker.net/docker-compose.yml up -d --build
-```
-
-此指令會啟動：
-- `mssql`：SQL Server 2022，並透過 health check 確保其就緒後才啟動 app。
-- `app`：Acrocuit API，由 `docker.net/Dockerfile` 建置，對外暴露於 `http://localhost:5153`。
-
-服務棧健康後，請先對其套用 migrations（例如從主機端，將 `ConnectionStrings__Default` 指向對外暴露的 SQL Server port），再呼叫 API。
 
 ## API 概覽
 
-除了 `/auth/*` 之外，所有端點都需要 Bearer access token。
+除了 `/auth/*` 之外，所有端點都需要 Bearer access token。回應統一包成 `{ "success", "data", "error" }`，欄位採 `snake_case`。
 
 | 資源 | 基礎路由 |
 | :--- | :--- |
@@ -97,6 +69,5 @@ docker compose -f docker.net/docker-compose.yml up -d --build
 | 空間群組 | `/space-groups` |
 | 空間 | `/spaces` |
 | 斷路器群組 | `/breaker-groups` |
-| 斷路器 | `/breakers`（包含 `/breakers/{id}/downstream`、`/breakers/{id}/upstream`） |
+| 斷路器 | `/breakers`（包含 `/breakers/{id}/upstream`、`/breakers/{id}/downstream`） |
 | 裝置 | `/devices`（包含 `/devices/{id}/breakers`、`/devices/{id}/upstream`） |
-
