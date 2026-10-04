@@ -6,68 +6,101 @@ English | [繁體中文](README.zh-TW.md)
 
 ---
 
-Acrocuit models a building as a hierarchy of space groups, spaces, breaker groups, and breakers, and lets devices be wired to one or more breakers, so the circuit routing and topology of switches and appliances can be recorded accurately.
+Records a building's circuit topology as `space group → space → breaker group → breaker`.
 
-## Core Features
-
-- **Space Hierarchy**: `SpaceGroup → Space → BreakerGroup → Breaker`, each scoped to its owner.
-- **Ordering**: `Space.DisplayOrder` can be used to simulate floor ordering, and `Breaker.DisplayOrder` can be used to simulate the ordering of breakers within a distribution panel.
-- **Breaker Chains**: breakers can reference an upstream breaker within the same space group, forming power-distribution chains that are queried recursively (upstream chain, downstream tree), which helps identify the impact scope of a specific breaker — which devices and downstream breakers would be affected if it were switched off.
-- **Device Wiring**: devices are linked to breakers through a many-to-many junction table, so a single device (e.g. a light) can be recorded as wired to multiple switches.
+- **Ordering**: spaces and breakers have a `display_order` for floors and panel layout
+- **Breaker chains**: a breaker can point to an upstream breaker in the same space group
+  - Query the upstream chain and downstream tree to see what switching one off affects
+- **Device wiring**: a device can hang off several breakers, e.g. a light with two switches
+- **Background images**: each space can have one background image
 
 ## Getting Started
 
-### Docker
+### SQLite (single-user)
 
 ```bash
+go build -o bin/acrocuit ./cmd/acrocuit
+./bin/acrocuit
+```
+
+- The database is `data/acrocuit.db` next to the executable; its schema is created on startup
+- `go run` builds into a temporary directory, so set `DATABASE_DSN=sqlite://<path>` to keep data
+
+### Docker (PostgreSQL, multi-user)
+
+```bash
+cp docker/.env.example docker/.env   # set IDENTITY_JWT_SECRET and the OAuth2.0 / OIDC provider
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-Starts PostgreSQL, applies the schema via `dbinit`, then serves the API on `http://localhost:8080`. Reset the database with `docker compose -f docker/docker-compose.yml down -v`.
+- Runs PostgreSQL, the app, [corvauth](https://github.com/lucap9056/corvauth), and nginx
+  - `dbinit` and `corvauth-schema` create their tables before startup
+  - Only nginx is published (`http://localhost:8080`)
+- Register `<PUBLIC_URL>/auth/callback` as the provider's redirect URL
+- Sign in via `/auth/login`, then call `/api` with `Authorization: Bearer <access_token>`
+- Volumes created before the built-in users were removed must be reset with `down -v`
 
-### Local
+### PostgreSQL
 
 ```bash
 export DATABASE_DSN="postgres://user:pass@localhost:5432/acrocuit?sslmode=disable"
-export JWT_SECRET_KEY="REPLACE_WITH_YOUR_OWN_SECRET"
-
 go run ./cmd/dbinit
 go run ./cmd/acrocuit
 ```
 
-`dbinit` is idempotent, but it does not alter existing tables — recreate the database to apply table structure changes.
+`dbinit` is idempotent, but does not alter existing tables.
 
-### Configuration
+## Configuration
 
 | Variable | Default |
 | :--- | :--- |
-| `DATABASE_DSN` | required |
-| `JWT_SECRET_KEY` | required |
-| `JWT_ISSUER` / `JWT_AUDIENCE` | `Acrocuit` / `AcrocuitClient` |
-| `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` / `JWT_REFRESH_TOKEN_EXPIRY_DAYS` | `15` / `7` |
+| `DATABASE_DSN` | `data/acrocuit.db` next to the executable; or `postgres://...` / `sqlite://<path>` |
+| `IDENTITY_JWT_SECRET` | unset (see [Authentication](#authentication)) |
 | `HTTP_ADDR` | `:8080` |
 | `APP_ENV` | `production` |
 | `LOG_LEVEL` | `info` |
 | `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console (`json` optional) |
 | `LOG_FILE_PATH` | disabled |
 
+## Authentication
+
+Acrocuit does not manage users. The database decides the mode:
+
+| `DATABASE_DSN` | `IDENTITY_JWT_SECRET` | Mode |
+| :--- | :--- | :--- |
+| `sqlite://` | — | Single-user, fixed owner `owner@localhost`, no authentication |
+| `postgres://` | set | Multi-user, verifies the signed `X-Forwarded-Identity` |
+| `postgres://` | unset | Multi-user, trusts the plain `X-Forwarded-User-Email` |
+
+- Multi-user mode expects [corvauth](https://github.com/lucap9056/corvauth) `/verify` behind a reverse proxy
+  - The email is the owner; a missing or invalid identity gets `401`
+- The secret is at least 32 bytes and shared with corvauth
+- Without the secret, make sure a proxy strips client-supplied identity headers
+- Setting the secret with SQLite only logs a warning
+
 ## Testing
 
-`tests/api_test.go` has one test per endpoint; each sends a single request to a running server and logs the response.
+Tests send requests to a running server (`ACROCUIT_HOST`, default `http://localhost:8080`) and skip when it is unreachable.
+
+- `tests/e2e_test.go`: behavior tests with assertions; each test creates and removes its own data
+- `tests/api_test.go`: one request per endpoint, logging the response
 
 ```bash
-ACROCUIT_ACCESS_TOKEN=... ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
+go test ./tests -run TestE2E -v
+ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 ```
 
-## API Overview
+In multi-user mode, pass `ACROCUIT_ACCESS_TOKEN` (through the proxy) or `ACROCUIT_IDENTITY_TOKEN` (directly to the app).
 
-All endpoints except `/auth/*` require a Bearer access token. Responses are wrapped as `{ "success", "data", "error" }` with `snake_case` fields.
+## API
 
-| Resource | Base Route |
+- All routes are under `/api`
+- Responses are wrapped as `{ "success", "data", "error" }` with `snake_case` fields
+
+| Route | Sub-routes |
 | :--- | :--- |
-| Authentication | `/auth` (`register`, `login`, `refresh`) |
-| Space Groups | `/space-groups` |
-| Spaces | `/spaces` |
-| Breaker Groups | `/breaker-groups` |
-| Breakers | `/breakers` (includes `/breakers/{id}/upstream`, `/breakers/{id}/downstream`) |
-| Devices | `/devices` (includes `/devices/{id}/breakers`, `/devices/{id}/upstream`) |
+| `/api/space-groups` | |
+| `/api/spaces` | `/{id}/background-image`: multipart field `image`, PNG/JPEG/WebP/GIF, up to 10 MB |
+| `/api/breaker-groups` | |
+| `/api/breakers` | `/{id}/upstream`, `/{id}/downstream` |
+| `/api/devices` | `/{id}/breakers`, `/{id}/upstream` |
