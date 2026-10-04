@@ -4,19 +4,18 @@ services:
     container_name: acrocuit-postgres
     environment:
       POSTGRES_USER: "acrocuit"
-      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       POSTGRES_DB: "acrocuit"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      # 首次初始化時 entrypoint 會先起一個只聽 unix socket 的暫時 server，走 TCP 才不會在它重啟前誤判 healthy
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U acrocuit -d acrocuit"]
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 10s
+      start_period: 60s
 
   dbinit:
     build:
@@ -28,7 +27,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_DSN: "postgres://acrocuit:postgres@postgres:5432/acrocuit?sslmode=disable"
+      DATABASE_DSN: "postgres://acrocuit:${POSTGRES_PASSWORD:-postgres}@postgres:5432/acrocuit?sslmode=disable"
     restart: "no"
 
   app:
@@ -36,20 +35,54 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       target: app
-    container_name: acrocuit-go-app
+    container_name: acrocuit-app
     depends_on:
       dbinit:
         condition: service_completed_successfully
     environment:
-      APP_ENV: "development"
-      DATABASE_DSN: "postgres://acrocuit:postgres@postgres:5432/acrocuit?sslmode=disable"
-      JWT_ISSUER: "Acrocuit"
-      JWT_AUDIENCE: "AcrocuitClient"
-      JWT_SECRET_KEY: "local-dev-only-secret-00000000000000000000"
-      JWT_ACCESS_TOKEN_EXPIRY_MINUTES: "60"
-      JWT_REFRESH_TOKEN_EXPIRY_DAYS: "7"
+      APP_ENV: "${APP_ENV:-development}"
+      DATABASE_DSN: "postgres://acrocuit:${POSTGRES_PASSWORD:-postgres}@postgres:5432/acrocuit?sslmode=disable"
+      IDENTITY_JWT_SECRET: "${IDENTITY_JWT_SECRET:?set IDENTITY_JWT_SECRET in docker/.env}"
+
+  corvauth-schema:
+    image: ghcr.io/lucap9056/corvauth:0.1.0
+    container_name: acrocuit-corvauth-schema
+    command: ["schema", "apply"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://acrocuit:${POSTGRES_PASSWORD:-postgres}@postgres:5432/acrocuit?sslmode=disable"
+    restart: "no"
+
+  corvauth:
+    image: ghcr.io/lucap9056/corvauth:0.1.0
+    container_name: acrocuit-corvauth
+    depends_on:
+      corvauth-schema:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "postgres://acrocuit:${POSTGRES_PASSWORD:-postgres}@postgres:5432/acrocuit?sslmode=disable"
+      HTTP_MODE: "${CORVAUTH_HTTP_MODE:-development}"
+      ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
+      IDENTITY_JWT_SECRET: "${IDENTITY_JWT_SECRET:?set IDENTITY_JWT_SECRET in docker/.env}"
+      OAUTH2_REDIRECT_URL: "${PUBLIC_URL:-http://localhost:8080}/auth/callback"
+      OAUTH2_PROVIDER: "${OAUTH2_PROVIDER:-}"
+      OIDC_ISSUER_URL: "${OIDC_ISSUER_URL:-}"
+      OAUTH2_CLIENT_ID: "${OAUTH2_CLIENT_ID:-}"
+      OAUTH2_CLIENT_SECRET: "${OAUTH2_CLIENT_SECRET:-}"
+      OAUTH2_SCOPES: "${OAUTH2_SCOPES:-}"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: acrocuit-nginx
+    depends_on:
+      - app
+      - corvauth
     ports:
-      - "8080:8080"
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   postgres-data:
