@@ -56,6 +56,11 @@ const (
 	Breakers_DISPLAY_ORDER       = baseDisplayOrder
 	Breakers_UPSTREAM_BREAKER_ID = "upstream_breaker_id"
 
+	SpaceBackgroundImagesTable         = "space_background_images"
+	SpaceBackgroundImages_SPACE_ID     = baseSpaceID
+	SpaceBackgroundImages_CONTENT_TYPE = "content_type"
+	SpaceBackgroundImages_DATA         = "data"
+
 	DevicesTable     = "devices"
 	Devices_ID       = baseId
 	Devices_NAME     = baseName
@@ -103,6 +108,10 @@ const (
 	FullBreakers_DISPLAY_ORDER       = BreakersTable + "." + Breakers_DISPLAY_ORDER
 	FullBreakers_UPSTREAM_BREAKER_ID = BreakersTable + "." + Breakers_UPSTREAM_BREAKER_ID
 
+	FullSpaceBackgroundImages_SPACE_ID     = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_SPACE_ID
+	FullSpaceBackgroundImages_CONTENT_TYPE = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_CONTENT_TYPE
+	FullSpaceBackgroundImages_DATA         = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_DATA
+
 	FullDevices_ID       = DevicesTable + "." + Devices_ID
 	FullDevices_NAME     = DevicesTable + "." + Devices_NAME
 	FullDevices_SPACE_ID = DevicesTable + "." + Devices_SPACE_ID
@@ -126,6 +135,7 @@ const (
 	JoinBreakers_BreakerGroups              = FullBreakers_BREAKER_GROUP_ID + " = " + FullBreakerGroups_ID
 	JoinSpaceGroupOwners_BreakerGroups      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullBreakerGroups_SPACE_GROUP_ID
 	JoinSpaceGroupOwners_Breakers           = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullBreakers_SPACE_GROUP_ID
+	JoinSpaceBackgroundImages_Spaces        = FullSpaceBackgroundImages_SPACE_ID + " = " + FullSpaces_ID
 	JoinDevices_Spaces                      = FullDevices_SPACE_ID + " = " + FullSpaces_ID
 	JoinDevicePositions_Devices             = FullDevicePositions_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceBreakers_Devices              = FullDeviceBreakers_DEVICE_ID + " = " + FullDevices_ID
@@ -178,6 +188,14 @@ var funcMap = template.FuncMap{
 			Breakers_SPACE_GROUP_ID:      Breakers_SPACE_GROUP_ID,
 			Breakers_DISPLAY_ORDER:       Breakers_DISPLAY_ORDER,
 			Breakers_UPSTREAM_BREAKER_ID: Breakers_UPSTREAM_BREAKER_ID,
+		}
+	},
+	SpaceBackgroundImagesTable: func() map[string]string {
+		return map[string]string{
+			baseTable:                          SpaceBackgroundImagesTable,
+			SpaceBackgroundImages_SPACE_ID:     SpaceBackgroundImages_SPACE_ID,
+			SpaceBackgroundImages_CONTENT_TYPE: SpaceBackgroundImages_CONTENT_TYPE,
+			SpaceBackgroundImages_DATA:         SpaceBackgroundImages_DATA,
 		}
 	},
 	DevicesTable: func() map[string]string {

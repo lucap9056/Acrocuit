@@ -26,6 +26,10 @@ func spacesHandlers(r *gin.RouterGroup, base controller) {
 	r.DELETE(routeSpaceID, ctr.DelSpace)
 	r.PATCH(routeSpaceID+"/order", ctr.SetSpaceOrder)
 
+	r.GET(routeSpaceID+"/background-image", ctr.GetBackgroundImage)
+	r.PUT(routeSpaceID+"/background-image", ctr.SetBackgroundImage)
+	r.DELETE(routeSpaceID+"/background-image", ctr.DelBackgroundImage)
+
 	r.GET(routeSpaceID+"/breaker-groups", ctr.GetBreakerGroups)
 	r.POST(routeSpaceID+"/breaker-groups", ctr.AddBreakerGroup)
 

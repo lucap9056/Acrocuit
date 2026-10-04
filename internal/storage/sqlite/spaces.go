@@ -129,3 +129,85 @@ func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId int) erro
 	query := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
 	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, spaceId))
 }
+
+func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId int) (*models.BackgroundImage, error) {
+	query := `
+		SELECT ` + schema.FullSpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.FullSpaceBackgroundImages_DATA + `, ` + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT + `
+		FROM ` + schema.SpaceBackgroundImagesTable + `
+		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSpaceBackgroundImages_Spaces + `
+		WHERE ` + schema.FullSpaces_ID + ` = $1
+	`
+
+	image := &models.BackgroundImage{}
+	if err := s.db.QueryRowContext(ctx, query, spaceId).Scan(&image.ContentType, &image.Data, &image.UpdatedAt); err != nil {
+		return nil, notFoundIfNoRows(err)
+	}
+
+	return image, nil
+}
+
+func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId int, contentType string, data []byte) (*models.Space, error) {
+	var space *models.Space
+
+	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
+		if err := requireRow(ctx, tx, schema.SpacesTable, schema.Spaces_ID, spaceId); err != nil {
+			return err
+		}
+
+		upsert := `
+			INSERT INTO ` + schema.SpaceBackgroundImagesTable + ` (` + schema.SpaceBackgroundImages_SPACE_ID + `, ` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + `)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (` + schema.SpaceBackgroundImages_SPACE_ID + `) DO UPDATE
+			SET ` + schema.SpaceBackgroundImages_CONTENT_TYPE + ` = excluded.` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + ` = excluded.` + schema.SpaceBackgroundImages_DATA
+		if _, err := tx.ExecContext(ctx, upsert, spaceId, contentType, data); err != nil {
+			return err
+		}
+
+		var err error
+		space, err = touchBackgroundImage(ctx, tx, spaceId)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return space, nil
+}
+
+func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId int) (*models.Space, error) {
+	var space *models.Space
+
+	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
+		query := `DELETE FROM ` + schema.SpaceBackgroundImagesTable + ` WHERE ` + schema.SpaceBackgroundImages_SPACE_ID + ` = $1`
+		if err := notFoundIfNoneAffected(tx.ExecContext(ctx, query, spaceId)); err != nil {
+			return err
+		}
+
+		var err error
+		space, err = touchBackgroundImage(ctx, tx, spaceId)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return space, nil
+}
+
+func touchBackgroundImage(ctx context.Context, tx *sql.Tx, spaceId int) (*models.Space, error) {
+	query := `
+		UPDATE ` + schema.SpacesTable + `
+		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1
+		WHERE ` + schema.Spaces_ID + ` = $2
+		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT
+
+	space := &models.Space{}
+	err := tx.QueryRowContext(ctx, query, time.Now().UnixMilli(), spaceId).
+		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	space.Build()
+
+	return space, nil
+}

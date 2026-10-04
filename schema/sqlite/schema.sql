@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS {{spaces.table}} (
 
 CREATE INDEX IF NOT EXISTS ix_spaces_space_group_id ON {{spaces.table}}({{spaces.space_group_id}});
 
+CREATE TABLE IF NOT EXISTS {{space_background_images.table}} (
+    {{space_background_images.space_id}} INTEGER PRIMARY KEY,
+    {{space_background_images.content_type}} TEXT NOT NULL,
+    {{space_background_images.data}} BLOB NOT NULL,
+    CONSTRAINT fk_space_background_images_space FOREIGN KEY ({{space_background_images.space_id}}) REFERENCES {{spaces.table}}({{spaces.id}}) ON DELETE CASCADE
+) STRICT;
+
 CREATE TABLE IF NOT EXISTS {{breaker_groups.table}} (
     {{breaker_groups.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
     {{breaker_groups.name}} TEXT NOT NULL CHECK (length({{breaker_groups.name}}) <= 255),
