@@ -12,10 +12,8 @@ import (
 
 var (
 	host              = env("ACROCUIT_HOST", "http://localhost:8080")
-	accessToken       = env("ACROCUIT_ACCESS_TOKEN", "")
-	refreshToken      = env("ACROCUIT_REFRESH_TOKEN", "")
-	username          = env("ACROCUIT_USERNAME", "user")
-	password          = env("ACROCUIT_PASSWORD", "Sm@rtHome123")
+	apiPath           = "/api"
+	identityToken     = env("ACROCUIT_IDENTITY_TOKEN", "")
 	spaceGroupId      = env("ACROCUIT_SPACE_GROUP_ID", "1")
 	spaceId           = env("ACROCUIT_SPACE_ID", "1")
 	breakerGroupId    = env("ACROCUIT_BREAKER_GROUP_ID", "1")
@@ -44,13 +42,13 @@ func call(t *testing.T, method, path string, body any) {
 		reader = bytes.NewReader(payload)
 	}
 
-	req, err := http.NewRequest(method, host+path, reader)
+	req, err := http.NewRequest(method, host+apiPath+path, reader)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if accessToken != "" {
-		req.Header.Set("Authorization", "Bearer "+accessToken)
+	if identityToken != "" {
+		req.Header.Set("X-Forwarded-Identity", identityToken)
 	}
 
 	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
@@ -67,18 +65,6 @@ type position struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 	Z int `json:"z"`
-}
-
-func TestRegister(t *testing.T) {
-	call(t, http.MethodPost, "/auth/register", map[string]any{"username": username, "password": password})
-}
-
-func TestLogin(t *testing.T) {
-	call(t, http.MethodPost, "/auth/login", map[string]any{"username": username, "password": password})
-}
-
-func TestRefresh(t *testing.T) {
-	call(t, http.MethodPost, "/auth/refresh", map[string]any{"refresh_token": refreshToken})
 }
 
 func TestGetSpaceGroups(t *testing.T) {
@@ -127,6 +113,14 @@ func TestSetSpaceOrder(t *testing.T) {
 
 func TestSetSpaceBackgroundImage(t *testing.T) {
 	call(t, http.MethodPut, "/spaces/"+spaceId+"/background-image", nil)
+}
+
+func TestGetSpaceBackgroundImage(t *testing.T) {
+	call(t, http.MethodGet, "/spaces/"+spaceId+"/background-image", nil)
+}
+
+func TestDelSpaceBackgroundImage(t *testing.T) {
+	call(t, http.MethodDelete, "/spaces/"+spaceId+"/background-image", nil)
 }
 
 func TestGetBreakerGroups(t *testing.T) {
