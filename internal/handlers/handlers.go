@@ -15,7 +15,7 @@ type controller struct {
 func New(g *gin.Engine, s *storage.Storage, requireIdentity gin.HandlerFunc, opts *options.Options) {
 	base := controller{s, opts}
 
-	protected := g.Group("")
+	protected := g.Group("api")
 	protected.Use(requireIdentity)
 
 	{
