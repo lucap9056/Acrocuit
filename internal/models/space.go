@@ -4,17 +4,16 @@ import (
 	"acrocuit/schema"
 	"fmt"
 	"strings"
-	"time"
 )
 
 const SPACE_ALL_COLUMNS = schema.FullSpaces_ID + "," + schema.FullSpaces_NAME + "," + schema.FullSpaces_SPACE_GROUP_ID + "," + schema.FullSpaces_DISPLAY_ORDER + "," + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT
 
 type Space struct {
-	Id                       int       `json:"id"`
-	Name                     string    `json:"name"`
-	DisplayOrder             int       `json:"display_order"`
-	BackgroundImageUpdatedAt time.Time `json:"background_image_updated_at"`
-	SpaceGroupId             int       `json:"-"`
+	Id                       int    `json:"id"`
+	Name                     string `json:"name"`
+	DisplayOrder             int    `json:"display_order"`
+	BackgroundImageUpdatedAt int64  `json:"background_image_updated_at"`
+	SpaceGroupId             int    `json:"-"`
 
 	SpaceGroup *SpaceGroup `json:"space_group"`
 }

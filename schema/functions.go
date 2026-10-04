@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-//go:embed "functions.sql"
+//go:embed "postgres/functions.sql"
 var rawFunctions string
 
 const (

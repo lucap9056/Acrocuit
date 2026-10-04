@@ -2,7 +2,9 @@ package main
 
 import (
 	"acrocuit/internal/logs"
+	"acrocuit/internal/options"
 	"acrocuit/internal/setup"
+	"acrocuit/internal/storage/sqlite"
 	"acrocuit/schema"
 	"context"
 	"strings"
@@ -18,14 +20,35 @@ func main() {
 	logs.InitLogger(cfg.Logging)
 	defer logs.Sync()
 
-	dsn := cfg.Database.DSN
-	if dsn == "" {
-		logs.Out.Fatal("DATABASE_DSN is required")
-	}
+	database := cfg.Options.Database
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	switch database.Driver {
+	case options.DriverPostgres:
+		initPostgres(ctx, database.Source)
+	case options.DriverSQLite:
+		initSQLite(ctx, database.Source)
+	default:
+		logs.Out.Fatal("unsupported database driver", zap.String("driver", string(database.Driver)))
+	}
+}
+
+func initSQLite(ctx context.Context, path string) {
+	db, err := sqlite.Connect(ctx, path)
+	if err != nil {
+		logs.Out.Fatal("connect to database failed", zap.Error(err))
+	}
+	defer db.Close()
+
+	if err := sqlite.ApplySchema(ctx, db); err != nil {
+		logs.Out.Fatal("apply schema failed", zap.Error(err))
+	}
+	logs.Out.Info("schema applied")
+}
+
+func initPostgres(ctx context.Context, dsn string) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		logs.Out.Fatal("connect to database failed", zap.Error(err))
@@ -37,7 +60,7 @@ func main() {
 	}
 
 	var schemaSQL, functionsSQL strings.Builder
-	if err := schema.Render(&schemaSQL); err != nil {
+	if err := schema.RenderPostgres(&schemaSQL); err != nil {
 		logs.Out.Fatal("render schema failed", zap.Error(err))
 	}
 	if err := schema.RenderFunctions(&functionsSQL); err != nil {

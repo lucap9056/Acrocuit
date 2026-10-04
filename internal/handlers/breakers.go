@@ -4,14 +4,13 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
-	"acrocuit/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type breakersController struct {
-	*storage.Storage
+	controller
 }
 
 const (
@@ -19,8 +18,8 @@ const (
 	routeBreakerID = ":" + paramBreakerID
 )
 
-func breakersHandlers(r *gin.RouterGroup, s *storage.Storage) {
-	ctr := &breakersController{s}
+func breakersHandlers(r *gin.RouterGroup, base controller) {
+	ctr := &breakersController{base}
 
 	r.GET(routeBreakerID+"/downstream", ctr.GetBreakerDownstream)
 	r.GET(routeBreakerID, ctr.GetBreaker)
@@ -36,13 +35,13 @@ type breakerDownstreamResponse struct {
 }
 
 func (ctr *breakersController) GetBreakerDownstream(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
 	}
 
-	breakers, devices, err := ctr.Breakers.GetBreakerDownstream(c.Request.Context(), userId, breakerId)
+	breakers, devices, err := ctr.Breakers.GetBreakerDownstream(c.Request.Context(), userEmail, breakerId)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -52,14 +51,14 @@ func (ctr *breakersController) GetBreakerDownstream(c *gin.Context) {
 }
 
 func (ctr *breakersController) GetBreaker(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	breaker, err := ctr.Breakers.GetBreaker(c.Request.Context(), userId, breakerId, include)
+	breaker, err := ctr.Breakers.GetBreaker(c.Request.Context(), userEmail, breakerId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -74,7 +73,7 @@ type setBreakerRequest struct {
 }
 
 func (ctr *breakersController) SetBreaker(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
@@ -85,7 +84,7 @@ func (ctr *breakersController) SetBreaker(c *gin.Context) {
 		return
 	}
 
-	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userId, breakerId, req.Name, req.DisplayOrder)
+	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userEmail, breakerId, req.Name, req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -95,13 +94,13 @@ func (ctr *breakersController) SetBreaker(c *gin.Context) {
 }
 
 func (ctr *breakersController) DelBreaker(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
 	}
 
-	if err := ctr.Breakers.DelBreaker(c.Request.Context(), userId, breakerId); err != nil {
+	if err := ctr.Breakers.DelBreaker(c.Request.Context(), userEmail, breakerId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -110,7 +109,7 @@ func (ctr *breakersController) DelBreaker(c *gin.Context) {
 }
 
 func (ctr *breakersController) SetBreakerOrder(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
@@ -121,7 +120,7 @@ func (ctr *breakersController) SetBreakerOrder(c *gin.Context) {
 		return
 	}
 
-	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userId, breakerId, nil, &req.DisplayOrder)
+	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userEmail, breakerId, nil, &req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -135,7 +134,7 @@ type setBreakerUpstreamRequest struct {
 }
 
 func (ctr *breakersController) SetBreakerUpstream(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	breakerId, ok := intParam(c, paramBreakerID)
 	if !ok {
 		return
@@ -146,7 +145,7 @@ func (ctr *breakersController) SetBreakerUpstream(c *gin.Context) {
 		return
 	}
 
-	breaker, err := ctr.Breakers.SetBreakerUpstream(c.Request.Context(), userId, breakerId, req.UpstreamBreakerId)
+	breaker, err := ctr.Breakers.SetBreakerUpstream(c.Request.Context(), userEmail, breakerId, req.UpstreamBreakerId)
 	if err != nil {
 		handleStorageErr(c, err)
 		return

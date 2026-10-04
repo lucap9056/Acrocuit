@@ -6,8 +6,11 @@ import (
 	"text/template"
 )
 
-//go:embed "schema.sql"
-var rawSchema string
+//go:embed "postgres/schema.sql"
+var rawPostgresSchema string
+
+//go:embed "sqlite/schema.sql"
+var rawSQLiteSchema string
 
 const (
 	baseTable          = "table"
@@ -21,7 +24,6 @@ const (
 	basePositionY      = "position_y"
 	basePositionZ      = "position_z"
 	baseDeviceID       = "device_id"
-	baseUserID         = "user_id"
 
 	SpaceGroupsTable = "space_groups"
 	SpaceGroups_ID   = baseId
@@ -69,17 +71,8 @@ const (
 	DeviceBreakers_DEVICE_ID  = baseDeviceID
 	DeviceBreakers_BREAKER_ID = "breaker_id"
 
-	UsersTable     = "users"
-	Users_ID       = baseId
-	Users_USERNAME = "username"
-
-	UserSecretsTable          = "user_secrets"
-	UserSecrets_USER_ID       = baseUserID
-	UserSecrets_PASSWORD_SALT = "password_salt"
-	UserSecrets_PASSWORD_HASH = "password_hash"
-
 	SpaceGroupOwnersTable           = "space_group_owners"
-	SpaceGroupOwners_USER_ID        = baseUserID
+	SpaceGroupOwners_USER_EMAIL     = "user_email"
 	SpaceGroupOwners_SPACE_GROUP_ID = baseSpaceGroupID
 )
 
@@ -122,14 +115,7 @@ const (
 	FullDeviceBreakers_DEVICE_ID  = DeviceBreakersTable + "." + DeviceBreakers_DEVICE_ID
 	FullDeviceBreakers_BREAKER_ID = DeviceBreakersTable + "." + DeviceBreakers_BREAKER_ID
 
-	FullUsers_ID       = UsersTable + "." + Users_ID
-	FullUsers_USERNAME = UsersTable + "." + Users_USERNAME
-
-	FullUserSecrets_USER_ID       = UserSecretsTable + "." + UserSecrets_USER_ID
-	FullUserSecrets_PASSWORD_SALT = UserSecretsTable + "." + UserSecrets_PASSWORD_SALT
-	FullUserSecrets_PASSWORD_HASH = UserSecretsTable + "." + UserSecrets_PASSWORD_HASH
-
-	FullSpaceGroupOwners_USER_ID        = SpaceGroupOwnersTable + "." + SpaceGroupOwners_USER_ID
+	FullSpaceGroupOwners_USER_EMAIL     = SpaceGroupOwnersTable + "." + SpaceGroupOwners_USER_EMAIL
 	FullSpaceGroupOwners_SPACE_GROUP_ID = SpaceGroupOwnersTable + "." + SpaceGroupOwners_SPACE_GROUP_ID
 )
 
@@ -145,7 +131,6 @@ const (
 	JoinDeviceBreakers_Devices              = FullDeviceBreakers_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceBreakers_Breakers             = FullDeviceBreakers_BREAKER_ID + " = " + FullBreakers_ID
 	JoinSpaceGroupOwners_SpaceGroups        = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
-	JoinUserSecrets_Users                   = FullUserSecrets_USER_ID + "=" + FullUsers_ID
 )
 
 var funcMap = template.FuncMap{
@@ -219,25 +204,10 @@ var funcMap = template.FuncMap{
 			DeviceBreakers_BREAKER_ID: DeviceBreakers_BREAKER_ID,
 		}
 	},
-	UsersTable: func() map[string]string {
-		return map[string]string{
-			baseTable:      UsersTable,
-			Users_ID:       Users_ID,
-			Users_USERNAME: Users_USERNAME,
-		}
-	},
-	UserSecretsTable: func() map[string]string {
-		return map[string]string{
-			baseTable:                 UserSecretsTable,
-			UserSecrets_USER_ID:       UserSecrets_USER_ID,
-			UserSecrets_PASSWORD_SALT: UserSecrets_PASSWORD_SALT,
-			UserSecrets_PASSWORD_HASH: UserSecrets_PASSWORD_HASH,
-		}
-	},
 	SpaceGroupOwnersTable: func() map[string]string {
 		return map[string]string{
 			baseTable:                       SpaceGroupOwnersTable,
-			SpaceGroupOwners_USER_ID:        SpaceGroupOwners_USER_ID,
+			SpaceGroupOwners_USER_EMAIL:     SpaceGroupOwners_USER_EMAIL,
 			SpaceGroupOwners_SPACE_GROUP_ID: SpaceGroupOwners_SPACE_GROUP_ID,
 		}
 	},
@@ -252,6 +222,10 @@ func render(name, raw string, wr io.Writer) error {
 	return tmpl.Execute(wr, nil)
 }
 
-func Render(wr io.Writer) error {
-	return render("schema", rawSchema, wr)
+func RenderPostgres(wr io.Writer) error {
+	return render("postgres", rawPostgresSchema, wr)
+}
+
+func RenderSQLite(wr io.Writer) error {
+	return render("sqlite", rawSQLiteSchema, wr)
 }

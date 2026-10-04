@@ -4,14 +4,13 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
-	"acrocuit/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type spacesController struct {
-	*storage.Storage
+	controller
 }
 
 const (
@@ -19,8 +18,8 @@ const (
 	routeSpaceID = ":" + paramSpaceID
 )
 
-func spacesHandlers(r *gin.RouterGroup, s *storage.Storage) {
-	ctr := &spacesController{s}
+func spacesHandlers(r *gin.RouterGroup, base controller) {
+	ctr := &spacesController{base}
 
 	r.GET(routeSpaceID, ctr.GetSpace)
 	r.PUT(routeSpaceID, ctr.SetSpace)
@@ -35,14 +34,14 @@ func spacesHandlers(r *gin.RouterGroup, s *storage.Storage) {
 }
 
 func (ctr *spacesController) GetSpace(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	space, err := ctr.Spaces.GetSpace(c.Request.Context(), userId, spaceId, include)
+	space, err := ctr.Spaces.GetSpace(c.Request.Context(), userEmail, spaceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -57,7 +56,7 @@ type setSpaceRequest struct {
 }
 
 func (ctr *spacesController) SetSpace(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
@@ -68,7 +67,7 @@ func (ctr *spacesController) SetSpace(c *gin.Context) {
 		return
 	}
 
-	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userId, spaceId, req.Name, req.DisplayOrder)
+	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userEmail, spaceId, req.Name, req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -78,13 +77,13 @@ func (ctr *spacesController) SetSpace(c *gin.Context) {
 }
 
 func (ctr *spacesController) DelSpace(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
 
-	if err := ctr.Spaces.DelSpace(c.Request.Context(), userId, spaceId); err != nil {
+	if err := ctr.Spaces.DelSpace(c.Request.Context(), userEmail, spaceId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -97,7 +96,7 @@ type setOrderRequest struct {
 }
 
 func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
@@ -108,7 +107,7 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 		return
 	}
 
-	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userId, spaceId, nil, &req.DisplayOrder)
+	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userEmail, spaceId, nil, &req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -118,14 +117,14 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 }
 
 func (ctr *spacesController) GetBreakerGroups(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	breakerGroups, err := ctr.BreakerGroups.GetBreakerGroups(c.Request.Context(), userId, spaceId, include)
+	breakerGroups, err := ctr.BreakerGroups.GetBreakerGroups(c.Request.Context(), userEmail, spaceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -140,7 +139,7 @@ type createBreakerGroupRequest struct {
 }
 
 func (ctr *spacesController) AddBreakerGroup(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
@@ -151,7 +150,7 @@ func (ctr *spacesController) AddBreakerGroup(c *gin.Context) {
 		return
 	}
 
-	breakerGroup, err := ctr.BreakerGroups.AddBreakerGroup(c.Request.Context(), userId, spaceId, req.Name, req.Position)
+	breakerGroup, err := ctr.BreakerGroups.AddBreakerGroup(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -161,14 +160,14 @@ func (ctr *spacesController) AddBreakerGroup(c *gin.Context) {
 }
 
 func (ctr *spacesController) GetDevices(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	devices, err := ctr.Devices.GetDevices(c.Request.Context(), userId, spaceId, include)
+	devices, err := ctr.Devices.GetDevices(c.Request.Context(), userEmail, spaceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -183,7 +182,7 @@ type createDeviceRequest struct {
 }
 
 func (ctr *spacesController) AddDevice(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
@@ -194,7 +193,7 @@ func (ctr *spacesController) AddDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := ctr.Devices.AddDevice(c.Request.Context(), userId, spaceId, req.Name, req.Position)
+	device, err := ctr.Devices.AddDevice(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
 	if err != nil {
 		handleStorageErr(c, err)
 		return

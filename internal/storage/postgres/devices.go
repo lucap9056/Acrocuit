@@ -1,7 +1,8 @@
-package storage
+package postgres
 
 import (
 	"acrocuit/internal/models"
+	"acrocuit/internal/storage/repository"
 	"acrocuit/schema"
 	"context"
 	"errors"
@@ -10,24 +11,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Devices interface {
-	GetDevices(ctx context.Context, userId, spaceId int, include string) ([]models.Device, error)
-	GetDevice(ctx context.Context, userId, deviceId int, include string) (*models.Device, error)
-	AddDevice(ctx context.Context, userId, spaceId int, name string, position *models.Position) (*models.Device, error)
-	SetDevice(ctx context.Context, userId, deviceId int, name *string, position *models.Position) (*models.Device, error)
-	SetDevicePosition(ctx context.Context, userId, deviceId int, position models.Position) (*models.Device, error)
-	DelDevice(ctx context.Context, userId, deviceId int) error
-	GetDeviceBreakers(ctx context.Context, userId, deviceId int, include string) ([]models.Breaker, error)
-	AddDeviceBreaker(ctx context.Context, userId, deviceId, breakerId int) error
-	DelDeviceBreaker(ctx context.Context, userId, deviceId, breakerId int) error
-	GetDeviceUpstream(ctx context.Context, userId, deviceId int) ([]models.Breaker, error)
-}
-
 type pgDevices struct {
 	pool *pgxpool.Pool
 }
 
-func (d *pgDevices) GetDevices(ctx context.Context, userId, spaceId int, include string) ([]models.Device, error) {
+func (d *pgDevices) GetDevices(ctx context.Context, userEmail string, spaceId int, include string) ([]models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -40,9 +28,9 @@ func (d *pgDevices) GetDevices(ctx context.Context, userId, spaceId int, include
 	if includePosition {
 		query += ` LEFT JOIN ` + schema.DevicePositionsTable + ` ON ` + schema.JoinDevicePositions_Devices
 	}
-	query += ` WHERE ` + schema.FullDevices_SPACE_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $1`
+	query += ` WHERE ` + schema.FullDevices_SPACE_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
 
-	rows, err := d.pool.Query(ctx, query, userId, spaceId)
+	rows, err := d.pool.Query(ctx, query, userEmail, spaceId)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +49,7 @@ func (d *pgDevices) GetDevices(ctx context.Context, userId, spaceId int, include
 	return devices, rows.Err()
 }
 
-func (d *pgDevices) GetDevice(ctx context.Context, userId, deviceId int, include string) (*models.Device, error) {
+func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId int, include string) (*models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -74,12 +62,12 @@ func (d *pgDevices) GetDevice(ctx context.Context, userId, deviceId int, include
 	if includePosition {
 		query += ` LEFT JOIN ` + schema.DevicePositionsTable + ` ON ` + schema.JoinDevicePositions_Devices
 	}
-	query += ` WHERE ` + schema.FullDevices_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $1`
+	query += ` WHERE ` + schema.FullDevices_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
 
 	var device models.Device
-	err = d.pool.QueryRow(ctx, query, userId, deviceId).Scan(device.Values(fields)...)
+	err = d.pool.QueryRow(ctx, query, userEmail, deviceId).Scan(device.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -89,7 +77,7 @@ func (d *pgDevices) GetDevice(ctx context.Context, userId, deviceId int, include
 	return &device, nil
 }
 
-func (d *pgDevices) AddDevice(ctx context.Context, userId, spaceId int, name string, position *models.Position) (*models.Device, error) {
+func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int, name string, position *models.Position) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -100,7 +88,7 @@ func (d *pgDevices) AddDevice(ctx context.Context, userId, spaceId int, name str
 		SELECT 1
 		FROM ` + schema.SpacesTable + `
 		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-		WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+		WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 		FOR UPDATE OF ` + schema.SpacesTable + `
 	),
 	inserted_device AS (
@@ -121,10 +109,10 @@ func (d *pgDevices) AddDevice(ctx context.Context, userId, spaceId int, name str
 
 	device := &models.Device{Name: name, SpaceId: spaceId, Position: position}
 
-	err := d.pool.QueryRow(ctx, query, spaceId, userId, name, posX, posY, posZ).Scan(&device.Id)
+	err := d.pool.QueryRow(ctx, query, spaceId, userEmail, name, posX, posY, posZ).Scan(&device.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, repository.ErrNotFound
 		}
 		return nil, err
 	}
@@ -134,7 +122,7 @@ func (d *pgDevices) AddDevice(ctx context.Context, userId, spaceId int, name str
 	return device, nil
 }
 
-func (d *pgDevices) SetDevice(ctx context.Context, userId, deviceId int, name *string, position *models.Position) (*models.Device, error) {
+func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId int, name *string, position *models.Position) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -146,7 +134,7 @@ func (d *pgDevices) SetDevice(ctx context.Context, userId, deviceId int, name *s
 			FROM ` + schema.DevicesTable + `
 			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinDevices_Spaces + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		permitted_update AS (
@@ -183,10 +171,10 @@ func (d *pgDevices) SetDevice(ctx context.Context, userId, deviceId int, name *s
 
 	device := &models.Device{Id: deviceId}
 
-	err := d.pool.QueryRow(ctx, query, deviceId, userId, name, posX, posY, posZ).
+	err := d.pool.QueryRow(ctx, query, deviceId, userEmail, name, posX, posY, posZ).
 		Scan(&device.Id, &device.Name, &device.SpaceId, &device.PositionX, &device.PositionY, &device.PositionZ)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -197,46 +185,46 @@ func (d *pgDevices) SetDevice(ctx context.Context, userId, deviceId int, name *s
 	return device, nil
 }
 
-func (d *pgDevices) SetDevicePosition(ctx context.Context, userId, deviceId int, position models.Position) (*models.Device, error) {
-	return d.SetDevice(ctx, userId, deviceId, nil, &position)
+func (d *pgDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId int, position models.Position) (*models.Device, error) {
+	return d.SetDevice(ctx, userEmail, deviceId, nil, &position)
 }
 
-func (d *pgDevices) DelDevice(ctx context.Context, userId, deviceId int) error {
+func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId int) error {
 	query := `
 		DELETE FROM ` + schema.DevicesTable + `
 		WHERE ` + schema.FullDevices_ID + ` = $1 AND EXISTS (
 			SELECT 1 FROM ` + schema.SpacesTable + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.JoinDevices_Spaces + ` AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.JoinDevices_Spaces + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 		)
 	`
-	t, err := d.pool.Exec(ctx, query, deviceId, userId)
+	t, err := d.pool.Exec(ctx, query, deviceId, userEmail)
 	if err != nil {
 		return err
 	}
 	if t.RowsAffected() == 0 {
-		return ErrNotFound
+		return repository.ErrNotFound
 	}
 
 	return nil
 }
 
-func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userId, deviceId int, include string) ([]models.Breaker, error) {
+func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userEmail string, deviceId int, include string) ([]models.Breaker, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
 			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinDevices_Spaces + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 		)
 	`
 	var exists bool
-	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userId).Scan(&exists)
+	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userEmail).Scan(&exists)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 
 	keys, fields, err := models.ParseBreakerColumns(include)
@@ -268,10 +256,10 @@ func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userId, deviceId int,
 	return breakers, rows.Err()
 }
 
-func (d *pgDevices) AddDeviceBreaker(ctx context.Context, userId, deviceId, breakerId int) error {
+func (d *pgDevices) AddDeviceBreaker(ctx context.Context, userEmail string, deviceId, breakerId int) error {
 	var result int
 	query := `SELECT ` + schema.FnAddDeviceBreaker_O_RESULT + ` FROM ` + schema.FnAddDeviceBreaker + `($1, $2, $3)`
-	err := d.pool.QueryRow(ctx, query, userId, deviceId, breakerId).Scan(&result)
+	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, breakerId).Scan(&result)
 	if err != nil {
 		return err
 	}
@@ -280,48 +268,48 @@ func (d *pgDevices) AddDeviceBreaker(ctx context.Context, userId, deviceId, brea
 	case 0:
 		return nil
 	case 3:
-		return ErrConflict
+		return repository.ErrConflict
 	default:
-		return ErrNotFound
+		return repository.ErrNotFound
 	}
 }
 
-func (d *pgDevices) DelDeviceBreaker(ctx context.Context, userId, deviceId, breakerId int) error {
+func (d *pgDevices) DelDeviceBreaker(ctx context.Context, userEmail string, deviceId, breakerId int) error {
 	query := `
 		DELETE FROM ` + schema.DeviceBreakersTable + `
 		USING ` + schema.BreakersTable + `
 		JOIN ` + schema.BreakerGroupsTable + ` ON ` + schema.JoinBreakers_BreakerGroups + `
 		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
 		WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1 AND ` + schema.FullDeviceBreakers_BREAKER_ID + ` = $2
-			AND ` + schema.JoinDeviceBreakers_Breakers + ` AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $3
+			AND ` + schema.JoinDeviceBreakers_Breakers + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $3
 	`
-	t, err := d.pool.Exec(ctx, query, deviceId, breakerId, userId)
+	t, err := d.pool.Exec(ctx, query, deviceId, breakerId, userEmail)
 	if err != nil {
 		return err
 	}
 	if t.RowsAffected() == 0 {
-		return ErrNotFound
+		return repository.ErrNotFound
 	}
 
 	return nil
 }
 
-func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userId, deviceId int) ([]models.Breaker, error) {
+func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId int) ([]models.Breaker, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
 			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinDevices_Spaces + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 		)
 	`
 	var exists bool
-	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userId).Scan(&exists)
+	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userEmail).Scan(&exists)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 
 	_, fields, err := models.ParseBreakerColumns("")

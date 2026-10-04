@@ -1,7 +1,7 @@
-DROP FUNCTION IF EXISTS {{fn_set_space.func}}(INT, INT, VARCHAR, INT);
+DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, INT, VARCHAR, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_set_space.func}}(
-    p_user_id INT,
+    p_user_email TEXT,
     p_space_id INT,
     p_name VARCHAR(255) DEFAULT NULL,
     p_display_order INT DEFAULT NULL
@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION {{fn_set_space.func}}(
     {{fn_set_space.o_name}} VARCHAR(255),
     {{fn_set_space.o_space_group_id}} INT,
     {{fn_set_space.o_display_order}} INT,
-    {{fn_set_space.o_background_image_updated_at}} TIMESTAMPTZ
+    {{fn_set_space.o_background_image_updated_at}} BIGINT
 ) LANGUAGE plpgsql AS $$
 DECLARE
     v_space_group_id INT;
@@ -22,7 +22,7 @@ BEGIN
     FROM {{spaces.table}} s
     JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = s.{{spaces.space_group_id}}
     JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = sg.{{space_groups.id}}
-    WHERE s.{{spaces.id}} = p_space_id AND so.{{space_group_owners.user_id}} = p_user_id
+    WHERE s.{{spaces.id}} = p_space_id AND so.{{space_group_owners.user_email}} = p_user_email
     FOR UPDATE OF sg;
 
     IF v_space_group_id IS NULL THEN
@@ -58,10 +58,10 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_set_breaker.func}}(INT, INT, VARCHAR, INT);
+DROP FUNCTION IF EXISTS {{fn_set_breaker.func}}(TEXT, INT, VARCHAR, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_set_breaker.func}}(
-    p_user_id INT,
+    p_user_email TEXT,
     p_breaker_id INT,
     p_name VARCHAR(255) DEFAULT NULL,
     p_display_order INT DEFAULT NULL
@@ -83,7 +83,7 @@ BEGIN
     FROM {{breakers.table}} b
     JOIN {{breaker_groups.table}} bg ON bg.{{breaker_groups.id}} = b.{{breakers.breaker_group_id}}
     JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = bg.{{breaker_groups.space_group_id}}
-    WHERE b.{{breakers.id}} = p_breaker_id AND so.{{space_group_owners.user_id}} = p_user_id
+    WHERE b.{{breakers.id}} = p_breaker_id AND so.{{space_group_owners.user_email}} = p_user_email
     FOR UPDATE OF bg;
 
     IF v_breaker_group_id IS NULL THEN
@@ -119,10 +119,10 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_set_breaker_upstream.func}}(INT, INT, INT);
+DROP FUNCTION IF EXISTS {{fn_set_breaker_upstream.func}}(TEXT, INT, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_set_breaker_upstream.func}}(
-    p_user_id INT,
+    p_user_email TEXT,
     p_breaker_id INT,
     p_upstream_breaker_id INT DEFAULT NULL
 ) RETURNS TABLE (
@@ -143,7 +143,7 @@ BEGIN
     JOIN {{breaker_groups.table}} bg ON bg.{{breaker_groups.id}} = b.{{breakers.breaker_group_id}}
     JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = bg.{{breaker_groups.space_group_id}}
     JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = sg.{{space_groups.id}}
-    WHERE b.{{breakers.id}} = p_breaker_id AND so.{{space_group_owners.user_id}} = p_user_id
+    WHERE b.{{breakers.id}} = p_breaker_id AND so.{{space_group_owners.user_email}} = p_user_email
     FOR UPDATE OF sg;
 
     IF v_space_group_id IS NULL THEN
@@ -192,7 +192,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION {{fn_add_device_breaker.func}}(
-    p_user_id INT,
+    p_user_email TEXT,
     p_device_id INT,
     p_breaker_id INT
 ) RETURNS TABLE (
@@ -206,7 +206,7 @@ BEGIN
     FROM {{devices.table}} d
     JOIN {{spaces.table}} s ON s.{{spaces.id}} = d.{{devices.space_id}}
     JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = s.{{spaces.space_group_id}}
-    WHERE d.{{devices.id}} = p_device_id AND so.{{space_group_owners.user_id}} = p_user_id;
+    WHERE d.{{devices.id}} = p_device_id AND so.{{space_group_owners.user_email}} = p_user_email;
 
     IF v_space_group_id IS NULL THEN
         RETURN QUERY SELECT 1;

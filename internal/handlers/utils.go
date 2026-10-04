@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"acrocuit/internal/response"
-	"acrocuit/internal/storage"
+	"acrocuit/internal/storage/repository"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,11 +30,11 @@ func bindJSON(c *gin.Context, dst any) bool {
 
 func handleStorageErr(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, storage.ErrNotFound):
+	case errors.Is(err, repository.ErrNotFound):
 		response.Error(c, http.StatusNotFound, "not found")
-	case errors.Is(err, storage.ErrConflict):
+	case errors.Is(err, repository.ErrConflict):
 		response.Error(c, http.StatusConflict, "conflict")
-	case errors.Is(err, storage.ErrSelfReference), errors.Is(err, storage.ErrCycleDetected):
+	case errors.Is(err, repository.ErrSelfReference), errors.Is(err, repository.ErrCycleDetected):
 		response.Error(c, http.StatusBadRequest, err.Error())
 	default:
 		internalError(c, err)

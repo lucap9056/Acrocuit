@@ -1,19 +1,19 @@
 package setup
 
 import (
-	"acrocuit/internal/auth"
 	"acrocuit/internal/logs"
+	"acrocuit/internal/options"
 	"os"
+	"path/filepath"
 	"strconv"
-	"time"
+	"strings"
 )
 
 type Config struct {
-	Environment string
-	HTTP        *HTTPConfig
-	Database    *DatabaseConfig
-	JWT         *auth.Config
-	Logging     *logs.Config
+	HTTP     *HTTPConfig
+	Options  *options.Options
+	Logging  *logs.Config
+	Warnings []string
 }
 
 type HTTPConfig struct {
@@ -21,37 +21,95 @@ type HTTPConfig struct {
 	AllowedHosts string
 }
 
-type DatabaseConfig struct {
-	DSN string
+const (
+	envAppEnv            = "APP_ENV"
+	envHTTPAddr          = "HTTP_ADDR"
+	envAllowedHosts      = "ALLOWED_HOSTS"
+	envDatabaseDSN       = "DATABASE_DSN"
+	envIdentityJWTSecret = "IDENTITY_JWT_SECRET"
+	envLogLevel          = "LOG_LEVEL"
+	envLogStdFormat      = "LOG_STD_FORMAT"
+	envLogFilePath       = "LOG_FILE_PATH"
+	envLogFileFormat     = "LOG_FILE_FORMAT"
+	envLogMaxSize        = "LOG_MAX_SIZE"
+	envLogMaxBackups     = "LOG_MAX_BACKUPS"
+	envLogMaxAge         = "LOG_MAX_AGE"
+	envLogCompress       = "LOG_COMPRESS"
+)
+
+const (
+	sqliteScheme      = "sqlite://"
+	defaultSQLiteDir  = "data"
+	defaultSQLiteFile = "acrocuit.db"
+)
+
+func parseEnvironment(env string) options.Option {
+	if options.Environment(env) == options.EnvironmentDevelopment {
+		return options.WithEnvironment(options.EnvironmentDevelopment)
+	}
+	return options.WithEnvironment(options.EnvironmentProduction)
+}
+
+func defaultSQLitePath() string {
+	executable, err := os.Executable()
+	if err != nil {
+		return filepath.Join(defaultSQLiteDir, defaultSQLiteFile)
+	}
+	if resolved, err := filepath.EvalSymlinks(executable); err == nil {
+		executable = resolved
+	}
+	return filepath.Join(filepath.Dir(executable), defaultSQLiteDir, defaultSQLiteFile)
+}
+
+func parseDatabase(dsn string) (options.Option, options.Driver) {
+	if dsn == "" {
+		return options.WithSQLite(defaultSQLitePath()), options.DriverSQLite
+	}
+	if path, ok := strings.CutPrefix(dsn, sqliteScheme); ok {
+		return options.WithSQLite(path), options.DriverSQLite
+	}
+	return options.WithPostgres(dsn), options.DriverPostgres
+}
+
+func parseAuth(driver options.Driver, identitySecret string) (options.Option, []string) {
+	if driver == options.DriverSQLite {
+		if identitySecret != "" {
+			return options.WithSingleUser(), []string{envIdentityJWTSecret + " is ignored: SQLite always runs in single-user mode"}
+		}
+		return options.WithSingleUser(), nil
+	}
+
+	if identitySecret == "" {
+		return options.WithForwardedHeader(), nil
+	}
+	return options.WithIdentitySecret(identitySecret), nil
 }
 
 func Load() *Config {
+	database, driver := parseDatabase(getEnv(envDatabaseDSN, ""))
+	auth, warnings := parseAuth(driver, getEnv(envIdentityJWTSecret, ""))
+
 	return &Config{
-		Environment: getEnv("APP_ENV", "production"),
 		HTTP: &HTTPConfig{
-			Addr:         getEnv("HTTP_ADDR", ":8080"),
-			AllowedHosts: getEnv("ALLOWED_HOSTS", "*"),
+			Addr:         getEnv(envHTTPAddr, ":8080"),
+			AllowedHosts: getEnv(envAllowedHosts, "*"),
 		},
-		Database: &DatabaseConfig{
-			DSN: getEnv("DATABASE_DSN", ""),
-		},
-		JWT: &auth.Config{
-			Issuer:             getEnv("JWT_ISSUER", "Acrocuit"),
-			Audience:           getEnv("JWT_AUDIENCE", "AcrocuitClient"),
-			SecretKey:          getEnv("JWT_SECRET_KEY", ""),
-			AccessTokenExpiry:  time.Duration(getEnvInt("JWT_ACCESS_TOKEN_EXPIRY_MINUTES", 15)) * time.Minute,
-			RefreshTokenExpiry: time.Duration(getEnvInt("JWT_REFRESH_TOKEN_EXPIRY_DAYS", 7)) * 24 * time.Hour,
-		},
+		Options: options.New(
+			parseEnvironment(getEnv(envAppEnv, "")),
+			database,
+			auth,
+		),
 		Logging: &logs.Config{
-			Level:      getEnv("LOG_LEVEL", "info"),
-			StdFormat:  getEnv("LOG_STD_FORMAT", ""),
-			FilePath:   getEnv("LOG_FILE_PATH", ""),
-			FileFormat: getEnv("LOG_FILE_FORMAT", ""),
-			MaxSize:    getEnvInt("LOG_MAX_SIZE", 50),
-			MaxBackups: getEnvInt("LOG_MAX_BACKUPS", 3),
-			MaxAge:     getEnvInt("LOG_MAX_AGE", 28),
-			Compress:   getEnvBool("LOG_COMPRESS", true),
+			Level:      getEnv(envLogLevel, "info"),
+			StdFormat:  getEnv(envLogStdFormat, ""),
+			FilePath:   getEnv(envLogFilePath, ""),
+			FileFormat: getEnv(envLogFileFormat, ""),
+			MaxSize:    getEnvInt(envLogMaxSize, 50),
+			MaxBackups: getEnvInt(envLogMaxBackups, 3),
+			MaxAge:     getEnvInt(envLogMaxAge, 28),
+			Compress:   getEnvBool(envLogCompress, true),
 		},
+		Warnings: warnings,
 	}
 }
 

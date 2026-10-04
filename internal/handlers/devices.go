@@ -4,14 +4,13 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
-	"acrocuit/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type devicesController struct {
-	*storage.Storage
+	controller
 }
 
 const (
@@ -19,8 +18,8 @@ const (
 	routeDeviceID = ":" + paramDeviceID
 )
 
-func devicesHandlers(r *gin.RouterGroup, s *storage.Storage) {
-	ctr := &devicesController{s}
+func devicesHandlers(r *gin.RouterGroup, base controller) {
+	ctr := &devicesController{base}
 
 	r.GET(routeDeviceID, ctr.GetDevice)
 	r.PUT(routeDeviceID, ctr.SetDevice)
@@ -35,14 +34,14 @@ func devicesHandlers(r *gin.RouterGroup, s *storage.Storage) {
 }
 
 func (ctr *devicesController) GetDevice(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	device, err := ctr.Devices.GetDevice(c.Request.Context(), userId, deviceId, include)
+	device, err := ctr.Devices.GetDevice(c.Request.Context(), userEmail, deviceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -57,7 +56,7 @@ type setDeviceRequest struct {
 }
 
 func (ctr *devicesController) SetDevice(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
@@ -68,7 +67,7 @@ func (ctr *devicesController) SetDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := ctr.Devices.SetDevice(c.Request.Context(), userId, deviceId, req.Name, req.Position)
+	device, err := ctr.Devices.SetDevice(c.Request.Context(), userEmail, deviceId, req.Name, req.Position)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -78,7 +77,7 @@ func (ctr *devicesController) SetDevice(c *gin.Context) {
 }
 
 func (ctr *devicesController) SetDevicePosition(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
@@ -89,7 +88,7 @@ func (ctr *devicesController) SetDevicePosition(c *gin.Context) {
 		return
 	}
 
-	device, err := ctr.Devices.SetDevicePosition(c.Request.Context(), userId, deviceId, *req.Position)
+	device, err := ctr.Devices.SetDevicePosition(c.Request.Context(), userEmail, deviceId, *req.Position)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -99,13 +98,13 @@ func (ctr *devicesController) SetDevicePosition(c *gin.Context) {
 }
 
 func (ctr *devicesController) DelDevice(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
 
-	if err := ctr.Devices.DelDevice(c.Request.Context(), userId, deviceId); err != nil {
+	if err := ctr.Devices.DelDevice(c.Request.Context(), userEmail, deviceId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -114,14 +113,14 @@ func (ctr *devicesController) DelDevice(c *gin.Context) {
 }
 
 func (ctr *devicesController) GetDeviceBreakers(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
 	include := c.Query("include")
 
-	breakers, err := ctr.Devices.GetDeviceBreakers(c.Request.Context(), userId, deviceId, include)
+	breakers, err := ctr.Devices.GetDeviceBreakers(c.Request.Context(), userEmail, deviceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -135,7 +134,7 @@ type addDeviceBreakerRequest struct {
 }
 
 func (ctr *devicesController) AddDeviceBreaker(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
@@ -146,7 +145,7 @@ func (ctr *devicesController) AddDeviceBreaker(c *gin.Context) {
 		return
 	}
 
-	if err := ctr.Devices.AddDeviceBreaker(c.Request.Context(), userId, deviceId, req.BreakerId); err != nil {
+	if err := ctr.Devices.AddDeviceBreaker(c.Request.Context(), userEmail, deviceId, req.BreakerId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -155,7 +154,7 @@ func (ctr *devicesController) AddDeviceBreaker(c *gin.Context) {
 }
 
 func (ctr *devicesController) DelDeviceBreaker(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
@@ -165,7 +164,7 @@ func (ctr *devicesController) DelDeviceBreaker(c *gin.Context) {
 		return
 	}
 
-	if err := ctr.Devices.DelDeviceBreaker(c.Request.Context(), userId, deviceId, breakerId); err != nil {
+	if err := ctr.Devices.DelDeviceBreaker(c.Request.Context(), userEmail, deviceId, breakerId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -174,13 +173,13 @@ func (ctr *devicesController) DelDeviceBreaker(c *gin.Context) {
 }
 
 func (ctr *devicesController) GetDeviceUpstream(c *gin.Context) {
-	userId := auth.UserID(c)
+	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
 
-	breakers, err := ctr.Devices.GetDeviceUpstream(c.Request.Context(), userId, deviceId)
+	breakers, err := ctr.Devices.GetDeviceUpstream(c.Request.Context(), userEmail, deviceId)
 	if err != nil {
 		handleStorageErr(c, err)
 		return

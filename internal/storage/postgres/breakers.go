@@ -1,7 +1,8 @@
-package storage
+package postgres
 
 import (
 	"acrocuit/internal/models"
+	"acrocuit/internal/storage/repository"
 	"acrocuit/schema"
 	"context"
 	"errors"
@@ -11,21 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Breakers interface {
-	GetBreakers(ctx context.Context, userId, breakerGroupId int, include string) ([]models.Breaker, error)
-	GetBreaker(ctx context.Context, userId, breakerId int, include string) (*models.Breaker, error)
-	AddBreaker(ctx context.Context, userId, breakerGroupId int, name string, upstreamBreakerId *int) (*models.Breaker, error)
-	SetBreaker(ctx context.Context, userId, breakerId int, name *string, displayOrder *int) (*models.Breaker, error)
-	SetBreakerUpstream(ctx context.Context, userId, breakerId int, upstreamBreakerId *int) (*models.Breaker, error)
-	DelBreaker(ctx context.Context, userId, breakerId int) error
-	GetBreakerDownstream(ctx context.Context, userId, breakerId int) ([]models.Breaker, []models.Device, error)
-}
-
 type pgBreakers struct {
 	pool *pgxpool.Pool
 }
 
-func (b *pgBreakers) GetBreakers(ctx context.Context, userId, breakerGroupId int, include string) ([]models.Breaker, error) {
+func (b *pgBreakers) GetBreakers(ctx context.Context, userEmail string, breakerGroupId int, include string) ([]models.Breaker, error) {
 	keys, fields, err := models.ParseBreakerColumns(include)
 	if err != nil {
 		return nil, err
@@ -35,10 +26,10 @@ func (b *pgBreakers) GetBreakers(ctx context.Context, userId, breakerGroupId int
 		FROM ` + schema.BreakersTable + `
 		JOIN ` + schema.BreakerGroupsTable + ` ON ` + schema.JoinBreakers_BreakerGroups + `
 		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
-		WHERE ` + schema.FullBreakers_BREAKER_GROUP_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $1
+		WHERE ` + schema.FullBreakers_BREAKER_GROUP_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1
 		ORDER BY ` + schema.FullBreakers_DISPLAY_ORDER
 
-	rows, err := b.pool.Query(ctx, query, userId, breakerGroupId)
+	rows, err := b.pool.Query(ctx, query, userEmail, breakerGroupId)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +48,7 @@ func (b *pgBreakers) GetBreakers(ctx context.Context, userId, breakerGroupId int
 	return breakers, rows.Err()
 }
 
-func (b *pgBreakers) GetBreaker(ctx context.Context, userId, breakerId int, include string) (*models.Breaker, error) {
+func (b *pgBreakers) GetBreaker(ctx context.Context, userEmail string, breakerId int, include string) (*models.Breaker, error) {
 	keys, fields, err := models.ParseBreakerColumns(include)
 	if err != nil {
 		return nil, err
@@ -67,12 +58,12 @@ func (b *pgBreakers) GetBreaker(ctx context.Context, userId, breakerId int, incl
 		FROM ` + schema.BreakersTable + `
 		JOIN ` + schema.BreakerGroupsTable + ` ON ` + schema.JoinBreakers_BreakerGroups + `
 		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
-		WHERE ` + schema.FullBreakers_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $1`
+		WHERE ` + schema.FullBreakers_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
 
 	var breaker models.Breaker
-	err = b.pool.QueryRow(ctx, query, userId, breakerId).Scan(breaker.Values(fields)...)
+	err = b.pool.QueryRow(ctx, query, userEmail, breakerId).Scan(breaker.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -82,13 +73,13 @@ func (b *pgBreakers) GetBreaker(ctx context.Context, userId, breakerId int, incl
 	return &breaker, nil
 }
 
-func (b *pgBreakers) AddBreaker(ctx context.Context, userId, breakerGroupId int, name string, upstreamBreakerId *int) (*models.Breaker, error) {
+func (b *pgBreakers) AddBreaker(ctx context.Context, userEmail string, breakerGroupId int, name string, upstreamBreakerId *int) (*models.Breaker, error) {
 	query := `
 		WITH permitted AS (
 			SELECT ` + schema.FullBreakerGroups_SPACE_GROUP_ID + `
 			FROM ` + schema.BreakerGroupsTable + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
-			WHERE ` + schema.FullBreakerGroups_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.FullBreakerGroups_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 			FOR UPDATE OF ` + schema.BreakerGroupsTable + `
 		),
 		upstream_ok AS (
@@ -114,10 +105,10 @@ func (b *pgBreakers) AddBreaker(ctx context.Context, userId, breakerGroupId int,
 
 	breaker := &models.Breaker{Name: name, BreakerGroupId: breakerGroupId}
 
-	err := b.pool.QueryRow(ctx, query, breakerGroupId, userId, name, upstreamBreakerId).
+	err := b.pool.QueryRow(ctx, query, breakerGroupId, userEmail, name, upstreamBreakerId).
 		Scan(&breaker.Id, &breaker.SpaceGroupId, &breaker.DisplayOrder)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -129,14 +120,14 @@ func (b *pgBreakers) AddBreaker(ctx context.Context, userId, breakerGroupId int,
 	return breaker, nil
 }
 
-func (b *pgBreakers) SetBreaker(ctx context.Context, userId, breakerId int, name *string, displayOrder *int) (*models.Breaker, error) {
+func (b *pgBreakers) SetBreaker(ctx context.Context, userEmail string, breakerId int, name *string, displayOrder *int) (*models.Breaker, error) {
 	query := `SELECT ` + schema.FnSetBreaker_OUTPUTS + ` FROM ` + schema.FnSetBreaker + `($1, $2, $3, $4)`
 
 	breaker := &models.Breaker{}
-	err := b.pool.QueryRow(ctx, query, userId, breakerId, name, displayOrder).
+	err := b.pool.QueryRow(ctx, query, userEmail, breakerId, name, displayOrder).
 		Scan(&breaker.Id, &breaker.Name, &breaker.BreakerGroupId, &breaker.SpaceGroupId, &breaker.DisplayOrder, &breaker.UpstreamBreakerId)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -147,22 +138,22 @@ func (b *pgBreakers) SetBreaker(ctx context.Context, userId, breakerId int, name
 	return breaker, nil
 }
 
-func (b *pgBreakers) SetBreakerUpstream(ctx context.Context, userId, breakerId int, upstreamBreakerId *int) (*models.Breaker, error) {
+func (b *pgBreakers) SetBreakerUpstream(ctx context.Context, userEmail string, breakerId int, upstreamBreakerId *int) (*models.Breaker, error) {
 	query := `SELECT ` + schema.FnSetBreakerUpstream_OUTPUTS + ` FROM ` + schema.FnSetBreakerUpstream + `($1, $2, $3)`
 
 	breaker := &models.Breaker{}
-	err := b.pool.QueryRow(ctx, query, userId, breakerId, upstreamBreakerId).
+	err := b.pool.QueryRow(ctx, query, userEmail, breakerId, upstreamBreakerId).
 		Scan(&breaker.Id, &breaker.Name, &breaker.BreakerGroupId, &breaker.SpaceGroupId, &breaker.DisplayOrder, &breaker.UpstreamBreakerId)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, repository.ErrNotFound
 	}
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case schema.FnSetBreakerUpstream_ERR_SELF_REFERENCE:
-			return nil, ErrSelfReference
+			return nil, repository.ErrSelfReference
 		case schema.FnSetBreakerUpstream_ERR_CYCLE_DETECTED:
-			return nil, ErrCycleDetected
+			return nil, repository.ErrCycleDetected
 		}
 	}
 	if err != nil {
@@ -174,27 +165,27 @@ func (b *pgBreakers) SetBreakerUpstream(ctx context.Context, userId, breakerId i
 	return breaker, nil
 }
 
-func (b *pgBreakers) DelBreaker(ctx context.Context, userId, breakerId int) error {
+func (b *pgBreakers) DelBreaker(ctx context.Context, userEmail string, breakerId int) error {
 	query := `
 		DELETE FROM ` + schema.BreakersTable + `
 		WHERE ` + schema.FullBreakers_ID + ` = $1 AND EXISTS (
 			SELECT 1 FROM ` + schema.BreakerGroupsTable + `
 			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
-			WHERE ` + schema.JoinBreakers_BreakerGroups + ` AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+			WHERE ` + schema.JoinBreakers_BreakerGroups + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 		)
 	`
-	t, err := b.pool.Exec(ctx, query, breakerId, userId)
+	t, err := b.pool.Exec(ctx, query, breakerId, userEmail)
 	if err != nil {
 		return err
 	}
 	if t.RowsAffected() == 0 {
-		return ErrNotFound
+		return repository.ErrNotFound
 	}
 
 	return nil
 }
 
-func (b *pgBreakers) GetBreakerDownstream(ctx context.Context, userId, breakerId int) ([]models.Breaker, []models.Device, error) {
+func (b *pgBreakers) GetBreakerDownstream(ctx context.Context, userEmail string, breakerId int) ([]models.Breaker, []models.Device, error) {
 	_, fields, err := models.ParseBreakerColumns("")
 	if err != nil {
 		return nil, nil, err
@@ -206,7 +197,7 @@ func (b *pgBreakers) GetBreakerDownstream(ctx context.Context, userId, breakerId
 			FROM ` + schema.BreakersTable + `
 			WHERE ` + schema.FullBreakers_ID + ` = $1 AND EXISTS (
 				SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-				WHERE ` + schema.JoinSpaceGroupOwners_Breakers + ` AND ` + schema.FullSpaceGroupOwners_USER_ID + ` = $2
+				WHERE ` + schema.JoinSpaceGroupOwners_Breakers + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
 			)
 
 			UNION ALL
@@ -219,7 +210,7 @@ func (b *pgBreakers) GetBreakerDownstream(ctx context.Context, userId, breakerId
 		FROM breaker_chain
 		ORDER BY depth
 	`
-	rows, err := b.pool.Query(ctx, query, breakerId, userId)
+	rows, err := b.pool.Query(ctx, query, breakerId, userEmail)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,7 +233,7 @@ func (b *pgBreakers) GetBreakerDownstream(ctx context.Context, userId, breakerId
 	}
 
 	if len(breakers) == 0 {
-		return nil, nil, ErrNotFound
+		return nil, nil, repository.ErrNotFound
 	}
 
 	deviceQuery := `

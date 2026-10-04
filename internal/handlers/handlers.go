@@ -1,44 +1,45 @@
 package handlers
 
 import (
-	"acrocuit/internal/auth"
+	"acrocuit/internal/options"
 	"acrocuit/internal/storage"
 
 	"github.com/gin-gonic/gin"
 )
 
-func New(g *gin.Engine, s *storage.Storage, jwtService *auth.JWTService) {
+type controller struct {
+	*storage.Storage
+	options *options.Options
+}
 
-	{
-		r := g.Group("auth")
-		authHandlers(r, s, jwtService)
-	}
+func New(g *gin.Engine, s *storage.Storage, requireIdentity gin.HandlerFunc, opts *options.Options) {
+	base := controller{s, opts}
 
 	protected := g.Group("")
-	protected.Use(auth.RequireAccessToken(jwtService))
+	protected.Use(requireIdentity)
 
 	{
 		r := protected.Group("space-groups")
-		spaceGroupsHandlers(r, s)
+		spaceGroupsHandlers(r, base)
 	}
 
 	{
 		r := protected.Group("spaces")
-		spacesHandlers(r, s)
+		spacesHandlers(r, base)
 	}
 
 	{
 		r := protected.Group("breaker-groups")
-		breakerGroupsHandlers(r, s)
+		breakerGroupsHandlers(r, base)
 	}
 
 	{
 		r := protected.Group("breakers")
-		breakersHandlers(r, s)
+		breakersHandlers(r, base)
 	}
 
 	{
 		r := protected.Group("devices")
-		devicesHandlers(r, s)
+		devicesHandlers(r, base)
 	}
 }
