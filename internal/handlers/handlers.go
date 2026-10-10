@@ -42,4 +42,6 @@ func New(g *gin.Engine, s *storage.Storage, requireIdentity gin.HandlerFunc, opt
 		r := protected.Group("devices")
 		devicesHandlers(r, base)
 	}
+
+	webHandlers(g)
 }
