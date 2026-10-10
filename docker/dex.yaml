@@ -1,0 +1,29 @@
+issuer: http://localhost:5173/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+oauth2:
+  skipApprovalScreen: true
+
+staticClients:
+  - id: acrocuit-dev
+    secret: acrocuit-dev-secret
+    name: Acrocuit
+    redirectURIs:
+      - http://localhost:5173/callback
+
+enablePasswordDB: true
+
+staticPasswords:
+  - email: testuser_a@example.com
+    hash: "$2a$10$IKLQegA/1wpmPUkasPx7ae4S.61T2aVwvRAZOH08ZtUYpHg2WM4Pa"
+    username: testuser_A
+    userID: 1f1c6b2e-0000-4000-8000-00000000000a
+  - email: testuser_b@example.com
+    hash: "$2a$10$IKLQegA/1wpmPUkasPx7ae4S.61T2aVwvRAZOH08ZtUYpHg2WM4Pa"
+    username: testuser_B
+    userID: 1f1c6b2e-0000-4000-8000-00000000000b
