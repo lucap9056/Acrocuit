@@ -92,6 +92,18 @@ ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 
 In multi-user mode, pass `ACROCUIT_ACCESS_TOKEN` (through the proxy) or `ACROCUIT_IDENTITY_TOKEN` (directly to the app).
 
+### Dex (frontend development)
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/dex.env up -d --build
+cd web && bun run dev
+```
+
+- Open `http://localhost:5173`; Vite forwards `/api`, `/auth`, and `/dex` to nginx, so this is the only port you need
+- The `dex` profile adds a local OIDC provider; no `.env` needed
+- Accounts `testuser_A` (`testuser_a@example.com`) and `testuser_B` (`testuser_b@example.com`), both with password `password`; sign in with the email
+- Sign-in URLs point to `http://localhost:5173`, so Vite must be running to sign in
+
 ## API
 
 - All routes are under `/api`
