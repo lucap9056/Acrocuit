@@ -1,44 +1,57 @@
 <script lang="ts">
-  import { type AuthError, AuthSession, type RefreshCallback } from "@/api";
-  import cache from "@/lib/cache";
+  import {
+    AuthError,
+    AuthSession,
+    type RefreshCallback,
+    type TokenPair,
+  } from "@/api";
+  import Dialog from "@/components/dialog/dialog.svelte";
+  import load from "@/components/loading-bar";
+  import LoadingBar from "@/components/loading-bar/loading-bar.svelte";
   import { onMount } from "@/lib/lifecycle";
-  import load from "@/lib/load";
   import Dashboard from "./dashboard/dashboard.svelte";
   import Login from "./login.svelte";
+  import { clearSession, getSession, setSession } from "./main";
+  import styles from "./main.module.css";
 
-  let session = $state<AuthSession | undefined>(undefined);
-  let sessionErr = $state<AuthError | undefined>(undefined);
+  let session = $state<AuthSession>();
+  let sessionErr = $state<Error>();
   let isLoaded = $state(false);
-  const isUnauthenticated = $derived(sessionErr?.status === 401);
+  const isUnauthenticated = $derived(
+    sessionErr instanceof AuthError && sessionErr.status === 401,
+  );
 
-  const getSession = () => {
-    return (
-      cache.auth ||
-      (() => {
-        const callback: RefreshCallback = {
-          onsuccess() {},
-          onerror(err) {
-            console.error("Refresh error:", err);
-          },
-        };
-        const r = AuthSession.New(callback);
-        cache.auth = r;
-        return r;
-      })()
-    );
+  const callback: RefreshCallback = {
+    onsuccess() {
+      if (sessionErr) {
+        sessionErr = undefined;
+      }
+    },
+    onerror: (err: AuthError) => {
+      if (err.status !== 401) {
+        return;
+      }
+      clearSession();
+      session = undefined;
+      sessionErr = err;
+    },
   };
 
-  onMount((signal) => {
+  const connect = (signal: AbortSignal) => {
     const loading = load.begin();
 
-    getSession()
+    getSession(callback)
       .then((s) => {
         if (!signal.aborted) {
           session = s;
+          sessionErr = undefined;
         }
       })
-      .catch((err: AuthError) => {
-        sessionErr = err;
+      .catch((err: Error) => {
+        clearSession();
+        if (!signal.aborted) {
+          sessionErr = err;
+        }
       })
       .finally(() => {
         if (!signal.aborted) {
@@ -46,17 +59,45 @@
         }
         loading.release();
       });
+  };
+
+  let mountSignal: AbortSignal | undefined;
+
+  onMount((signal) => {
+    mountSignal = signal;
+    connect(signal);
   });
+
+  const onLogin = (token: TokenPair) => {
+    if (mountSignal) {
+      const s = new AuthSession(callback, true, token);
+      setSession(s);
+      session = s;
+      sessionErr = undefined;
+    }
+  };
+
+  const reload = () => {
+    if (mountSignal) {
+      connect(mountSignal);
+    } else {
+      location.reload();
+    }
+  };
 </script>
 
 {#if isLoaded}
   {#if session}
     <Dashboard {session} />
   {:else if isUnauthenticated}
-    <Login />
+    <Login onsuccess={onLogin} />
   {:else}
-    <div>{sessionErr?.message ?? "Unknown error"}</div>
+    {#if sessionErr}
+      <div>{sessionErr.message}</div>
+    {/if}
+    <div class={styles.status}><button onclick={reload}>Retry</button></div>
   {/if}
-{:else}
-  <div>Loading...</div>
 {/if}
+
+<Dialog />
+<LoadingBar />
