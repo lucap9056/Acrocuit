@@ -1,0 +1,40 @@
+.dashboard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-flow: column;
+
+  .header {
+    display: flex;
+    height: 2.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    z-index: 1;
+
+    .center {
+      flex: 1;
+    }
+    .right {
+      text-align: center;
+      display: flex;
+      padding: 0.3125rem;
+
+      button {
+        box-shadow: var(--shadow-control);
+      }
+    }
+  }
+
+  .space_groups {
+    width: 50rem;
+    max-width: 100%;
+    margin: auto;
+    flex: 1;
+    background: var(--surface-muted);
+    overflow-y: auto;
+  }
+}

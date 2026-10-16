@@ -1,0 +1,17 @@
+.workspace {
+  display: flex;
+  flex-flow: row;
+
+  .items {
+    display: flex;
+  }
+
+  .view {
+    display: flex;
+    flex: 1;
+  }
+
+  .info {
+    display: flex;
+  }
+}
