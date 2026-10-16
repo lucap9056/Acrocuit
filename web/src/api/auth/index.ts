@@ -56,10 +56,26 @@ export type TokenPair = {
   access_token: AccessToken;
 };
 
-const loginCallback = (search: string | URLSearchParams, deviceName?: string) =>
-  fetch(`/auth/callback?${new URLSearchParams(search)}`, {
-    headers: deviceName ? { "X-Device-Name": deviceName } : undefined,
+export type CallbackOptions = {
+  deviceName?: string;
+  verifier?: Verifier;
+};
+
+const loginCallback = (
+  search: string | URLSearchParams,
+  { deviceName, verifier }: CallbackOptions = {},
+) => {
+  const headers = new Headers();
+  if (deviceName) {
+    headers.set("X-Device-Name", deviceName);
+  }
+  if (verifier) {
+    headers.set("X-PKCE-Verifier", verifier);
+  }
+  return fetch(`/auth/callback?${new URLSearchParams(search)}`, {
+    headers,
   }).then(unwrapResponse<TokenPair>);
+};
 
 const refresh = () =>
   fetch(`/auth/refresh`, { method: "POST" }).then(unwrapResponse<TokenPair>);
@@ -80,7 +96,7 @@ const refreshStatus = () =>
     unwrapResponse<SessionStatus>,
   );
 
-const kogout = () =>
+const logout = () =>
   fetch(`/auth/logout`, { method: "POST" }).then(unwrapResponse<string>);
 
 const deleteMe = () =>
@@ -92,6 +108,6 @@ export default {
   refresh,
   refreshAccess,
   refreshStatus,
-  kogout,
+  logout,
   deleteMe,
 };

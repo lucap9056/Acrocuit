@@ -1,0 +1,50 @@
+.login {
+  width: 25rem;
+  height: 16rem;
+  display: flex;
+  justify-content: center;
+  flex-flow: column;
+  text-align: center;
+  gap: 1.5rem;
+  padding: 2rem;
+
+  @media (width < 50rem) {
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
+
+  @media (width < 25rem) {
+    width: 100%;
+    border-radius: 0;
+  }
+
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: url("./login-floorplan.svg") center / 50rem auto no-repeat;
+
+    @media (width < 50rem) {
+      display: none;
+    }
+  }
+
+  h1 {
+    font-size: 2rem;
+    letter-spacing: 0.02em;
+  }
+
+  button {
+    align-self: center;
+    min-width: 10rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 1rem;
+    background: var(--accent);
+    color: var(--accent-contrast);
+
+    &:hover {
+      background: var(--accent-hover);
+    }
+  }
+}
