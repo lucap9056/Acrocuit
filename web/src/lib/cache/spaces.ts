@@ -41,17 +41,16 @@ export const addSpace = (s: AuthSession, sg: SpaceGroupId, name: string) =>
     },
   );
 
-export const moveSpace = (s: AuthSession, space: CompleteSpace) =>
-  Promise.all([
-    fetchSpaces(s, space.space_group.id),
-    api.spaces.updateSpaceOrder(s, space.id, space.display_order),
-  ]).then(([spaces, updatedSpace]) => {
-    const updatedSpaces = spaces.map((sp) =>
-      sp.id === space.id ? updatedSpace : sp,
-    );
+export const moveSpace = (s: AuthSession, space: CompleteSpace) => {
+  const sg = space.space_group.id;
 
-    return updateCache(space.space_group.id, updatedSpaces);
-  });
+  return api.spaces
+    .updateSpaceOrder(s, space.id, space.display_order)
+    .then(() => {
+      clearCache(sg);
+      return fetchSpaces(s, sg);
+    });
+};
 
 export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
   Promise.all([
