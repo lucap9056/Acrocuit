@@ -1,0 +1,15 @@
+.tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--accent-contrast);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}

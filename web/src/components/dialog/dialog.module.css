@@ -1,0 +1,57 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--overlay);
+  z-index: 800;
+
+  .dialog_message {
+    width: 24rem;
+    max-width: 100%;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .dialog_text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .dialog_text + .dialog_content {
+    margin-top: 1rem;
+  }
+
+  .dialog_buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+
+    button:not([data-type="primary"], [data-type="danger"]) {
+      box-shadow: var(--shadow-control);
+    }
+
+    button[data-type="primary"] {
+      background: var(--accent);
+      color: var(--accent-contrast);
+
+      &:hover {
+        background: var(--accent-hover);
+      }
+    }
+
+    button[data-type="danger"] {
+      background: var(--danger);
+      color: var(--accent-contrast);
+
+      &:hover {
+        background: var(--danger-hover);
+      }
+    }
+  }
+}
