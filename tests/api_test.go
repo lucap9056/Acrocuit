@@ -67,6 +67,10 @@ type position struct {
 	Z int `json:"z"`
 }
 
+func TestGetMeta(t *testing.T) {
+	call(t, http.MethodGet, "/meta", nil)
+}
+
 func TestGetSpaceGroups(t *testing.T) {
 	call(t, http.MethodGet, "/space-groups", nil)
 }

@@ -15,6 +15,11 @@ type controller struct {
 func New(g *gin.Engine, s *storage.Storage, requireIdentity gin.HandlerFunc, opts *options.Options) {
 	base := controller{s, opts}
 
+	{
+		r := g.Group("api/meta")
+		metaHandlers(r, base)
+	}
+
 	protected := g.Group("api")
 	protected.Use(requireIdentity)
 

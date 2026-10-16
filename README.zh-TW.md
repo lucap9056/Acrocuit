@@ -111,6 +111,7 @@ cd web && bun run dev
 
 | 路由 | 子路由 |
 | :--- | :--- |
+| `/api/meta` | 不需身份；`auth_required` 表示 request 是否須帶身份 |
 | `/api/space-groups` | |
 | `/api/spaces` | `/{id}/background-image`：multipart 欄位 `image`，PNG/JPEG/WebP/GIF，上限 10 MB |
 | `/api/breaker-groups` | |
