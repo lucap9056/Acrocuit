@@ -1,5 +1,8 @@
 import type { AuthSession, Ref, Space, SpaceGroupId } from "@/api";
 import api from "@/api";
+import { clearCache as clearBreakerGroupsCache } from "@/lib/cache/breaker-groups";
+import { clearCache as clearBreakersCache } from "@/lib/cache/breakers";
+import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
 
 type CompleteSpace = Space & { space_group: Ref<SpaceGroupId> };
 
@@ -58,6 +61,10 @@ export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
     api.spaces.deleteSpace(s, space.id),
   ]).then(([spaces]) => {
     const updatedSpaces = spaces.filter((sp) => sp.id !== space.id);
+
+    clearBreakerGroupsCache(space.id);
+    clearDevicesCache(space.id);
+    clearBreakersCache();
 
     return updateCache(space.space_group.id, updatedSpaces);
   });
