@@ -1,0 +1,105 @@
+name: acrocuit-dev
+
+x-database-dsn: &database-dsn "postgres://acrocuit:postgres@postgres:5432/acrocuit?sslmode=disable"
+x-identity-jwt-secret: &identity-jwt-secret "dex-dev-identity-secret-0123456789abcdef"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: acrocuit-dev-postgres
+    environment:
+      POSTGRES_USER: "acrocuit"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "acrocuit"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U acrocuit -d acrocuit"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  dbinit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: dbinit
+      args:
+        WEB: none
+    container_name: acrocuit-dev-dbinit
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_DSN: *database-dsn
+    restart: "no"
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: app
+      args:
+        WEB: none
+    container_name: acrocuit-dev-app
+    depends_on:
+      dbinit:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: "development"
+      DATABASE_DSN: *database-dsn
+      IDENTITY_JWT_SECRET: *identity-jwt-secret
+
+  corvauth-schema:
+    image: ghcr.io/lucap9056/corvauth:0.2.0
+    container_name: acrocuit-dev-corvauth-schema
+    command: ["schema", "apply"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: *database-dsn
+    restart: "no"
+
+  corvauth:
+    image: ghcr.io/lucap9056/corvauth:0.2.0
+    container_name: acrocuit-dev-corvauth
+    depends_on:
+      corvauth-schema:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: *database-dsn
+      HTTP_MODE: "development"
+      ALLOW_REGISTRATION: "true"
+      IDENTITY_JWT_SECRET: *identity-jwt-secret
+      OAUTH2_REDIRECT_URL: "http://localhost:5173/callback/"
+      OAUTH2_PROVIDER: "dex"
+      OAUTH2_CLIENT_ID: "acrocuit-dev"
+      OAUTH2_CLIENT_SECRET: "acrocuit-dev-secret"
+      OAUTH2_SCOPES: "openid,profile,email"
+      OAUTH2_AUTH_URL: "http://localhost:5173/dex/auth"
+      OAUTH2_TOKEN_URL: "http://dex:5556/dex/token"
+      OAUTH2_USERINFO_URL: "http://dex:5556/dex/userinfo"
+
+  dex:
+    image: ghcr.io/dexidp/dex:v2.41.1
+    container_name: acrocuit-dev-dex
+    command: ["dex", "serve", "/etc/dex/dex.yaml"]
+    volumes:
+      - ./dex.yaml:/etc/dex/dex.yaml:ro
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: acrocuit-dev-nginx
+    depends_on:
+      - app
+      - corvauth
+      - dex
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  postgres-data:

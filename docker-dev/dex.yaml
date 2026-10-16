@@ -14,7 +14,7 @@ staticClients:
     secret: acrocuit-dev-secret
     name: Acrocuit
     redirectURIs:
-      - http://localhost:5173/callback
+      - http://localhost:5173/callback/
 
 enablePasswordDB: true
 
