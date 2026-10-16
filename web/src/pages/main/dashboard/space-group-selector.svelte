@@ -1,0 +1,213 @@
+<script lang="ts">
+  import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon";
+  import TrashIcon from "phosphor-svelte/lib/TrashIcon";
+  import type { AuthSession, SpaceGroup } from "@/api";
+  import dialog, { type DialogContentProps } from "@/components/dialog";
+  import load from "@/components/loading-bar";
+  import { tooltip } from "@/components/tooltip";
+  import router from "@/lib/hash-routers";
+  import { onMount } from "@/lib/lifecycle";
+  import {
+    addSpaceGroup,
+    fetchSpaceGroups,
+    removeSpaceGroup,
+    updateSpaceGroup,
+  } from "@/lib/cache/space-groups";
+
+  import styles from "./space-group-selector.module.css";
+
+  interface Props {
+    session: AuthSession;
+  }
+
+  const { session }: Props = $props();
+  let spaceGroups = $state<SpaceGroup[]>([]);
+  let loadError = $state<string>();
+  let isLoaded = $state(false);
+
+  let spaceGroupName = $state("");
+
+  const showSpaceGroups = (sgs: SpaceGroup[]) => {
+    spaceGroups = sgs;
+  };
+
+  const loadSpaceGroups = (s: AuthSession, signal: AbortSignal) => {
+    const loading = load.begin();
+    fetchSpaceGroups(s)
+      .then((sgs) => {
+        if (!signal.aborted) {
+          showSpaceGroups(sgs);
+          loadError = undefined;
+        }
+      })
+      .catch((err) => {
+        if (!signal.aborted) {
+          console.log(err);
+        }
+      })
+      .finally(() => {
+        if (!signal.aborted) {
+          isLoaded = true;
+        }
+        loading.release();
+      });
+  };
+
+  onMount((signal) => {
+    loadSpaceGroups(session, signal);
+  });
+
+  const showDialog = (text: string, name: string = ""): Promise<string> => {
+    spaceGroupName = name;
+
+    const { promise, resolve, reject } = Promise.withResolvers<string>();
+
+    dialog.push({
+      text: "",
+      content: setSpaceGroupName,
+      buttons: [
+        {
+          text: "cancel",
+          type: "",
+          onclick: () => {
+            reject();
+            return true;
+          },
+        },
+        {
+          text,
+          type: "",
+          onclick: () => {
+            resolve(spaceGroupName);
+            return true;
+          },
+        },
+      ],
+    });
+
+    return promise;
+  };
+
+  const create = () => {
+    showDialog("create").then((name) => {
+      const loading = load.begin();
+      addSpaceGroup(session, name)
+        .then(showSpaceGroups)
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          loading.release();
+        });
+    });
+  };
+
+  const rename = async (sg: SpaceGroup) => {
+    showDialog("rename", sg.name).then((name) => {
+      const loading = load.begin();
+
+      updateSpaceGroup(session, { ...sg, name })
+        .then((sgs) => {
+          spaceGroups = sgs;
+        })
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          loading.release();
+        });
+    });
+  };
+
+  const remove = async (sg: SpaceGroup) => {
+    new Promise((resolve, reject) => {
+      dialog.push({
+        text: "",
+        buttons: [
+          {
+            text: "cancel",
+            type: "",
+            onclick: () => {
+              reject();
+              return true;
+            },
+          },
+          {
+            text: "remove",
+            type: "",
+            onclick: () => {
+              resolve(true);
+              return true;
+            },
+          },
+        ],
+      });
+    }).then(() => {
+      const loading = load.begin();
+
+      removeSpaceGroup(session, sg)
+        .then((sgs) => {
+          spaceGroups = sgs;
+        })
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          loading.release();
+        });
+    });
+  };
+
+  const onselected = (spaceGroupId: number) => {
+    const spaceGroupIdStr = spaceGroupId.toString();
+    const routePath = `space-groups/${spaceGroupIdStr}`;
+    router.to(routePath);
+  };
+</script>
+
+{#snippet setSpaceGroupName({ dismiss }: DialogContentProps)}
+  <input type="text" bind:value={spaceGroupName}>
+{/snippet}
+
+<div class="space_groups {styles.space_groups}">
+  <div class="heading {styles.heading}">
+    <h1 class={styles.title}>Space groups</h1>
+    <button class={styles.create} onclick={create}>New space group</button>
+  </div>
+
+  {#if loadError}
+    <p class={styles.message}>{loadError}</p>
+  {:else if isLoaded && spaceGroups.length === 0}
+    <div>
+      <p class={styles.message}>
+        No space groups yet. A space group is usually one building or site.
+      </p>
+    </div>
+  {:else}
+    <ul class={styles.list}>
+      {#each spaceGroups as sg (sg.id)}
+        <li class={styles.item}>
+          <button class={styles.select} onclick={() => onselected(sg.id)}>
+            <span class={styles.name}>{sg.name}</span>
+          </button>
+          <div class={styles.actions}>
+            <button
+              class="icon_button"
+              onclick={() => rename(sg)}
+              {@attach tooltip("Rename")}
+            >
+              <PencilSimpleIcon />
+            </button>
+            <button
+              class="icon_button {styles.delete}"
+              onclick={() => remove(sg)}
+              {@attach tooltip("Delete")}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </li>
+      {/each}
+    </ul>
+  {/if}
+</div>

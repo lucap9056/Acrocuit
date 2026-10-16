@@ -63,8 +63,13 @@ const updateSpaceOrder = (
     .then(unwrapApiResponse<Space>);
 };
 
-const getSpaceBackgroundImage = async (auth: AuthSession, spaceId: SpaceId) => {
-  const r = await auth.fetch(`${base}/${spaceId}/background-image`, {
+const getSpaceBackgroundImage = async (
+  auth: AuthSession,
+  spaceId: SpaceId,
+  version?: number,
+) => {
+  const query = version === undefined ? "" : `?v=${version}`;
+  const r = await auth.fetch(`${base}/${spaceId}/background-image${query}`, {
     method: "GET",
   });
 
