@@ -76,14 +76,6 @@ services:
       OAUTH2_TOKEN_URL: "${OAUTH2_TOKEN_URL:-}"
       OAUTH2_USERINFO_URL: "${OAUTH2_USERINFO_URL:-}"
 
-  dex:
-    image: ghcr.io/dexidp/dex:v2.41.1
-    container_name: acrocuit-dex
-    profiles: ["dex"]
-    command: ["dex", "serve", "/etc/dex/dex.yaml"]
-    volumes:
-      - ./dex.yaml:/etc/dex/dex.yaml:ro
-
   nginx:
     image: nginx:1.27-alpine
     container_name: acrocuit-nginx

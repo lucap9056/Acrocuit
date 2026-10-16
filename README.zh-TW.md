@@ -95,12 +95,13 @@ ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 ### Dex（前端開發）
 
 ```bash
-docker compose -f docker/docker-compose.yml --env-file docker/dex.env up -d --build
+docker compose -f docker-dev/docker-compose.yml up -d --build
 cd web && bun run dev
 ```
 
 - 開啟 `http://localhost:5173`，Vite 將 `/api`、`/auth`、`/dex` 轉給 nginx，只需這一個 port
-- 以 profile `dex` 加開本地 OIDC provider，不需另設 `.env`
+- `docker-dev/` 為獨立的 stack，內含本地 Dex OIDC provider，不需另設 `.env`
+- 以 `WEB=none`（`noweb` build tag）編譯，app 不提供前端頁面，頁面由 Vite 提供
 - 帳號 `testuser_A`（`testuser_a@example.com`）、`testuser_B`（`testuser_b@example.com`），密碼皆為 `password`，登入時輸入 email
 - 登入流程的網址皆指向 `http://localhost:5173`，須啟動 Vite 才能登入
 
