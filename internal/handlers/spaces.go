@@ -55,8 +55,7 @@ func (ctr *spacesController) GetSpace(c *gin.Context) {
 }
 
 type setSpaceRequest struct {
-	Name         *string `json:"name" binding:"omitempty,min=1,max=255"`
-	DisplayOrder *int    `json:"display_order"`
+	Name *string `json:"name" binding:"omitempty,min=1,max=255"`
 }
 
 func (ctr *spacesController) SetSpace(c *gin.Context) {
@@ -71,7 +70,7 @@ func (ctr *spacesController) SetSpace(c *gin.Context) {
 		return
 	}
 
-	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userEmail, spaceId, req.Name, req.DisplayOrder)
+	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userEmail, spaceId, req.Name)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -111,13 +110,13 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 		return
 	}
 
-	space, err := ctr.Spaces.SetSpace(c.Request.Context(), userEmail, spaceId, nil, &req.DisplayOrder)
+	spaces, err := ctr.Spaces.MoveSpace(c.Request.Context(), userEmail, spaceId, req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, space)
+	response.OK(c, spaces)
 }
 
 func (ctr *spacesController) GetBreakerGroups(c *gin.Context) {

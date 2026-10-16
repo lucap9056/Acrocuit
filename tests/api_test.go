@@ -104,7 +104,7 @@ func TestGetSpace(t *testing.T) {
 }
 
 func TestSetSpace(t *testing.T) {
-	call(t, http.MethodPut, "/spaces/"+spaceId, map[string]any{"name": "space", "display_order": 1})
+	call(t, http.MethodPut, "/spaces/"+spaceId, map[string]any{"name": "space"})
 }
 
 func TestDelSpace(t *testing.T) {
@@ -176,7 +176,7 @@ func TestGetBreakerDownstream(t *testing.T) {
 }
 
 func TestSetBreaker(t *testing.T) {
-	call(t, http.MethodPut, "/breakers/"+breakerId, map[string]any{"name": "breaker", "display_order": 1})
+	call(t, http.MethodPut, "/breakers/"+breakerId, map[string]any{"name": "breaker"})
 }
 
 func TestDelBreaker(t *testing.T) {

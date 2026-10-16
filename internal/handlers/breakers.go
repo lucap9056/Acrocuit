@@ -68,8 +68,7 @@ func (ctr *breakersController) GetBreaker(c *gin.Context) {
 }
 
 type setBreakerRequest struct {
-	Name         *string `json:"name" binding:"omitempty,min=1,max=255"`
-	DisplayOrder *int    `json:"display_order"`
+	Name *string `json:"name" binding:"omitempty,min=1,max=255"`
 }
 
 func (ctr *breakersController) SetBreaker(c *gin.Context) {
@@ -84,7 +83,7 @@ func (ctr *breakersController) SetBreaker(c *gin.Context) {
 		return
 	}
 
-	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userEmail, breakerId, req.Name, req.DisplayOrder)
+	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userEmail, breakerId, req.Name)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -120,13 +119,13 @@ func (ctr *breakersController) SetBreakerOrder(c *gin.Context) {
 		return
 	}
 
-	breaker, err := ctr.Breakers.SetBreaker(c.Request.Context(), userEmail, breakerId, nil, &req.DisplayOrder)
+	breakers, err := ctr.Breakers.MoveBreaker(c.Request.Context(), userEmail, breakerId, req.DisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, breaker)
+	response.OK(c, breakers)
 }
 
 type setBreakerUpstreamRequest struct {

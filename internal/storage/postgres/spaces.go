@@ -110,11 +110,11 @@ func (s *pgSpaces) AddSpace(ctx context.Context, userEmail string, spaceGroupId 
 	return space, nil
 }
 
-func (s *pgSpaces) SetSpace(ctx context.Context, userEmail string, spaceId int, name *string, displayOrder *int) (*models.Space, error) {
-	query := `SELECT ` + schema.FnSetSpace_OUTPUTS + ` FROM ` + schema.FnSetSpace + `($1, $2, $3, $4)`
+func (s *pgSpaces) SetSpace(ctx context.Context, userEmail string, spaceId int, name *string) (*models.Space, error) {
+	query := `SELECT ` + schema.FnSetSpace_OUTPUTS + ` FROM ` + schema.FnSetSpace + `($1, $2, $3)`
 
 	space := &models.Space{}
-	err := s.pool.QueryRow(ctx, query, userEmail, spaceId, name, displayOrder).
+	err := s.pool.QueryRow(ctx, query, userEmail, spaceId, name).
 		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -126,6 +126,35 @@ func (s *pgSpaces) SetSpace(ctx context.Context, userEmail string, spaceId int, 
 	space.Build()
 
 	return space, nil
+}
+
+func (s *pgSpaces) MoveSpace(ctx context.Context, userEmail string, spaceId int, displayOrder int) ([]models.Space, error) {
+	query := `SELECT ` + schema.FnMoveSpace_OUTPUTS + ` FROM ` + schema.FnMoveSpace + `($1, $2, $3)`
+
+	rows, err := s.pool.Query(ctx, query, userEmail, spaceId, displayOrder)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	spaces := make([]models.Space, 0)
+	for rows.Next() {
+		var space models.Space
+		if err := rows.Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt); err != nil {
+			return nil, err
+		}
+		space.Build()
+		spaces = append(spaces, space)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(spaces) == 0 {
+		return nil, repository.ErrNotFound
+	}
+
+	return spaces, nil
 }
 
 func (s *pgSpaces) DelSpace(ctx context.Context, userEmail string, spaceId int) error {
