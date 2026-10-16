@@ -212,7 +212,7 @@ export default createHashRouter();
 
 export const field = (p: RouteParams, k: string, d: string): string => {
   if (typeof p[k] === "string") {
-    return k;
+    return p[k];
   }
   return d;
 };
