@@ -79,8 +79,8 @@ func (b *sqliteBreakers) AddBreaker(ctx context.Context, _ string, breakerGroupI
 	return breaker, nil
 }
 
-func (b *sqliteBreakers) SetBreaker(ctx context.Context, _ string, breakerId int, name *string, displayOrder *int) (*models.Breaker, error) {
-	var breaker *models.Breaker
+func (b *sqliteBreakers) MoveBreaker(ctx context.Context, _ string, breakerId int, displayOrder int) ([]models.Breaker, error) {
+	var breakers []models.Breaker
 
 	err := withTx(ctx, b.db, func(tx *sql.Tx) error {
 		var breakerGroupId, currentOrder int
@@ -89,10 +89,36 @@ func (b *sqliteBreakers) SetBreaker(ctx context.Context, _ string, breakerId int
 			return notFoundIfNoRows(err)
 		}
 
-		if displayOrder != nil && *displayOrder != currentOrder {
-			if err := breakersOrder.move(ctx, tx, breakerGroupId, breakerId, currentOrder, *displayOrder); err != nil {
+		if displayOrder != currentOrder {
+			if err := breakersOrder.move(ctx, tx, breakerGroupId, breakerId, currentOrder, displayOrder); err != nil {
 				return err
 			}
+		}
+
+		keys, fields, err := models.ParseBreakerColumns("")
+		if err != nil {
+			return err
+		}
+		query := `SELECT ` + keys + `
+			FROM ` + schema.BreakersTable + `
+			WHERE ` + schema.FullBreakers_BREAKER_GROUP_ID + ` = $1
+			ORDER BY ` + schema.FullBreakers_DISPLAY_ORDER
+		breakers, err = queryBreakers(ctx, tx, fields, query, breakerGroupId)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return breakers, nil
+}
+
+func (b *sqliteBreakers) SetBreaker(ctx context.Context, _ string, breakerId int, name *string) (*models.Breaker, error) {
+	var breaker *models.Breaker
+
+	err := withTx(ctx, b.db, func(tx *sql.Tx) error {
+		if err := requireRow(ctx, tx, schema.BreakersTable, schema.Breakers_ID, breakerId); err != nil {
+			return err
 		}
 
 		if name != nil {

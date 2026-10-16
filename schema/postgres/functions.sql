@@ -1,16 +1,50 @@
 DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, INT, VARCHAR, INT);
+DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, INT, VARCHAR);
 
 CREATE OR REPLACE FUNCTION {{fn_set_space.func}}(
     p_user_email TEXT,
     p_space_id INT,
-    p_name VARCHAR(255) DEFAULT NULL,
-    p_display_order INT DEFAULT NULL
+    p_name VARCHAR(255) DEFAULT NULL
 ) RETURNS TABLE (
     {{fn_set_space.o_id}} INT,
     {{fn_set_space.o_name}} VARCHAR(255),
     {{fn_set_space.o_space_group_id}} INT,
     {{fn_set_space.o_display_order}} INT,
     {{fn_set_space.o_background_image_updated_at}} BIGINT
+) LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM {{spaces.table}} s
+        JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = s.{{spaces.space_group_id}}
+        WHERE s.{{spaces.id}} = p_space_id AND so.{{space_group_owners.user_email}} = p_user_email
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF p_name IS NOT NULL THEN
+        UPDATE {{spaces.table}} SET {{spaces.name}} = p_name WHERE {{spaces.id}} = p_space_id;
+    END IF;
+
+    RETURN QUERY
+    SELECT s.{{spaces.id}}, s.{{spaces.name}}, s.{{spaces.space_group_id}}, s.{{spaces.display_order}}, s.{{spaces.background_image_updated_at}}
+    FROM {{spaces.table}} s
+    WHERE s.{{spaces.id}} = p_space_id;
+END;
+$$;
+
+DROP FUNCTION IF EXISTS {{fn_move_space.func}}(TEXT, INT, INT);
+
+CREATE OR REPLACE FUNCTION {{fn_move_space.func}}(
+    p_user_email TEXT,
+    p_space_id INT,
+    p_display_order INT
+) RETURNS TABLE (
+    {{fn_move_space.o_id}} INT,
+    {{fn_move_space.o_name}} VARCHAR(255),
+    {{fn_move_space.o_space_group_id}} INT,
+    {{fn_move_space.o_display_order}} INT,
+    {{fn_move_space.o_background_image_updated_at}} BIGINT
 ) LANGUAGE plpgsql AS $$
 DECLARE
     v_space_group_id INT;
@@ -29,7 +63,7 @@ BEGIN
         RETURN;
     END IF;
 
-    IF p_display_order IS NOT NULL AND p_display_order <> v_current_order THEN
+    IF p_display_order <> v_current_order THEN
         v_delta := p_display_order - v_current_order;
 
         IF ABS(v_delta) = 1 THEN
@@ -47,24 +81,21 @@ BEGIN
         END IF;
     END IF;
 
-    IF p_name IS NOT NULL THEN
-        UPDATE {{spaces.table}} SET {{spaces.name}} = p_name WHERE {{spaces.id}} = p_space_id;
-    END IF;
-
     RETURN QUERY
     SELECT s.{{spaces.id}}, s.{{spaces.name}}, s.{{spaces.space_group_id}}, s.{{spaces.display_order}}, s.{{spaces.background_image_updated_at}}
     FROM {{spaces.table}} s
-    WHERE s.{{spaces.id}} = p_space_id;
+    WHERE s.{{spaces.space_group_id}} = v_space_group_id
+    ORDER BY s.{{spaces.display_order}};
 END;
 $$;
 
 DROP FUNCTION IF EXISTS {{fn_set_breaker.func}}(TEXT, INT, VARCHAR, INT);
+DROP FUNCTION IF EXISTS {{fn_set_breaker.func}}(TEXT, INT, VARCHAR);
 
 CREATE OR REPLACE FUNCTION {{fn_set_breaker.func}}(
     p_user_email TEXT,
     p_breaker_id INT,
-    p_name VARCHAR(255) DEFAULT NULL,
-    p_display_order INT DEFAULT NULL
+    p_name VARCHAR(255) DEFAULT NULL
 ) RETURNS TABLE (
     {{fn_set_breaker.o_id}} INT,
     {{fn_set_breaker.o_name}} VARCHAR(255),
@@ -72,6 +103,41 @@ CREATE OR REPLACE FUNCTION {{fn_set_breaker.func}}(
     {{fn_set_breaker.o_space_group_id}} INT,
     {{fn_set_breaker.o_display_order}} INT,
     {{fn_set_breaker.o_upstream_breaker_id}} INT
+) LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM {{breakers.table}} b
+        JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = b.{{breakers.space_group_id}}
+        WHERE b.{{breakers.id}} = p_breaker_id AND so.{{space_group_owners.user_email}} = p_user_email
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF p_name IS NOT NULL THEN
+        UPDATE {{breakers.table}} SET {{breakers.name}} = p_name WHERE {{breakers.id}} = p_breaker_id;
+    END IF;
+
+    RETURN QUERY
+    SELECT b.{{breakers.id}}, b.{{breakers.name}}, b.{{breakers.breaker_group_id}}, b.{{breakers.space_group_id}}, b.{{breakers.display_order}}, b.{{breakers.upstream_breaker_id}}
+    FROM {{breakers.table}} b
+    WHERE b.{{breakers.id}} = p_breaker_id;
+END;
+$$;
+
+DROP FUNCTION IF EXISTS {{fn_move_breaker.func}}(TEXT, INT, INT);
+
+CREATE OR REPLACE FUNCTION {{fn_move_breaker.func}}(
+    p_user_email TEXT,
+    p_breaker_id INT,
+    p_display_order INT
+) RETURNS TABLE (
+    {{fn_move_breaker.o_id}} INT,
+    {{fn_move_breaker.o_name}} VARCHAR(255),
+    {{fn_move_breaker.o_breaker_group_id}} INT,
+    {{fn_move_breaker.o_space_group_id}} INT,
+    {{fn_move_breaker.o_display_order}} INT,
+    {{fn_move_breaker.o_upstream_breaker_id}} INT
 ) LANGUAGE plpgsql AS $$
 DECLARE
     v_breaker_group_id INT;
@@ -90,7 +156,7 @@ BEGIN
         RETURN;
     END IF;
 
-    IF p_display_order IS NOT NULL AND p_display_order <> v_current_order THEN
+    IF p_display_order <> v_current_order THEN
         v_delta := p_display_order - v_current_order;
 
         IF ABS(v_delta) = 1 THEN
@@ -108,14 +174,11 @@ BEGIN
         END IF;
     END IF;
 
-    IF p_name IS NOT NULL THEN
-        UPDATE {{breakers.table}} SET {{breakers.name}} = p_name WHERE {{breakers.id}} = p_breaker_id;
-    END IF;
-
     RETURN QUERY
     SELECT b.{{breakers.id}}, b.{{breakers.name}}, b.{{breakers.breaker_group_id}}, b.{{breakers.space_group_id}}, b.{{breakers.display_order}}, b.{{breakers.upstream_breaker_id}}
     FROM {{breakers.table}} b
-    WHERE b.{{breakers.id}} = p_breaker_id;
+    WHERE b.{{breakers.breaker_group_id}} = v_breaker_group_id
+    ORDER BY b.{{breakers.display_order}};
 END;
 $$;
 

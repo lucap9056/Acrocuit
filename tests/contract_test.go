@@ -337,7 +337,7 @@ func TestContract(t *testing.T) {
 		}{
 			{http.MethodGet, spaceGroupPath + "/spaces", nil, arrayOf(spaceShape())},
 			{http.MethodPut, spacePath, map[string]any{"name": "renamed"}, spaceShape()},
-			{http.MethodPatch, spacePath + "/order", map[string]any{"display_order": 1}, spaceShape()},
+			{http.MethodPatch, spacePath + "/order", map[string]any{"display_order": 1}, arrayOf(spaceShape())},
 		} {
 			req := newRequest(t, tc.method, tc.path, tc.body)
 			c.checkShape(req, http.StatusOK, successShape(tc.data))
@@ -387,7 +387,7 @@ func TestContract(t *testing.T) {
 		}{
 			{http.MethodGet, breakerGroupPath + "/breakers", nil, arrayOf(breakerShape())},
 			{http.MethodPut, childPath, map[string]any{"name": "renamed"}, breakerShape()},
-			{http.MethodPatch, childPath + "/order", map[string]any{"display_order": 1}, breakerShape()},
+			{http.MethodPatch, childPath + "/order", map[string]any{"display_order": 1}, arrayOf(breakerShape())},
 		} {
 			req := newRequest(t, tc.method, tc.path, tc.body)
 			c.checkShape(req, http.StatusOK, successShape(tc.data))

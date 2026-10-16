@@ -120,11 +120,40 @@ func (b *pgBreakers) AddBreaker(ctx context.Context, userEmail string, breakerGr
 	return breaker, nil
 }
 
-func (b *pgBreakers) SetBreaker(ctx context.Context, userEmail string, breakerId int, name *string, displayOrder *int) (*models.Breaker, error) {
-	query := `SELECT ` + schema.FnSetBreaker_OUTPUTS + ` FROM ` + schema.FnSetBreaker + `($1, $2, $3, $4)`
+func (b *pgBreakers) MoveBreaker(ctx context.Context, userEmail string, breakerId int, displayOrder int) ([]models.Breaker, error) {
+	query := `SELECT ` + schema.FnMoveBreaker_OUTPUTS + ` FROM ` + schema.FnMoveBreaker + `($1, $2, $3)`
+
+	rows, err := b.pool.Query(ctx, query, userEmail, breakerId, displayOrder)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	breakers := make([]models.Breaker, 0)
+	for rows.Next() {
+		var breaker models.Breaker
+		if err := rows.Scan(&breaker.Id, &breaker.Name, &breaker.BreakerGroupId, &breaker.SpaceGroupId, &breaker.DisplayOrder, &breaker.UpstreamBreakerId); err != nil {
+			return nil, err
+		}
+		breaker.Build()
+		breakers = append(breakers, breaker)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(breakers) == 0 {
+		return nil, repository.ErrNotFound
+	}
+
+	return breakers, nil
+}
+
+func (b *pgBreakers) SetBreaker(ctx context.Context, userEmail string, breakerId int, name *string) (*models.Breaker, error) {
+	query := `SELECT ` + schema.FnSetBreaker_OUTPUTS + ` FROM ` + schema.FnSetBreaker + `($1, $2, $3)`
 
 	breaker := &models.Breaker{}
-	err := b.pool.QueryRow(ctx, query, userEmail, breakerId, name, displayOrder).
+	err := b.pool.QueryRow(ctx, query, userEmail, breakerId, name).
 		Scan(&breaker.Id, &breaker.Name, &breaker.BreakerGroupId, &breaker.SpaceGroupId, &breaker.DisplayOrder, &breaker.UpstreamBreakerId)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound

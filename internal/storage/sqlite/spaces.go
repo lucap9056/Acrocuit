@@ -23,7 +23,11 @@ func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId int
 		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
 		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
 
-	rows, err := s.db.QueryContext(ctx, query, spaceGroupId)
+	return querySpaces(ctx, s.db, fields, query, spaceGroupId)
+}
+
+func querySpaces(ctx context.Context, q querier, fields []uint8, query string, args ...any) ([]models.Space, error) {
+	rows, err := q.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +89,8 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId int,
 	return space, nil
 }
 
-func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId int, name *string, displayOrder *int) (*models.Space, error) {
-	space := &models.Space{}
+func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId int, displayOrder int) ([]models.Space, error) {
+	var spaces []models.Space
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
 		var spaceGroupId, currentOrder int
@@ -95,10 +99,36 @@ func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId int, name
 			return notFoundIfNoRows(err)
 		}
 
-		if displayOrder != nil && *displayOrder != currentOrder {
-			if err := spacesOrder.move(ctx, tx, spaceGroupId, spaceId, currentOrder, *displayOrder); err != nil {
+		if displayOrder != currentOrder {
+			if err := spacesOrder.move(ctx, tx, spaceGroupId, spaceId, currentOrder, displayOrder); err != nil {
 				return err
 			}
+		}
+
+		keys, fields, err := models.ParseSpaceColumns("")
+		if err != nil {
+			return err
+		}
+		query := `SELECT ` + keys + `
+			FROM ` + schema.SpacesTable + `
+			WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
+			ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
+		spaces, err = querySpaces(ctx, tx, fields, query, spaceGroupId)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return spaces, nil
+}
+
+func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId int, name *string) (*models.Space, error) {
+	space := &models.Space{}
+
+	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
+		if err := requireRow(ctx, tx, schema.SpacesTable, schema.Spaces_ID, spaceId); err != nil {
+			return err
 		}
 
 		if name != nil {
