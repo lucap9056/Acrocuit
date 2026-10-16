@@ -111,6 +111,7 @@ cd web && bun run dev
 
 | Route | Sub-routes |
 | :--- | :--- |
+| `/api/meta` | Public; `auth_required` tells whether requests need an identity |
 | `/api/space-groups` | |
 | `/api/spaces` | `/{id}/background-image`: multipart field `image`, PNG/JPEG/WebP/GIF, up to 10 MB |
 | `/api/breaker-groups` | |

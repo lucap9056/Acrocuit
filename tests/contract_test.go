@@ -26,6 +26,11 @@ func integer(t *testing.T, path string, v any) {
 	assert.NoError(t, err, "%s: want integer", path)
 }
 
+func boolean(t *testing.T, path string, v any) {
+	t.Helper()
+	assert.IsType(t, true, v, path)
+}
+
 func text(t *testing.T, path string, v any) {
 	t.Helper()
 	assert.IsType(t, "", v, path)
@@ -136,6 +141,12 @@ func deviceShape() shape {
 	})
 }
 
+func metaShape() shape {
+	return object(map[string]shape{
+		"auth_required": boolean,
+	})
+}
+
 func downstreamShape() shape {
 	return object(map[string]shape{
 		"breakers": arrayOf(breakerShape()),
@@ -231,6 +242,15 @@ func mustId(t *testing.T, v any) int {
 	id, ok := intField(t, v, "id")
 	require.True(t, ok, "data.id")
 	return id
+}
+
+func TestMetaContract(t *testing.T) {
+	c := newClient(t)
+	c.identityToken = ""
+	c.accessToken = ""
+
+	req := newRequest(t, http.MethodGet, "/meta", nil)
+	c.checkShape(req, http.StatusOK, successShape(metaShape()))
 }
 
 func TestContract(t *testing.T) {
