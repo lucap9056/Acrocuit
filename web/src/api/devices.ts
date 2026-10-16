@@ -1,6 +1,12 @@
-import type { AuthSession } from "./auth/auth-session";
-import type { Breaker, BreakerId, Device, DeviceId, Position } from "./models";
-import { unwrapApiResponse } from "./response";
+import type { AuthSession } from "@/api/auth/auth-session";
+import type {
+  Breaker,
+  BreakerId,
+  Device,
+  DeviceId,
+  Position,
+} from "@/api/models";
+import { unwrapApiResponse } from "@/api/response";
 
 const base = "/api/devices";
 

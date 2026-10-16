@@ -1,12 +1,12 @@
-import type { AuthSession } from "./auth/auth-session";
+import type { AuthSession } from "@/api/auth/auth-session";
 import type {
   Breaker,
   BreakerGroup,
   BreakerGroupId,
   BreakerId,
   Position,
-} from "./models";
-import { unwrapApiResponse } from "./response";
+} from "@/api/models";
+import { unwrapApiResponse } from "@/api/response";
 
 const base = "/api/breaker-groups";
 
