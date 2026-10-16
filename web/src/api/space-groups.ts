@@ -1,6 +1,6 @@
-import type { AuthSession } from "./auth/auth-session";
-import type { Space, SpaceGroup, SpaceGroupId } from "./models";
-import { unwrapApiResponse } from "./response";
+import type { AuthSession } from "@/api/auth/auth-session";
+import type { Space, SpaceGroup, SpaceGroupId } from "@/api/models";
+import { unwrapApiResponse } from "@/api/response";
 
 const base = "/api/space-groups";
 

@@ -1,5 +1,5 @@
-import type { AccessToken, AuthError } from "./index";
-import auth from "./index";
+import type { AccessToken, AuthError } from "@/api/auth";
+import auth from "@/api/auth";
 
 const refreshAheadMs = 60_000;
 
