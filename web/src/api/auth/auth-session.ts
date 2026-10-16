@@ -1,5 +1,6 @@
-import type { AccessToken, AuthError } from "@/api/auth";
+import type { AccessToken, AuthError, TokenPair } from "@/api/auth";
 import auth from "@/api/auth";
+import meta from "@/api/meta";
 
 const refreshAheadMs = 60_000;
 
@@ -20,14 +21,26 @@ export interface RefreshCallback {
 
 export class AuthSession {
   public static readonly New = async (refreshCallback: RefreshCallback) => {
-    await auth.refreshStatus();
-    return new AuthSession(refreshCallback);
+    const { auth_required } = await meta.getMeta();
+    if (auth_required) {
+      await auth.refreshStatus();
+    }
+    return new AuthSession(refreshCallback, auth_required);
   };
 
   private accessToken?: AccessToken;
   private expiresAt = 0;
   private refreshing: Promise<AccessToken> | null = null;
-  constructor(private refreshCallback: RefreshCallback) {}
+  constructor(
+    private refreshCallback: RefreshCallback,
+    readonly authRequired: boolean,
+    token?: TokenPair,
+  ) {
+    if (token) {
+      this.accessToken = token.access_token;
+      this.expiresAt = decodeExpiresAt(token.access_token);
+    }
+  }
 
   private async getAccessToken() {
     const remaining = this.expiresAt - Date.now();
@@ -44,6 +57,9 @@ export class AuthSession {
   }
 
   public async fetch(input: RequestInfo | URL, init: RequestInit = {}) {
+    if (!this.authRequired) {
+      return fetch(input, init);
+    }
     const accessToken = await this.getAccessToken();
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${accessToken}`);

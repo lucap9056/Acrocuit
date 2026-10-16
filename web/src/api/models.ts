@@ -54,3 +54,7 @@ export type BreakerDownstream = {
   breakers: Breaker[];
   devices: Device[];
 };
+
+export type Meta = {
+  auth_required: boolean;
+};
