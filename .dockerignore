@@ -2,6 +2,8 @@ bin/
 .git/
 .github/
 debug/
+web/node_modules/
+web/dist/
 docker*/
 .env
 
