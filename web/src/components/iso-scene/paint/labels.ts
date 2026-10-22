@@ -1,6 +1,7 @@
 import { LABEL_FONT } from "@/components/iso-scene/layout/typography";
 import { setScreenTransform } from "./canvas";
 import type { PaintLayer } from "./layer";
+import { groupColor } from "./palette";
 
 export const labelsLayer: PaintLayer = (
   ctx,
@@ -28,11 +29,14 @@ export const labelsLayer: PaintLayer = (
     ctx.lineTo(leaderEndX, anchor.y);
     ctx.stroke();
 
-    ctx.fillStyle = isHighlighted ? palette.highlight.line : palette.line;
+    const swatch = groupColor(palette, plane.group);
+    ctx.fillStyle =
+      swatch ?? (isHighlighted ? palette.highlight.line : palette.line);
     ctx.beginPath();
-    ctx.arc(anchor.x, anchor.y, 2, 0, Math.PI * 2);
+    ctx.arc(anchor.x, anchor.y, swatch ? 4 : 2, 0, Math.PI * 2);
     ctx.fill();
 
+    ctx.fillStyle = isHighlighted ? palette.highlight.line : palette.line;
     ctx.fillText(text, textX, anchor.y);
   }
 };

@@ -1,3 +1,5 @@
+import type { FloorPlanTone } from "@/lib/iso-scene/floor-plan-image";
+
 export interface HighlightStyle {
   line: string;
   glow?: string;
@@ -12,6 +14,8 @@ export interface ScenePalette {
   lineMuted: string;
   lineFaint: string;
   highlight: HighlightStyle;
+  trace: HighlightStyle;
+  groups: string[];
 }
 
 export const BLUEPRINT_PALETTE: ScenePalette = {
@@ -26,6 +30,11 @@ export const BLUEPRINT_PALETTE: ScenePalette = {
     line: "#7fe3ff",
     glow: "rgb(127 227 255 / 70%)",
   },
+  trace: {
+    line: "#ffd166",
+    glow: "rgb(255 209 102 / 60%)",
+  },
+  groups: ["#4cc47c", "#b08cf2", "#f27474"],
 };
 
 export const GRAY_PALETTE: ScenePalette = {
@@ -40,4 +49,17 @@ export const GRAY_PALETTE: ScenePalette = {
     line: "#d97706",
     glow: "rgb(217 119 6 / 45%)",
   },
+  trace: {
+    line: "#2563eb",
+    glow: "rgb(37 99 235 / 40%)",
+  },
+  groups: ["#1baf7a", "#a03fb8", "#008300", "#e87ba4"],
 };
+
+export const paletteForTone = (tone: FloorPlanTone): ScenePalette =>
+  tone === "original" ? GRAY_PALETTE : BLUEPRINT_PALETTE;
+
+export const groupColor = (
+  { groups }: ScenePalette,
+  group: number | undefined,
+): string | undefined => (group === undefined ? undefined : groups[group]);

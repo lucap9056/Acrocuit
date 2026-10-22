@@ -2,10 +2,7 @@
   import { untrack } from "svelte";
   import type { AuthSession, Space, SpaceGroup } from "@/api";
   import IsoSceneView from "@/components/iso-scene/iso-scene.svelte";
-  import {
-    BLUEPRINT_PALETTE,
-    GRAY_PALETTE,
-  } from "@/components/iso-scene/paint/palette";
+  import { paletteForTone } from "@/components/iso-scene/paint/palette";
   import load from "@/components/loading-bar";
   import { t } from "@/lib/i18n";
   import { createFloorSnapshot } from "@/lib/iso-scene/floor-snapshot";
@@ -24,9 +21,7 @@
 
   let snapshot = $state.raw<IsoSnapshot>();
 
-  const palette = $derived(
-    overview.tone === "original" ? GRAY_PALETTE : BLUEPRINT_PALETTE,
-  );
+  const palette = $derived(paletteForTone(overview.tone));
 
   const oninspect = (plane: IsoPlane) => {
     overview.inspectedSpaceId = spaces?.find(({ id }) => id === plane.id)?.id;
