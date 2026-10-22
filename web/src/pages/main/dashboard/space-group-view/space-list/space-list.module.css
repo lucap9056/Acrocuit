@@ -1,17 +1,126 @@
-.workspace {
+.space_list {
   display: flex;
-  flex-flow: row;
+  flex-flow: column;
+  gap: 0.5rem;
+  padding: 0 0.3125rem 0.5rem;
+}
 
-  .items {
+.list_heading {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.list_title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message {
+  padding: 1rem 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+
+  &:hover {
+    background: var(--surface-muted);
+  }
+
+  &.shadow {
+    background: var(--surface-muted);
+    outline: 1px dashed var(--accent);
+    outline-offset: -1px;
+
+    > * {
+      visibility: hidden;
+    }
+  }
+}
+
+.handle {
+  padding: 0.25rem;
+  font-size: 1rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+
+  &:hover {
+    background: transparent;
+    color: var(--text);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  text-align: left;
+
+  &:hover {
+    background: transparent;
+  }
+}
+
+.name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: none;
+  gap: 0.125rem;
+
+  .item:hover &,
+  .item:focus-within & {
     display: flex;
   }
 
-  .view {
+  @media (hover: none) {
     display: flex;
-    flex: 1;
   }
 
-  .info {
-    display: flex;
+  button {
+    padding: 0.25rem;
+    font-size: 1rem;
+    background: transparent;
+
+    &:hover:not(:disabled) {
+      background: var(--surface);
+    }
+  }
+
+  .delete:hover:not(:disabled) {
+    background: var(--danger);
+    color: var(--accent-contrast);
   }
 }

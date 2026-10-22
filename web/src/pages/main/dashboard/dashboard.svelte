@@ -1,23 +1,29 @@
 <script lang="ts">
   import SignOutIcon from "phosphor-svelte/lib/SignOutIcon";
   import api, { type AuthSession, type SpaceGroup } from "@/api";
+  import BackButton from "@/components/back-button/back-button.svelte";
+  import HeaderTitle from "@/components/header-title/header-title.svelte";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
+  import WorkspaceView from "@/components/workspace-view/workspace-view.svelte";
   import { fetchSpaceGroups } from "@/lib/cache/space-groups";
-  import router, {
-    type RouteHandler,
-    type RouteParams,
+  import type {
+    HashRouter,
+    RouteHandler,
+    RouteParams,
   } from "@/lib/hash-routers";
+  import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import { createWorkspace } from "@/lib/workspace";
   import styles from "./dashboard.module.css";
   import SpaceGroupSelector from "./space-group-selector.svelte";
-  import WorkspaceView from "@/components/workspace-view/workspace-view.svelte";
+  import SpaceGroupView from "./space-group-view/space-group-view.svelte";
 
   interface Props {
     session: AuthSession;
+    router: HashRouter;
   }
-  const { session }: Props = $props();
+  const { session, router }: Props = $props();
 
   const workspace = $state(createWorkspace());
   let spaceGroup = $state<SpaceGroup>();
@@ -28,11 +34,11 @@
   ) => {
     const spaceGroupId = parseInt(spaceGroupIdStr, 10);
     if (Number.isNaN(spaceGroupId)) {
-      router.back();
+      router.back("");
       return;
     }
 
-    const loading = load.begin();
+    const loading = load.begin(t("loading.fetchSpaceGroups"));
     fetchSpaceGroups(session)
       .then((spaceGroups) => {
         if (!signal.aborted) {
@@ -49,7 +55,7 @@
 
   onMount((signal) => {
     const paramName = "spaceGroupId";
-    const routePath = `space-groups/:${paramName}`;
+    const routePath = `space-groups/:${paramName}/*`;
 
     const onSpaceGroupSelectedRouteHandle: RouteHandler = (
       params?: RouteParams,
@@ -63,16 +69,16 @@
         }
       }
     };
-    const params = router.on(routePath, onSpaceGroupSelectedRouteHandle);
+    const params = router.on(
+      routePath,
+      onSpaceGroupSelectedRouteHandle,
+      signal,
+    );
     onSpaceGroupSelectedRouteHandle(params);
-
-    return () => {
-      router.off(routePath, onSpaceGroupSelectedRouteHandle);
-    };
   });
 
   const logout = () => {
-    const loading = load.begin();
+    const loading = load.begin(t("loading.signOut"));
     api.auth
       .logout()
       .then(() => {
@@ -89,16 +95,35 @@
 
 <div class={styles.dashboard}>
   <div class={styles.header}>
-    <div class={styles.center}></div>
+    <div class={styles.left}>
+      <BackButton />
+    </div>
+    <div class={styles.center}>
+      <HeaderTitle />
+    </div>
     <div class={styles.right}>
-      <button class="icon_button" onclick={logout} {@attach tooltip("Logout")}>
+      <button
+        class="icon_button"
+        onclick={logout}
+        {@attach tooltip(t("auth.signOut"))}
+      >
         <SignOutIcon />
       </button>
     </div>
   </div>
-  {#if spaceGroup}
+  {#each spaceGroup
+    ? [spaceGroup]
+    : [] as currentSpaceGroup (currentSpaceGroup.id)}
     <WorkspaceView {workspace} />
+    <SpaceGroupView
+      {session}
+      {workspace}
+      {router}
+      spaceGroup={currentSpaceGroup}
+    />
   {:else}
-    <div class={styles.space_groups}><SpaceGroupSelector {session} /></div>
-  {/if}
+    <div class={styles.space_groups}>
+      <SpaceGroupSelector {session} {router} />
+    </div>
+  {/each}
 </div>

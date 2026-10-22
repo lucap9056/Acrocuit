@@ -1,0 +1,96 @@
+.section {
+  display: flex;
+  flex-flow: column;
+  gap: 0.5rem;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message {
+  padding: 0.5rem 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+
+  &:hover,
+  &.focused {
+    background: var(--surface-muted);
+  }
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    background: transparent;
+  }
+}
+
+.actions {
+  display: none;
+  gap: 0.125rem;
+
+  .item:hover &,
+  .item:focus-within & {
+    display: flex;
+  }
+
+  @media (hover: none) {
+    display: flex;
+  }
+
+  button {
+    padding: 0.25rem;
+    font-size: 1rem;
+    background: transparent;
+
+    &:hover:not(:disabled) {
+      background: var(--surface);
+    }
+  }
+
+  .delete:hover:not(:disabled) {
+    background: var(--danger);
+    color: var(--accent-contrast);
+  }
+}
