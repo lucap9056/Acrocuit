@@ -11,7 +11,7 @@
   import { resolveViewport } from "./camera/resolve";
   import { type ViewportState, zoomPercent } from "./camera/viewport";
   import { createGestures } from "./interaction/gestures";
-  import HitLayer from "./interaction/hit-layer.svelte";
+  import { hitTest } from "./interaction/hit-test";
   import styles from "./iso-scene.module.css";
   import { layoutScene } from "./layout/scene-layout";
   import { createIsoPainter, type IsoPainter } from "./paint/painter";
@@ -58,6 +58,8 @@
   );
   let revealFrame: number | undefined;
   let isPanning = $state(false);
+  let isOverMarker = $state(false);
+  let hovered: IsoPlane | IsoMarker | undefined;
 
   const viewport = $derived(
     resolveViewport(snapshot, tilt, width, height, viewportOverride),
@@ -85,22 +87,49 @@
     }
   };
 
-  const inspectElementAt = (clientX: number, clientY: number) => {
-    const target = document
-      .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>("[data-plane-index], [data-marker-index]");
-    const marker = layout.markers[Number(target?.dataset.markerIndex)]?.marker;
-    const plane = layout.planes[Number(target?.dataset.planeIndex)]?.plane;
-    if (marker) {
-      inspectMarker(marker);
-    } else if (plane) {
-      inspect(plane);
+  const hoverAt = (point: Point) => {
+    const hit = hitTest(layout, point);
+    const target = hit?.kind === "marker" ? hit.marker : hit?.plane;
+    isOverMarker = hit?.kind === "marker";
+    if (target === hovered) {
+      return;
+    }
+    hovered = target;
+    if (hit?.kind === "marker") {
+      inspectMarker(hit.marker);
+    } else if (hit) {
+      inspect(hit.plane);
+    }
+  };
+
+  const clearHover = () => {
+    hovered = undefined;
+    isOverMarker = false;
+  };
+
+  const onhover = (event: PointerEvent) => {
+    if (event.pointerType !== "touch") {
+      hoverAt(toLocal(event));
+    }
+  };
+
+  const ontap = (event: PointerEvent) => {
+    const hit = hitTest(layout, toLocal(event));
+    if (hit?.kind === "plane") {
+      inspect(hit.plane);
+    } else if (hit?.kind === "marker") {
+      const { marker } = hit;
+      if (event.pointerType === "touch" && marker.id !== highlightMarkerId) {
+        inspectMarker(marker);
+      } else {
+        onopenmarker?.(marker);
+      }
     }
   };
 
   const onwheel = (event: WheelEvent) => {
     gestures.onwheel(event);
-    requestAnimationFrame(() => inspectElementAt(event.clientX, event.clientY));
+    hoverAt(toLocal(event));
   };
 
   const cancelReveal = () => {
@@ -122,6 +151,8 @@
     onpanningchange: (panning) => {
       isPanning = panning;
     },
+    ontap,
+    onhover,
   });
 
   const zoomFromCenter = (factor: number) => {
@@ -209,7 +240,11 @@
 </script>
 
 <div
-  class={[styles.iso_scene, isPanning && styles.panning]}
+  class={[
+    styles.iso_scene,
+    isOverMarker && styles.over_marker,
+    isPanning && styles.panning,
+  ]}
   role="group"
   aria-label={snapshot.title}
   bind:this={container}
@@ -217,13 +252,7 @@
   onpointermove={gestures.onpointermove}
   onpointerup={gestures.onpointerup}
   onpointercancel={gestures.onpointercancel}
+  onpointerleave={clearHover}
 >
   <canvas class={styles.canvas} bind:this={canvas}></canvas>
-  <HitLayer
-    {layout}
-    {highlightMarkerId}
-    oninspect={inspect}
-    oninspectmarker={inspectMarker}
-    onopenmarker={(marker) => onopenmarker?.(marker)}
-  />
 </div>

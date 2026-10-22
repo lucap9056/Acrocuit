@@ -15,6 +15,8 @@ export interface GestureOptions {
   getViewport: () => ViewportState;
   onviewportchange: (viewport: ViewportState) => void;
   onpanningchange: (isPanning: boolean) => void;
+  ontap?: (event: PointerEvent) => void;
+  onhover?: (event: PointerEvent) => void;
 }
 
 export interface Gestures {
@@ -62,6 +64,8 @@ export const createGestures = ({
   getViewport,
   onviewportchange,
   onpanningchange,
+  ontap,
+  onhover,
 }: GestureOptions): Gestures => {
   const pointers = new Map<number, Point>();
   let tapCandidate: TapCandidate | undefined;
@@ -125,10 +129,18 @@ export const createGestures = ({
       const previous = pointers.get(event.pointerId);
       if (previous) {
         move(event, previous);
+      } else {
+        onhover?.(event);
       }
     },
     onpointerup: (event) => {
+      const isTap = tapCandidate?.pointerId === event.pointerId;
       release(event.pointerId);
+      if (isTap) {
+        ontap?.(event);
+      } else if (pointers.size === 0) {
+        onhover?.(event);
+      }
     },
     onpointercancel: (event) => {
       release(event.pointerId);
