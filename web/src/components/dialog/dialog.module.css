@@ -26,6 +26,39 @@
     margin-top: 1rem;
   }
 
+  .dialog_content > input[type="text"] {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+    box-shadow: var(--shadow-control);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition:
+      background-color var(--transition),
+      box-shadow var(--transition);
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    &:hover {
+      background: var(--surface-hover);
+    }
+
+    &:focus {
+      outline: none;
+      background: var(--surface);
+      box-shadow:
+        inset 0 0 0 1px var(--accent),
+        0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+    }
+  }
+
   .dialog_buttons {
     display: flex;
     justify-content: flex-end;
