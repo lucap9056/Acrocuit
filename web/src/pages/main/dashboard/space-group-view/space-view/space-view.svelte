@@ -1,14 +1,18 @@
 <script lang="ts">
   import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon";
+  import LightbulbIcon from "phosphor-svelte/lib/LightbulbIcon";
+  import ToggleRightIcon from "phosphor-svelte/lib/ToggleRightIcon";
   import { untrack } from "svelte";
   import type {
     AuthSession,
     Switch,
+    SwitchId,
     SwitchPanel,
     Device,
     Space,
     SpaceGroup,
   } from "@/api";
+  import api from "@/api";
   import back from "@/components/back-button";
   import dialog from "@/components/dialog";
   import { routeDialog } from "@/components/dialog/route-dialog";
@@ -28,6 +32,9 @@
   import { fetchSwitches } from "@/lib/cache/switches";
   import { field, type HashRouter, type RouteParams } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
+  import type { ChainNode, ChainPlace, PowerChain } from "@/lib/power-chain";
+  import { fetchDownstreamChain } from "@/lib/power-chain/downstream";
+  import { fetchUpstreamChain } from "@/lib/power-chain/upstream";
   import { onMount } from "@/lib/lifecycle";
   import type { Workspace } from "@/lib/workspace";
   import SwitchEditor from "./switch-editor/switch-editor.svelte";
@@ -35,6 +42,7 @@
   import SwitchPanelList from "./switch-panel-list/switch-panel-list.svelte";
   import DeviceList from "./device-list/device-list.svelte";
   import DeviceEditor from "./device-editor/device-editor.svelte";
+  import PowerChainView from "./power-chain/power-chain-view.svelte";
   import FloorPlanCanvas from "./floor-plan-canvas/floor-plan-canvas.svelte";
   import { type PositionDraft, PositionDrafts } from "./position-drafts.svelte";
   import { SpaceFocus } from "./space-focus.svelte";
@@ -48,6 +56,16 @@
     spaceGroup: SpaceGroup;
     space: Space;
     onspacesupdate: (spaces: Space[]) => void;
+  }
+
+  type ChainKind = "upstream" | "downstream";
+
+  interface ChainRoute {
+    kind: ChainKind;
+    key: string;
+    name: string;
+    load: () => Promise<PowerChain>;
+    back: () => void;
   }
 
   const {
@@ -65,6 +83,7 @@
   let editingSwitchPanel = $state<SwitchPanel>();
   let editingSwitch = $state<Switch>();
   let editingDevice = $state<Device>();
+  let chainRoute = $state.raw<ChainRoute>();
 
   const spaceRouter = untrack(() => router.child(`space/${space.id}`));
 
@@ -203,8 +222,125 @@
     spaceRouter.to(`devices/${device.id}`);
   };
 
+  const onshowupstream = (device: Device) => {
+    spaceRouter.to(`devices/${device.id}/upstream`);
+  };
+
+  const onshowdownstream = (sw: Switch) => {
+    spaceRouter.to(`switches/${sw.id}/downstream`);
+  };
+
+  const onopenchainnode = (node: ChainNode, origin: ChainKind) => {
+    if (node.kind === "switch") {
+      const { sw, panel } = node;
+      if (panel.space) {
+        router.to(
+          `space/${panel.space.id}/switch-panels/${panel.id}/switches/${sw.id}`,
+          { origin },
+        );
+      }
+    } else if (node.device.space) {
+      router.to(`space/${node.device.space.id}/devices/${node.device.id}`, {
+        origin,
+      });
+    }
+  };
+
+  const onopenchainplace = ({ target }: ChainPlace, origin: ChainKind) => {
+    if (target.kind === "device") {
+      onopenchainnode(target, origin);
+    } else if (target.panel.space) {
+      router.to(
+        `space/${target.panel.space.id}/switch-panels/${target.panel.id}`,
+        { origin },
+      );
+    }
+  };
+
   const idParam = (params: RouteParams, name: string) =>
     parseInt(field(params, name, ""), 10);
+
+  const routeChain = (
+    signal: AbortSignal,
+    kind: ChainKind,
+    path: string,
+    resolve: (params: RouteParams) => Promise<ChainRoute | undefined>,
+  ) => {
+    let latestRequest = 0;
+    const handle = (params?: RouteParams) => {
+      const request = ++latestRequest;
+      if (params === undefined) {
+        if (chainRoute?.kind === kind) {
+          chainRoute = undefined;
+        }
+        return;
+      }
+
+      resolve(params)
+        .then((route) => {
+          if (signal.aborted || request !== latestRequest) {
+            return;
+          }
+          chainRoute = route;
+          if (!route) {
+            spaceRouter.back("");
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    };
+    handle(spaceRouter.on(path, handle, signal));
+  };
+
+  const routeChains = (signal: AbortSignal) => {
+    routeChain(
+      signal,
+      "upstream",
+      "devices/:deviceId/upstream",
+      async (params) => {
+        const deviceId = idParam(params, "deviceId");
+        const device = (await fetchDevices(session, space.id)).find(
+          ({ id }) => id === deviceId,
+        );
+        if (!device) {
+          return undefined;
+        }
+        return {
+          kind: "upstream",
+          key: `upstream:${device.id}`,
+          name: device.name,
+          load: () => fetchUpstreamChain(session, device, space.id),
+          back: () => spaceRouter.backTo(`devices/${device.id}`),
+        };
+      },
+    );
+
+    routeChain(
+      signal,
+      "downstream",
+      "switches/:switchId/downstream",
+      async (params) => {
+        const sw = await api.switches.getSwitch(
+          session,
+          idParam(params, "switchId") as SwitchId,
+        );
+        const panelId = sw.switch_panel?.id;
+        return {
+          kind: "downstream",
+          key: `downstream:${sw.id}`,
+          name: sw.name,
+          load: () => fetchDownstreamChain(session, sw, space.id),
+          back: () =>
+            spaceRouter.backTo(
+              panelId === undefined
+                ? ""
+                : `switch-panels/${panelId}/switches/${sw.id}`,
+            ),
+        };
+      },
+    );
+  };
 
   const routeEditors = (signal: AbortSignal) => {
     routeDialog({
@@ -220,7 +356,20 @@
           return undefined;
         }
         editingDevice = device;
-        return { content: deviceEditor };
+        return {
+          content: deviceEditor,
+          actions: [
+            {
+              text: t("deviceEditor.showUpstreamChain"),
+              type: "",
+              align: "start",
+              onclick: () => {
+                onshowupstream(device);
+                return false;
+              },
+            },
+          ],
+        };
       },
       signal,
     });
@@ -250,6 +399,7 @@
           path: "switches/:switchId",
           closeTo: "",
           open: async (switchParams) => {
+            const isFromDownstream = spaceRouter.origin() === "downstream";
             const switchId = idParam(switchParams, "switchId");
             const sw = (await fetchSwitches(session, switchPanelId)).find(
               ({ id }) => id === switchId,
@@ -258,7 +408,22 @@
               return undefined;
             }
             editingSwitch = sw;
-            return { content: switchEditor };
+            return {
+              content: switchEditor,
+              actions: isFromDownstream
+                ? []
+                : [
+                    {
+                      text: t("switchEditor.showDownstreamChain"),
+                      type: "",
+                      align: "start",
+                      onclick: () => {
+                        onshowdownstream(sw);
+                        return false;
+                      },
+                    },
+                  ],
+            };
           },
           signal: opened,
         });
@@ -279,6 +444,7 @@
     back.push(() => router.backTo(""), signal);
     headerTitle.push(title, signal);
     routeEditors(signal);
+    routeChains(signal);
 
     const loading = load.begin(t("loading.fetchSwitchesAndDevices"));
     Promise.all([
@@ -352,6 +518,23 @@
   </div>
 {/snippet}
 
+{#snippet chainTitle()}
+  <div class={styles.breadcrumb}>
+    <button
+      class={[styles.crumb, styles.parent]}
+      onclick={() => spaceRouter.backTo("")}
+    >
+      {space.name}
+    </button>
+    <CaretRightIcon class={styles.separator} aria-hidden="true" />
+    <span class={styles.crumb}
+      >{chainRoute
+        ? t(`powerChain.${chainRoute.kind}Title`, { name: chainRoute.name })
+        : ""}</span
+    >
+  </div>
+{/snippet}
+
 {#snippet spaceSidebar()}
   <div class={styles.sidebar}>
     <SwitchPanelList
@@ -395,3 +578,26 @@
     {onremovefloorplan}
   />
 {/snippet}
+
+{#snippet deviceIcon()}
+  <LightbulbIcon />
+{/snippet}
+
+{#snippet switchIcon()}
+  <ToggleRightIcon />
+{/snippet}
+
+{#each chainRoute ? [chainRoute] : [] as route (route.key)}
+  <PowerChainView
+    {session}
+    {workspace}
+    {spaceGroup}
+    title={chainTitle}
+    focusIcon={route.kind === "upstream" ? deviceIcon : switchIcon}
+    emptyText={t(`powerChain.${route.kind}Empty`)}
+    load={route.load}
+    onback={route.back}
+    onopennode={(node) => onopenchainnode(node, route.kind)}
+    onopenplace={(place) => onopenchainplace(place, route.kind)}
+  />
+{/each}

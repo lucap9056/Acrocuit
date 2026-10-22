@@ -1,0 +1,110 @@
+.tree {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &.panning {
+    cursor: grabbing;
+  }
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+
+  &.feed {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+}
+
+.name {
+  fill: var(--text);
+  font-family: var(--font-drawing);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.caption {
+  fill: var(--text-muted);
+  font-family: var(--font-drawing);
+  font-size: 11px;
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+
+  rect {
+    fill: var(--surface);
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    transition:
+      fill var(--transition),
+      stroke var(--transition);
+  }
+
+  &:hover rect {
+    fill: var(--surface-hover);
+  }
+
+  &.leaf rect {
+    fill: var(--surface-muted);
+  }
+
+  &.inspected rect,
+  &:focus-visible rect {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  &.unplaced rect {
+    stroke-dasharray: 4 3;
+  }
+
+  &.sink {
+    cursor: default;
+
+    rect {
+      fill: var(--accent);
+      stroke: var(--accent);
+    }
+
+    .name {
+      fill: var(--accent-contrast);
+    }
+  }
+
+  &.focus {
+    cursor: default;
+  }
+
+  &.focus rect,
+  &.focus:hover rect {
+    fill: var(--surface);
+    stroke: var(--accent);
+    stroke-width: 2.5;
+  }
+}
+
+.message {
+  padding: 1rem 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

@@ -50,8 +50,12 @@ export type Device = {
   position: Position | null;
 };
 
+export type ChainSwitch = Omit<Switch, "switch_panel"> & {
+  switch_panel: SwitchPanel;
+};
+
 export type SwitchDownstream = {
-  switches: Switch[];
+  switches: ChainSwitch[];
   devices: Device[];
 };
 

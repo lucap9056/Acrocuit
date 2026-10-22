@@ -1,0 +1,80 @@
+.floor_list {
+  display: flex;
+  flex-flow: column;
+  gap: 0.5rem;
+  padding: 0 0.3125rem 0.5rem;
+}
+
+.title {
+  padding: 0 0.25rem;
+  font-size: 1rem;
+}
+
+.message {
+  padding: 1rem 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+
+  &:hover,
+  &.inspected {
+    background: var(--surface-muted);
+  }
+
+  &.passing {
+    color: var(--text-muted);
+  }
+}
+
+.swatch {
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.count {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-drawing);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
