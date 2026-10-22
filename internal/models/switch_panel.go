@@ -8,6 +8,10 @@ import (
 
 const SWITCH_PANEL_ALL_COLUMNS = schema.FullSwitchPanels_ID + "," + schema.FullSwitchPanels_NAME + "," + schema.FullSwitchPanels_SPACE_ID + "," + schema.FullSwitchPanels_SPACE_GROUP_ID
 
+const SWITCH_PANEL_WITH_POSITION_COLUMNS = SWITCH_PANEL_ALL_COLUMNS + "," + schema.FullSwitchPanelPositions_POSITION_X + "," + schema.FullSwitchPanelPositions_POSITION_Y + "," + schema.FullSwitchPanelPositions_POSITION_Z
+
+var switchPanelWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6}
+
 type SwitchPanel struct {
 	Id           int    `json:"id"`
 	Name         string `json:"name"`
@@ -22,6 +26,9 @@ type SwitchPanel struct {
 }
 
 func (panel *SwitchPanel) Build() {
+	if panel == nil {
+		return
+	}
 	if panel.Space == nil && panel.SpaceId != 0 {
 		panel.Space = &Space{Id: panel.SpaceId, SpaceGroupId: panel.SpaceGroupId}
 	}
@@ -33,8 +40,7 @@ func (panel *SwitchPanel) Build() {
 func ParseSwitchPanelColumns(columnsStr string, allowPosition bool) (string, []uint8, bool, error) {
 	if strings.TrimSpace(columnsStr) == "" {
 		if allowPosition {
-			return SWITCH_PANEL_ALL_COLUMNS + "," + schema.FullSwitchPanelPositions_POSITION_X + "," + schema.FullSwitchPanelPositions_POSITION_Y + "," + schema.FullSwitchPanelPositions_POSITION_Z,
-				[]uint8{0, 1, 2, 3, 4, 5, 6}, true, nil
+			return SWITCH_PANEL_WITH_POSITION_COLUMNS, switchPanelWithPositionFields, true, nil
 		}
 		return SWITCH_PANEL_ALL_COLUMNS, []uint8{0, 1, 2, 3}, false, nil
 	}
