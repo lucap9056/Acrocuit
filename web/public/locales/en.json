@@ -56,7 +56,8 @@
   },
   "switchEditor": {
     "name": "Name",
-    "upstream": "Upstream switch"
+    "upstream": "Upstream switch",
+    "showDownstreamChain": "Downstream impact"
   },
   "devices": {
     "title": "Devices",
@@ -66,7 +67,8 @@
   "deviceEditor": {
     "name": "Name",
     "upstream": "Upstream switches",
-    "addUpstream": "Add upstream"
+    "addUpstream": "Add upstream",
+    "showUpstreamChain": "Upstream chain"
   },
   "switchSelector": {
     "space": "Space",
@@ -93,6 +95,28 @@
   "floorInfo": {
     "floor": "Floor",
     "hint": "Hover over a floor, or tap it on touch screens, to see its details."
+  },
+  "powerChain": {
+    "upstreamTitle": "Upstream of {{name}}",
+    "downstreamTitle": "Downstream of {{name}}",
+    "floors": "Floors",
+    "tree": "Tree",
+    "scene": "3D view",
+    "loading": "Loading power chain…",
+    "upstreamEmpty": "No upstream switches yet",
+    "downstreamEmpty": "This switch could not be found",
+    "unplaced": "Unplaced",
+    "nodeInfo": {
+      "hint": "Hover over a node, or tap it on touch screens, to see its details.",
+      "panel": "Switch panel",
+      "switch": "Switch",
+      "device": "Device",
+      "switches": "Switches in chain",
+      "upstream": "Upstream switch",
+      "feeders": "Feeding switches",
+      "placement": "Position",
+      "placed": "Placed"
+    }
   },
   "loading": {
     "connect": "Connecting…",
@@ -126,7 +150,9 @@
     "removeSwitch": "Removing switch…",
     "renameSwitch": "Renaming switch…",
     "setSwitchUpstream": "Setting switch upstream…",
-    "removeSwitchUpstream": "Removing switch upstream…"
+    "removeSwitchUpstream": "Removing switch upstream…",
+    "fetchPowerChain": "Loading power chain…",
+    "renderPowerChain": "Drawing power chain…"
   },
   "flavor_01": "Chasing down the gremlins doodling on the blueprints",
   "flavor_02": "Combing the tangles out of the wires",

@@ -1,0 +1,36 @@
+.toolbar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.modes {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.125rem;
+}
+
+.fit {
+  margin-left: auto;
+}
+
+.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+
+  &:hover {
+    background: var(--accent-hover);
+  }
+}
+
+.placeholder {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

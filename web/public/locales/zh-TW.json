@@ -56,7 +56,8 @@
   },
   "switchEditor": {
     "name": "名稱",
-    "upstream": "上游開關"
+    "upstream": "上游開關",
+    "showDownstreamChain": "下游影響鏈"
   },
   "devices": {
     "title": "設備",
@@ -66,7 +67,8 @@
   "deviceEditor": {
     "name": "名稱",
     "upstream": "上游開關",
-    "addUpstream": "新增上游"
+    "addUpstream": "新增上游",
+    "showUpstreamChain": "上游鏈"
   },
   "switchSelector": {
     "space": "空間",
@@ -93,6 +95,28 @@
   "floorInfo": {
     "floor": "樓層",
     "hint": "將游標移到樓層上，或在觸控螢幕上點一下，即可查看詳細資訊"
+  },
+  "powerChain": {
+    "upstreamTitle": "{{name}} 的上游鏈",
+    "downstreamTitle": "{{name}} 的下游影響鏈",
+    "floors": "樓層",
+    "tree": "樹狀圖",
+    "scene": "立體圖",
+    "loading": "載入供電鏈中…",
+    "upstreamEmpty": "目前沒有上游開關",
+    "downstreamEmpty": "找不到這個開關",
+    "unplaced": "未定位",
+    "nodeInfo": {
+      "hint": "將游標移到節點上，或在觸控螢幕上點一下，即可查看詳細資訊",
+      "panel": "開關面板",
+      "switch": "開關",
+      "device": "設備",
+      "switches": "鏈上的開關",
+      "upstream": "上游開關",
+      "feeders": "供電開關",
+      "placement": "位置",
+      "placed": "已定位"
+    }
   },
   "loading": {
     "connect": "連線中…",
@@ -126,7 +150,9 @@
     "removeSwitch": "移除開關中…",
     "renameSwitch": "重新命名開關中…",
     "setSwitchUpstream": "設定開關上游中…",
-    "removeSwitchUpstream": "移除開關上游中…"
+    "removeSwitchUpstream": "移除開關上游中…",
+    "fetchPowerChain": "載入供電鏈中…",
+    "renderPowerChain": "繪製供電鏈中…"
   },
   "flavor_01": "正在擦掉藍圖上的立可白痕跡",
   "flavor_02": "正在幫電線梳開打結的頭髮",

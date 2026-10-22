@@ -1,5 +1,6 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
+  ChainSwitch,
   Switch,
   SwitchId,
   Device,
@@ -99,7 +100,7 @@ const getDeviceUpstream = (auth: AuthSession, deviceId: DeviceId) => {
     .fetch(`${base}/${deviceId}/upstream`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<Switch[]>);
+    .then(unwrapApiResponse<ChainSwitch[]>);
 };
 
 export default {
