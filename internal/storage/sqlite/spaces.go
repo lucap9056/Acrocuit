@@ -64,7 +64,7 @@ func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId int, incl
 }
 
 func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId int, name string) (*models.Space, error) {
-	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId, BackgroundImageUpdatedAt: time.Now().UnixMilli()}
+	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
 		if err := requireRow(ctx, tx, schema.SpaceGroupsTable, schema.SpaceGroups_ID, spaceGroupId); err != nil {
@@ -73,11 +73,11 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId int,
 
 		insert := `
 			INSERT INTO ` + schema.SpacesTable + ` (` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `)
-			SELECT $1, $2, COALESCE(MAX(` + schema.Spaces_DISPLAY_ORDER + `), 0) + 1, $3
+			SELECT $1, $2, COALESCE(MAX(` + schema.Spaces_DISPLAY_ORDER + `), 0) + 1, 0
 			FROM ` + schema.SpacesTable + `
 			WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $2
 			RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_DISPLAY_ORDER
-		return tx.QueryRowContext(ctx, insert, name, spaceGroupId, space.BackgroundImageUpdatedAt).
+		return tx.QueryRowContext(ctx, insert, name, spaceGroupId).
 			Scan(&space.Id, &space.DisplayOrder)
 	})
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, sp
 		}
 
 		var err error
-		space, err = touchBackgroundImage(ctx, tx, spaceId)
+		space, err = setBackgroundImageUpdatedAt(ctx, tx, spaceId, time.Now().UnixMilli())
 		return err
 	})
 	if err != nil {
@@ -214,7 +214,7 @@ func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, sp
 		}
 
 		var err error
-		space, err = touchBackgroundImage(ctx, tx, spaceId)
+		space, err = setBackgroundImageUpdatedAt(ctx, tx, spaceId, 0)
 		return err
 	})
 	if err != nil {
@@ -224,7 +224,7 @@ func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return space, nil
 }
 
-func touchBackgroundImage(ctx context.Context, tx *sql.Tx, spaceId int) (*models.Space, error) {
+func setBackgroundImageUpdatedAt(ctx context.Context, tx *sql.Tx, spaceId int, updatedAt int64) (*models.Space, error) {
 	query := `
 		UPDATE ` + schema.SpacesTable + `
 		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1
@@ -232,7 +232,7 @@ func touchBackgroundImage(ctx context.Context, tx *sql.Tx, spaceId int) (*models
 		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT
 
 	space := &models.Space{}
-	err := tx.QueryRowContext(ctx, query, time.Now().UnixMilli(), spaceId).
+	err := tx.QueryRowContext(ctx, query, updatedAt, spaceId).
 		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
 	if err != nil {
 		return nil, err

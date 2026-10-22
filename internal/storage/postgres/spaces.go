@@ -87,16 +87,16 @@ func (s *pgSpaces) AddSpace(ctx context.Context, userEmail string, spaceGroupId 
 		),
 		inserted AS (
 			INSERT INTO ` + schema.SpacesTable + ` (` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `)
-			SELECT $3, $1, next_order.` + schema.Spaces_DISPLAY_ORDER + `, $4
+			SELECT $3, $1, next_order.` + schema.Spaces_DISPLAY_ORDER + `, 0
 			FROM permitted, next_order
 			RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `
 		)
 		SELECT ` + schema.Spaces_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM inserted
 	`
 
-	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId, BackgroundImageUpdatedAt: time.Now().UnixMilli()}
+	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId}
 
-	err := s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, name, space.BackgroundImageUpdatedAt).
+	err := s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, name).
 		Scan(&space.Id, &space.DisplayOrder)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -228,7 +228,7 @@ func (s *pgSpaces) SetSpaceBackgroundImage(ctx context.Context, userEmail string
 		return nil, err
 	}
 
-	space, err := touchBackgroundImage(ctx, tx, spaceId)
+	space, err := setBackgroundImageUpdatedAt(ctx, tx, spaceId, time.Now().UnixMilli())
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (s *pgSpaces) DelSpaceBackgroundImage(ctx context.Context, userEmail string
 		return nil, repository.ErrNotFound
 	}
 
-	space, err := touchBackgroundImage(ctx, tx, spaceId)
+	space, err := setBackgroundImageUpdatedAt(ctx, tx, spaceId, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (s *pgSpaces) DelSpaceBackgroundImage(ctx context.Context, userEmail string
 	return space, tx.Commit(ctx)
 }
 
-func touchBackgroundImage(ctx context.Context, tx pgx.Tx, spaceId int) (*models.Space, error) {
+func setBackgroundImageUpdatedAt(ctx context.Context, tx pgx.Tx, spaceId int, updatedAt int64) (*models.Space, error) {
 	query := `
 		UPDATE ` + schema.SpacesTable + `
 		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1
@@ -275,7 +275,7 @@ func touchBackgroundImage(ctx context.Context, tx pgx.Tx, spaceId int) (*models.
 		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT
 
 	space := &models.Space{}
-	err := tx.QueryRow(ctx, query, time.Now().UnixMilli(), spaceId).
+	err := tx.QueryRow(ctx, query, updatedAt, spaceId).
 		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
 	if err != nil {
 		return nil, err
