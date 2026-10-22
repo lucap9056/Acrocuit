@@ -1,0 +1,171 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "create": "Create",
+    "rename": "Rename",
+    "delete": "Delete",
+    "remove": "Remove",
+    "move": "Move",
+    "save": "Save",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "none": "None",
+    "noneYet": "None yet.",
+    "close": "Close"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signInReceived": "Sign-in received",
+    "closeWindowHint": "You can close this window and return to Acrocuit."
+  },
+  "workspace": {
+    "collapseLeftPanel": "Collapse left panel",
+    "collapseRightPanel": "Collapse right panel",
+    "expandLeftPanel": "Expand left panel",
+    "expandRightPanel": "Expand right panel",
+    "closePanel": "Close panel"
+  },
+  "spaceGroups": {
+    "title": "Space groups",
+    "new": "New space group",
+    "empty": "No space groups yet. A space group is usually one building or site."
+  },
+  "spaces": {
+    "title": "Spaces",
+    "new": "New space",
+    "loading": "Loading spaces…",
+    "empty": "No spaces yet.",
+    "dragToReorder": "Drag to reorder",
+    "confirmMove": "Move \"{{name}}\" to position {{position}}?"
+  },
+  "switchPanels": {
+    "title": "Switch panels",
+    "new": "New switch panel",
+    "confirmDelete": "Delete \"{{name}}\"?",
+    "name": "Name"
+  },
+  "switches": {
+    "new": "New switch",
+    "name": "Switch name",
+    "confirmDelete": "Delete \"{{name}}\"?",
+    "layout": "Layout",
+    "rows": "Rows",
+    "columns": "Columns"
+  },
+  "switchEditor": {
+    "name": "Name",
+    "upstream": "Upstream switch"
+  },
+  "devices": {
+    "title": "Devices",
+    "new": "New device",
+    "confirmDelete": "Delete \"{{name}}\"?"
+  },
+  "deviceEditor": {
+    "name": "Name",
+    "upstream": "Upstream switches",
+    "addUpstream": "Add upstream"
+  },
+  "switchSelector": {
+    "space": "Space",
+    "switchPanel": "Switch panel",
+    "switch": "Switch"
+  },
+  "floorPlan": {
+    "title": "Floor plan",
+    "loading": "Loading floor plan…",
+    "empty": "No floor plan uploaded.",
+    "uploaded": "Uploaded",
+    "upload": "Upload floor plan",
+    "remove": "Remove floor plan",
+    "confirmRemove": "Remove the floor plan of \"{{name}}\"?"
+  },
+  "floorOverview": {
+    "loading": "Loading floors…",
+    "tilt": "Tilt",
+    "blueprintColors": "Blueprint colors",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitToView": "Fit to view"
+  },
+  "floorInfo": {
+    "floor": "Floor",
+    "hint": "Hover over a floor, or tap it on touch screens, to see its details."
+  },
+  "loading": {
+    "connect": "Connecting…",
+    "signIn": "Signing in…",
+    "signOut": "Signing out…",
+    "fetchSpaceGroups": "Loading space groups…",
+    "createSpaceGroup": "Creating space group…",
+    "renameSpaceGroup": "Renaming space group…",
+    "removeSpaceGroup": "Removing space group…",
+    "fetchSpace": "Loading space…",
+    "fetchSpaces": "Loading spaces…",
+    "createSpace": "Creating space…",
+    "renameSpace": "Renaming space…",
+    "removeSpace": "Removing space…",
+    "moveSpace": "Moving space…",
+    "renderFloors": "Rendering floors…",
+    "fetchFloorPlan": "Loading floor plan…",
+    "uploadFloorPlan": "Uploading floor plan…",
+    "removeFloorPlan": "Removing floor plan…",
+    "savePositions": "Saving positions…",
+    "fetchSwitchesAndDevices": "Loading switches and devices…",
+    "createSwitchPanel": "Creating switch panel…",
+    "renameSwitchPanel": "Renaming switch panel…",
+    "removeSwitchPanel": "Removing switch panel…",
+    "createDevice": "Creating device…",
+    "renameDevice": "Renaming device…",
+    "removeDevice": "Removing device…",
+    "addDeviceUpstream": "Adding device upstream…",
+    "removeDeviceUpstream": "Removing device upstream…",
+    "createSwitch": "Creating switch…",
+    "removeSwitch": "Removing switch…",
+    "renameSwitch": "Renaming switch…",
+    "setSwitchUpstream": "Setting switch upstream…",
+    "removeSwitchUpstream": "Removing switch upstream…"
+  },
+  "flavor_01": "Chasing down the gremlins doodling on the blueprints",
+  "flavor_02": "Combing the tangles out of the wires",
+  "flavor_03": "Convincing the breakers not to trip",
+  "flavor_04": "Counting electrons, one by one",
+  "flavor_05": "Reciting Ohm's law three times for luck",
+  "flavor_06": "Feeding the hamsters that power the server",
+  "flavor_07": "Cheering up the capacitors",
+  "flavor_08": "Negotiating with the extension cords",
+  "flavor_09": "Escorting lost currents back home",
+  "flavor_10": "Giving the outlets their annual checkup",
+  "flavor_11": "Untangling the spaghetti behind the desk",
+  "flavor_12": "Asking the fuse box nicely",
+  "flavor_13": "Polishing the copper until it shines",
+  "flavor_14": "Teaching the resistors to relax",
+  "flavor_15": "Rounding up stray volts",
+  "flavor_16": "Calibrating the flux capacitor",
+  "flavor_17": "Waking up the sleepy transformers",
+  "flavor_18": "Grounding the overexcited wires",
+  "flavor_19": "Persuading the LEDs to blink in sync",
+  "flavor_20": "Herding electrons into a single file line",
+  "flavor_21": "Sweeping up spilled kilowatts",
+  "flavor_22": "Checking under the floorboards for loose sparks",
+  "flavor_23": "Bribing the circuit gnomes with snacks",
+  "flavor_24": "Measuring twice, wiring once",
+  "flavor_25": "Rewinding the coils for extra bounce",
+  "flavor_26": "Tightening every screw that looked lonely",
+  "flavor_27": "Labeling the unlabeled breaker labeled \"???\"",
+  "flavor_28": "Mapping the secret passages of the conduit",
+  "flavor_29": "Reminding the neutral wire it matters too",
+  "flavor_30": "Tuning the hum of the fluorescent lights",
+  "flavor_31": "Making sure nobody plugged the toaster into the router",
+  "flavor_32": "Drawing the floor plan with extra-straight lines",
+  "flavor_33": "Looking for the switch that controls nothing",
+  "flavor_34": "Shooing the moths away from the lamps",
+  "flavor_35": "Charging the batteries with pure enthusiasm",
+  "flavor_36": "Double-checking which way is up on the blueprint",
+  "flavor_37": "Asking the elevator what floor it is on",
+  "flavor_38": "Stacking the floors so they don't wobble",
+  "flavor_39": "Dusting off the junction boxes",
+  "flavor_40": "Translating beeps into plain English"
+}

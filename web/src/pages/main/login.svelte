@@ -1,6 +1,7 @@
 <script lang="ts">
   import api, { type TokenPair } from "@/api";
   import load from "@/components/loading-bar";
+  import { t } from "@/lib/i18n";
   import {
     assertNoProviderError,
     exchangeCallbackForToken,
@@ -61,8 +62,8 @@
 <div class={styles.login}>
   <h1>Acrocuit</h1>
   {#if pending}
-    <button onclick={cancel}>Cancel</button>
+    <button onclick={cancel}>{t("common.cancel")}</button>
   {:else}
-    <button onclick={signIn}>SignIn</button>
+    <button onclick={signIn}>{t("auth.signIn")}</button>
   {/if}
 </div>
