@@ -210,6 +210,7 @@
             loading.release();
           });
       })
+      .catch(() => {})
       .finally(() => {
         draftItems = undefined;
         isConfirmingMove = false;
