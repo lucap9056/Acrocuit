@@ -1,9 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import type { Attachment } from "svelte/attachments";
   import type { SwitchPanel, Device, Position } from "@/api";
-  import switchPanelSymbol from "@/assets/symbols/switch-panel.svg";
-  import deviceSymbol from "@/assets/symbols/device.svg";
   import type { Point } from "@/components/iso-scene/camera/projection";
   import type { ViewportState } from "@/components/iso-scene/camera/viewport";
   import { createGestures } from "@/components/iso-scene/interaction/gestures";
@@ -24,6 +21,11 @@
     type SpaceFocus,
   } from "@/pages/main/dashboard/space-group-view/space-view/space-focus.svelte";
   import styles from "./floor-plan-canvas.module.css";
+  import {
+    type FloorPlanMarkerShape,
+    hitTestFloorPlanMarkers,
+    paintFloorPlanMarkers,
+  } from "./floor-plan-markers";
 
   interface Props {
     image: FloorPlanImage;
@@ -38,9 +40,10 @@
 
   type Marker = PositionDraft & {
     key: FocusKey;
-    symbol: string;
     name: string;
   };
+
+  type PlacedMarker = FloorPlanMarkerShape & { marker: Marker };
 
   interface MarkerDrag {
     pointerId: number;
@@ -76,6 +79,7 @@
   let isPanning = $state(false);
   let draggingKey = $state<FocusKey>();
   let markerDrag: MarkerDrag | undefined;
+  let pointerHoverKey: FocusKey | undefined;
   let revealFrame: number | undefined;
   let handledRevealRequest = untrack(() => focus.revealRequest);
 
@@ -106,7 +110,6 @@
               key: switchPanelKey(target.id),
               kind: "switch_panel" as const,
               target,
-              symbol: switchPanelSymbol,
               name: target.name,
               position: target.position,
             },
@@ -120,7 +123,6 @@
               key: deviceKey(target.id),
               kind: "device" as const,
               target,
-              symbol: deviceSymbol,
               name: target.name,
               position: target.position,
             },
@@ -145,17 +147,42 @@
   const displayedPosition = (marker: Marker): Position =>
     drafts.get(marker.key)?.position ?? marker.position;
 
-  const onmarkerpointerdown = (event: PointerEvent, marker: Marker) => {
-    if (
-      drafts.isSaving ||
-      markerDrag ||
-      (event.pointerType === "mouse" && event.button !== 0)
-    ) {
+  const placedMarkers: PlacedMarker[] = $derived(
+    markers.map((marker) => ({
+      marker,
+      kind: marker.kind,
+      name: marker.name,
+      point: toScreen(displayedPosition(marker)),
+      isActive: focus.hoveredKey === marker.key || draggingKey === marker.key,
+    })),
+  );
+
+  const markerAt = (point: Point) =>
+    hitTestFloorPlanMarkers(placedMarkers, point)?.marker;
+
+  const hoverAt = (point: Point) => {
+    const key = markerAt(point)?.key;
+    if (key === pointerHoverKey) {
       return;
     }
-    if (event.currentTarget instanceof Element) {
-      event.currentTarget.setPointerCapture(event.pointerId);
+    if (pointerHoverKey) {
+      focus.leave(pointerHoverKey);
     }
+    pointerHoverKey = key;
+    if (key) {
+      focus.enter(key);
+    }
+  };
+
+  const clearHover = () => {
+    if (pointerHoverKey) {
+      focus.leave(pointerHoverKey);
+      pointerHoverKey = undefined;
+    }
+  };
+
+  const startMarkerDrag = (event: PointerEvent, marker: Marker) => {
+    canvas?.setPointerCapture(event.pointerId);
     markerDrag = {
       pointerId: event.pointerId,
       start: toLocal(event),
@@ -165,19 +192,16 @@
     };
   };
 
-  const onmarkerpointermove = (event: PointerEvent) => {
-    if (markerDrag?.pointerId !== event.pointerId) {
-      return;
-    }
-    const { start, origin, marker } = markerDrag;
+  const dragMarker = (event: PointerEvent, drag: MarkerDrag) => {
+    const { start, origin, marker } = drag;
     const current = toLocal(event);
     if (
-      !markerDrag.hasMoved &&
+      !drag.hasMoved &&
       Math.hypot(current.x - start.x, current.y - start.y) < DRAG_THRESHOLD_PX
     ) {
       return;
     }
-    markerDrag.hasMoved = true;
+    drag.hasMoved = true;
     draggingKey = marker.key;
     drafts.set(marker.key, {
       ...marker,
@@ -189,11 +213,9 @@
     });
   };
 
-  const onmarkerpointerend = (event: PointerEvent) => {
-    if (markerDrag?.pointerId === event.pointerId) {
-      markerDrag = undefined;
-      draggingKey = undefined;
-    }
+  const endMarkerDrag = () => {
+    markerDrag = undefined;
+    draggingKey = undefined;
   };
 
   const cancelReveal = () => {
@@ -254,7 +276,11 @@
     }
   });
 
-  const onmarkerdblclick = (marker: Marker) => {
+  const ondblclick = (event: MouseEvent) => {
+    const marker = markerAt(toLocal(event));
+    if (!marker) {
+      return;
+    }
     if (marker.kind === "switch_panel") {
       oneditswitchpanel(marker.target);
     } else {
@@ -272,7 +298,53 @@
     onpanningchange: (panning) => {
       isPanning = panning;
     },
+    onhover: (event) => {
+      if (event.pointerType !== "touch") {
+        hoverAt(toLocal(event));
+      }
+    },
   });
+
+  const onpointerdown = (event: PointerEvent) => {
+    if (markerDrag || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+    const marker = markerAt(toLocal(event));
+    if (!marker) {
+      gestures.onpointerdown(event);
+    } else if (!drafts.isSaving) {
+      startMarkerDrag(event, marker);
+    }
+  };
+
+  const onpointermove = (event: PointerEvent) => {
+    if (markerDrag?.pointerId === event.pointerId) {
+      dragMarker(event, markerDrag);
+    } else {
+      gestures.onpointermove(event);
+    }
+  };
+
+  const onpointerup = (event: PointerEvent) => {
+    if (markerDrag?.pointerId === event.pointerId) {
+      endMarkerDrag();
+    } else {
+      gestures.onpointerup(event);
+    }
+  };
+
+  const onpointercancel = (event: PointerEvent) => {
+    if (markerDrag?.pointerId === event.pointerId) {
+      endMarkerDrag();
+    } else {
+      gestures.onpointercancel(event);
+    }
+  };
+
+  const onwheel = (event: WheelEvent) => {
+    gestures.onwheel(event);
+    hoverAt(toLocal(event));
+  };
 
   const paint = (context: CanvasRenderingContext2D, v: ViewportState) => {
     const { zoom, panX, panY } = v;
@@ -286,6 +358,8 @@
     context.lineWidth = 1 / zoom;
     context.strokeStyle = GRAY_PALETTE.lineFaint;
     context.strokeRect(0, 0, image.width, image.height);
+
+    paintFloorPlanMarkers(context, placedMarkers, dpr, GRAY_PALETTE);
   };
 
   $effect(() => {
@@ -301,20 +375,13 @@
     }
   });
 
-  const forwardWheel: Attachment<HTMLElement> = (element) => {
-    element.addEventListener("wheel", gestures.onwheel, { passive: false });
-    return () => {
-      element.removeEventListener("wheel", gestures.onwheel);
-    };
-  };
-
   onMount((signal) => {
     if (!canvas || !container) {
       return;
     }
 
     ctx = canvas.getContext("2d");
-    canvas.addEventListener("wheel", gestures.onwheel, {
+    canvas.addEventListener("wheel", onwheel, {
       passive: false,
       signal,
     });
@@ -335,53 +402,15 @@
 
 <div class={styles.floor_plan} bind:this={container}>
   <canvas
-    class={[styles.canvas, isPanning && styles.panning]}
+    class={[styles.canvas, (isPanning || draggingKey) && styles.panning]}
     bind:this={canvas}
-    onpointerdown={gestures.onpointerdown}
-    onpointermove={gestures.onpointermove}
-    onpointerup={gestures.onpointerup}
-    onpointercancel={gestures.onpointercancel}
+    {onpointerdown}
+    {onpointermove}
+    {onpointerup}
+    {onpointercancel}
+    onpointerleave={clearHover}
+    {ondblclick}
   ></canvas>
-  <div
-    class={styles.markers}
-    style:--marker-highlight={GRAY_PALETTE.highlight.line}
-    style:--marker-paper={GRAY_PALETTE.paper}
-    style:--marker-line={GRAY_PALETTE.line}
-    style:--marker-leader={GRAY_PALETTE.lineMuted}
-  >
-    {#each markers as marker (marker.key)}
-      {@const point = toScreen(displayedPosition(marker))}
-      <div
-        class={[
-          styles.marker,
-          styles[marker.kind],
-          focus.hoveredKey === marker.key && styles.focused,
-          draggingKey === marker.key && styles.dragging,
-        ]}
-        style:transform={`translate(${point.x}px, ${point.y}px)`}
-      >
-        <span
-          class={styles.hit_area}
-          role="img"
-          aria-label={marker.name}
-          onpointerenter={() => focus.enter(marker.key)}
-          onpointerleave={() => focus.leave(marker.key)}
-          onpointerdown={(event) => onmarkerpointerdown(event, marker)}
-          onpointermove={onmarkerpointermove}
-          onpointerup={onmarkerpointerend}
-          onpointercancel={onmarkerpointerend}
-          ondblclick={() => onmarkerdblclick(marker)}
-          {@attach forwardWheel}
-        >
-          <span
-            class={styles.symbol}
-            style:--symbol={`url("${marker.symbol}")`}
-          ></span>
-        </span>
-        <span class={styles.label}>{marker.name}</span>
-      </div>
-    {/each}
-  </div>
   {#if drafts.size > 0}
     <div class={styles.draft_actions}>
       <button disabled={drafts.isSaving} onclick={() => drafts.clear()}>
