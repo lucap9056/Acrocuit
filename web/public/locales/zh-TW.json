@@ -1,0 +1,171 @@
+{
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "create": "建立",
+    "rename": "重新命名",
+    "delete": "刪除",
+    "remove": "移除",
+    "move": "移動",
+    "save": "儲存",
+    "retry": "重試",
+    "loading": "載入中…",
+    "none": "無",
+    "noneYet": "目前還沒有項目",
+    "close": "關閉"
+  },
+  "auth": {
+    "signIn": "登入",
+    "signOut": "登出",
+    "signInReceived": "已收到登入資訊",
+    "closeWindowHint": "你可以關閉這個視窗並回到 Acrocuit"
+  },
+  "workspace": {
+    "collapseLeftPanel": "收合左側面板",
+    "collapseRightPanel": "收合右側面板",
+    "expandLeftPanel": "展開左側面板",
+    "expandRightPanel": "展開右側面板",
+    "closePanel": "關閉面板"
+  },
+  "spaceGroups": {
+    "title": "空間群組",
+    "new": "新增空間群組",
+    "empty": "目前還沒有空間群組，一個空間群組通常代表一棟建築或一個場域"
+  },
+  "spaces": {
+    "title": "空間",
+    "new": "新增空間",
+    "loading": "載入空間中…",
+    "empty": "目前還沒有空間",
+    "dragToReorder": "拖曳以調整順序",
+    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？"
+  },
+  "switchPanels": {
+    "title": "開關面板",
+    "new": "新增開關面板",
+    "confirmDelete": "要刪除「{{name}}」嗎？",
+    "name": "名稱"
+  },
+  "switches": {
+    "new": "新增開關",
+    "name": "開關名稱",
+    "confirmDelete": "要刪除「{{name}}」嗎？",
+    "layout": "排列方式",
+    "rows": "列",
+    "columns": "欄"
+  },
+  "switchEditor": {
+    "name": "名稱",
+    "upstream": "上游開關"
+  },
+  "devices": {
+    "title": "設備",
+    "new": "新增設備",
+    "confirmDelete": "要刪除「{{name}}」嗎？"
+  },
+  "deviceEditor": {
+    "name": "名稱",
+    "upstream": "上游開關",
+    "addUpstream": "新增上游"
+  },
+  "switchSelector": {
+    "space": "空間",
+    "switchPanel": "開關面板",
+    "switch": "開關"
+  },
+  "floorPlan": {
+    "title": "平面圖",
+    "loading": "載入平面圖中…",
+    "empty": "尚未上傳平面圖",
+    "uploaded": "已上傳",
+    "upload": "上傳平面圖",
+    "remove": "移除平面圖",
+    "confirmRemove": "要移除「{{name}}」的平面圖嗎？"
+  },
+  "floorOverview": {
+    "loading": "載入樓層中…",
+    "tilt": "傾斜",
+    "blueprintColors": "藍圖配色",
+    "zoomIn": "放大",
+    "zoomOut": "縮小",
+    "fitToView": "符合畫面"
+  },
+  "floorInfo": {
+    "floor": "樓層",
+    "hint": "將游標移到樓層上，或在觸控螢幕上點一下，即可查看詳細資訊"
+  },
+  "loading": {
+    "connect": "連線中…",
+    "signIn": "登入中…",
+    "signOut": "登出中…",
+    "fetchSpaceGroups": "載入空間群組中…",
+    "createSpaceGroup": "建立空間群組中…",
+    "renameSpaceGroup": "重新命名空間群組中…",
+    "removeSpaceGroup": "移除空間群組中…",
+    "fetchSpace": "載入空間中…",
+    "fetchSpaces": "載入空間列表中…",
+    "createSpace": "建立空間中…",
+    "renameSpace": "重新命名空間中…",
+    "removeSpace": "移除空間中…",
+    "moveSpace": "移動空間中…",
+    "renderFloors": "繪製樓層中…",
+    "fetchFloorPlan": "載入平面圖中…",
+    "uploadFloorPlan": "上傳平面圖中…",
+    "removeFloorPlan": "移除平面圖中…",
+    "savePositions": "儲存位置中…",
+    "fetchSwitchesAndDevices": "載入開關與設備中…",
+    "createSwitchPanel": "建立開關面板中…",
+    "renameSwitchPanel": "重新命名開關面板中…",
+    "removeSwitchPanel": "移除開關面板中…",
+    "createDevice": "建立設備中…",
+    "renameDevice": "重新命名設備中…",
+    "removeDevice": "移除設備中…",
+    "addDeviceUpstream": "新增設備上游中…",
+    "removeDeviceUpstream": "移除設備上游中…",
+    "createSwitch": "建立開關中…",
+    "removeSwitch": "移除開關中…",
+    "renameSwitch": "重新命名開關中…",
+    "setSwitchUpstream": "設定開關上游中…",
+    "removeSwitchUpstream": "移除開關上游中…"
+  },
+  "flavor_01": "正在擦掉藍圖上的立可白痕跡",
+  "flavor_02": "正在幫電線梳開打結的頭髮",
+  "flavor_03": "正在說服無熔絲開關不要跳電",
+  "flavor_04": "正在一顆一顆數電子",
+  "flavor_05": "正在試著看懂電費單上的每一個數字",
+  "flavor_06": "正在幫伺服器換上一包還沒過期的綠色乖乖",
+  "flavor_07": "正在幫電容器打氣",
+  "flavor_08": "正在勸延長線不要再串下一條延長線",
+  "flavor_09": "正在把迷路的電流帶回家",
+  "flavor_10": "正在幫插座做年度健康檢查",
+  "flavor_11": "正在解開電腦桌後面那盤炒米粉",
+  "flavor_12": "正在好聲好氣地拜託總電箱",
+  "flavor_13": "正在把銅線擦到閃閃發亮",
+  "flavor_14": "正在教電阻放輕鬆",
+  "flavor_15": "正在分清楚哪個插座是 220V",
+  "flavor_16": "正在確認冷氣室外機沒有滴水到樓下",
+  "flavor_17": "正在叫醒電線桿上打瞌睡的變壓器",
+  "flavor_18": "正在幫太興奮的電線接地",
+  "flavor_19": "正在讓 LED 跟著垃圾車的〈給愛麗絲〉同步閃爍",
+  "flavor_20": "正在讓電子排成一直線",
+  "flavor_21": "正在幫冷氣算夏月電價",
+  "flavor_22": "正在輕鋼架天花板裡找鬆脫的火花",
+  "flavor_23": "正在用無糖綠茶收買水電師傅",
+  "flavor_24": "正在確保熱水器不會在洗頭洗到一半變冷水",
+  "flavor_25": "正在把線圈重新繞得更有彈性",
+  "flavor_26": "正在鎖緊每一顆看起來很寂寞的螺絲",
+  "flavor_27": "正在幫標著「???」的斷路器貼標籤",
+  "flavor_28": "正在繪製線管裡的秘密通道",
+  "flavor_29": "正在提醒中性線它也很重要",
+  "flavor_30": "正在找出一直閃的那根日光燈管",
+  "flavor_31": "正在確認沒人把大同電鍋接到 UPS 上",
+  "flavor_32": "正在用特別直的線畫平面圖",
+  "flavor_33": "正在尋找什麼都不控制的那個開關",
+  "flavor_34": "正在請燈旁邊的壁虎讓個位置",
+  "flavor_35": "正在用滿滿的熱情幫電池充電",
+  "flavor_36": "正在再三確認藍圖哪邊朝上",
+  "flavor_37": "正在問電梯它現在在幾樓",
+  "flavor_38": "正在確認頂樓加蓋有沒有畫進平面圖",
+  "flavor_39": "正在幫接線盒撢灰塵",
+  "flavor_40": "正在把嗶嗶聲翻譯成白話文"
+}

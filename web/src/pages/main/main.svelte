@@ -8,6 +8,7 @@
   import Dialog from "@/components/dialog/dialog.svelte";
   import load from "@/components/loading-bar";
   import LoadingBar from "@/components/loading-bar/loading-bar.svelte";
+  import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import Dashboard from "./dashboard/dashboard.svelte";
   import Login from "./login.svelte";
@@ -95,7 +96,9 @@
     {#if sessionErr}
       <div>{sessionErr.message}</div>
     {/if}
-    <div class={styles.status}><button onclick={reload}>Retry</button></div>
+    <div class={styles.status}>
+      <button onclick={reload}>{t("common.retry")}</button>
+    </div>
   {/if}
 {/if}
 

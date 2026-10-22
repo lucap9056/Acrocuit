@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import { notifyLoginCallback } from "@/lib/login-popup";
 
@@ -9,8 +10,8 @@
 </script>
 
 <main>
-  <h2>Sign-in received</h2>
-  <p class="muted">You can close this window and return to Acrocuit.</p>
+  <h2>{t("auth.signInReceived")}</h2>
+  <p class="muted">{t("auth.closeWindowHint")}</p>
 </main>
 
 <style>
