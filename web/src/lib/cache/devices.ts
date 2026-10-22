@@ -1,5 +1,6 @@
 import type { AuthSession, Device, Position, Ref, SpaceId } from "@/api";
 import api from "@/api";
+import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
 import { createListCache } from "@/lib/cache/list-cache";
 
 type CompleteDevice = Device & { space: Ref<SpaceId> };
@@ -25,7 +26,7 @@ export const renameDevice = (
   cache.replace(
     s,
     device.space.id,
-    api.devices.updateDevice(s, device.id, { name }),
+    api.devices.updateDeviceName(s, device.id, name),
   );
 
 export const setDevicePosition = (
@@ -40,9 +41,14 @@ export const setDevicePosition = (
   );
 
 export const removeDevice = (s: AuthSession, device: CompleteDevice) =>
-  cache.remove(
-    s,
-    device.space.id,
-    device.id,
-    api.devices.deleteDevice(s, device.id),
-  );
+  cache
+    .remove(
+      s,
+      device.space.id,
+      device.id,
+      api.devices.deleteDevice(s, device.id),
+    )
+    .then((devices) => {
+      clearDeviceSwitchesCache(device.id);
+      return devices;
+    });

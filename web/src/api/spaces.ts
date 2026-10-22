@@ -1,6 +1,6 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
-  BreakerGroup,
+  SwitchPanel,
   Device,
   Position,
   Space,
@@ -18,23 +18,14 @@ const getSpace = (auth: AuthSession, spaceId: SpaceId) => {
     .then(unwrapApiResponse<Space>);
 };
 
-export type SpaceUpdate = {
-  name?: string;
-  display_order?: number;
-};
-
-const updateSpace = (
-  auth: AuthSession,
-  spaceId: SpaceId,
-  update: SpaceUpdate,
-) => {
+const updateSpaceName = (auth: AuthSession, spaceId: SpaceId, name: string) => {
   return auth
     .fetch(`${base}/${spaceId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(update),
+      body: JSON.stringify({ name }),
     })
     .then(unwrapApiResponse<Space>);
 };
@@ -60,7 +51,7 @@ const updateSpaceOrder = (
       },
       body: JSON.stringify({ display_order: displayOrder }),
     })
-    .then(unwrapApiResponse<Space>);
+    .then(unwrapApiResponse<Space[]>);
 };
 
 const getSpaceBackgroundImage = async (
@@ -104,29 +95,29 @@ const deleteSpaceBackgroundImage = (auth: AuthSession, spaceId: SpaceId) => {
     .then(unwrapApiResponse<Space>);
 };
 
-const getBreakerGroups = (auth: AuthSession, spaceId: SpaceId) => {
+const getSwitchPanels = (auth: AuthSession, spaceId: SpaceId) => {
   return auth
-    .fetch(`${base}/${spaceId}/breaker-groups`, {
+    .fetch(`${base}/${spaceId}/switch-panels`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<BreakerGroup[]>);
+    .then(unwrapApiResponse<SwitchPanel[]>);
 };
 
-const addBreakerGroup = (
+const addSwitchPanel = (
   auth: AuthSession,
   spaceId: SpaceId,
   name: string,
   position?: Position,
 ) => {
   return auth
-    .fetch(`${base}/${spaceId}/breaker-groups`, {
+    .fetch(`${base}/${spaceId}/switch-panels`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ name, position }),
     })
-    .then(unwrapApiResponse<BreakerGroup>);
+    .then(unwrapApiResponse<SwitchPanel>);
 };
 
 const getDevices = (auth: AuthSession, spaceId: SpaceId) => {
@@ -156,14 +147,14 @@ const addDevice = (
 
 export default {
   getSpace,
-  updateSpace,
+  updateSpaceName,
   deleteSpace,
   updateSpaceOrder,
   getSpaceBackgroundImage,
   setSpaceBackgroundImage,
   deleteSpaceBackgroundImage,
-  getBreakerGroups,
-  addBreakerGroup,
+  getSwitchPanels,
+  addSwitchPanel,
   getDevices,
   addDevice,
 };
