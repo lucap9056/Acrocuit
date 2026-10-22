@@ -140,25 +140,25 @@ func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId int) e
 	return notFoundIfNoneAffected(d.db.ExecContext(ctx, query, deviceId))
 }
 
-func (d *sqliteDevices) GetDeviceBreakers(ctx context.Context, _ string, deviceId int, include string) ([]models.Breaker, error) {
+func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceId int, include string) ([]models.Switch, error) {
 	if err := requireRow(ctx, d.db, schema.DevicesTable, schema.Devices_ID, deviceId); err != nil {
 		return nil, err
 	}
 
-	keys, fields, err := models.ParseBreakerColumns(include)
+	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
 	}
 
 	query := `SELECT ` + keys + `
-		FROM ` + schema.DeviceBreakersTable + `
-		JOIN ` + schema.BreakersTable + ` ON ` + schema.JoinDeviceBreakers_Breakers + `
-		WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1`
+		FROM ` + schema.DeviceSwitchesTable + `
+		JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
+		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1`
 
-	return queryBreakers(ctx, d.db, fields, query, deviceId)
+	return querySwitches(ctx, d.db, fields, query, deviceId)
 }
 
-func (d *sqliteDevices) AddDeviceBreaker(ctx context.Context, _ string, deviceId, breakerId int) error {
+func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId, switchId int) error {
 	return withTx(ctx, d.db, func(tx *sql.Tx) error {
 		var spaceGroupId int
 		spaceGroup := `
@@ -171,12 +171,12 @@ func (d *sqliteDevices) AddDeviceBreaker(ctx context.Context, _ string, deviceId
 			return notFoundIfNoRows(err)
 		}
 
-		if err := requireBreakerInSpaceGroup(ctx, tx, breakerId, spaceGroupId); err != nil {
+		if err := requireSwitchInSpaceGroup(ctx, tx, switchId, spaceGroupId); err != nil {
 			return err
 		}
 
-		insert := `INSERT INTO ` + schema.DeviceBreakersTable + ` (` + schema.DeviceBreakers_DEVICE_ID + `, ` + schema.DeviceBreakers_BREAKER_ID + `) VALUES ($1, $2)`
-		_, err := tx.ExecContext(ctx, insert, deviceId, breakerId)
+		insert := `INSERT INTO ` + schema.DeviceSwitchesTable + ` (` + schema.DeviceSwitches_DEVICE_ID + `, ` + schema.DeviceSwitches_SWITCH_ID + `) VALUES ($1, $2)`
+		_, err := tx.ExecContext(ctx, insert, deviceId, switchId)
 		if isUniqueViolation(err) {
 			return repository.ErrConflict
 		}
@@ -184,42 +184,42 @@ func (d *sqliteDevices) AddDeviceBreaker(ctx context.Context, _ string, deviceId
 	})
 }
 
-func (d *sqliteDevices) DelDeviceBreaker(ctx context.Context, _ string, deviceId, breakerId int) error {
+func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId, switchId int) error {
 	query := `
-		DELETE FROM ` + schema.DeviceBreakersTable + `
-		WHERE ` + schema.DeviceBreakers_DEVICE_ID + ` = $1 AND ` + schema.DeviceBreakers_BREAKER_ID + ` = $2
+		DELETE FROM ` + schema.DeviceSwitchesTable + `
+		WHERE ` + schema.DeviceSwitches_DEVICE_ID + ` = $1 AND ` + schema.DeviceSwitches_SWITCH_ID + ` = $2
 	`
-	return notFoundIfNoneAffected(d.db.ExecContext(ctx, query, deviceId, breakerId))
+	return notFoundIfNoneAffected(d.db.ExecContext(ctx, query, deviceId, switchId))
 }
 
-func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId int) ([]models.Breaker, error) {
+func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId int) ([]models.Switch, error) {
 	if err := requireRow(ctx, d.db, schema.DevicesTable, schema.Devices_ID, deviceId); err != nil {
 		return nil, err
 	}
 
-	_, fields, err := models.ParseBreakerColumns("")
+	_, fields, err := models.ParseSwitchColumns("")
 	if err != nil {
 		return nil, err
 	}
 
 	query := `
-		WITH RECURSIVE breaker_chain AS (
-			SELECT ` + breakerColumns + `
-			FROM ` + schema.DeviceBreakersTable + `
-			JOIN ` + schema.BreakersTable + ` ON ` + schema.JoinDeviceBreakers_Breakers + `
-			WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1
+		WITH RECURSIVE switch_chain AS (
+			SELECT ` + switchColumns + `
+			FROM ` + schema.DeviceSwitchesTable + `
+			JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
+			WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1
 
 			UNION ALL
 
-			SELECT ` + breakerColumns + `
-			FROM ` + schema.BreakersTable + `
-			JOIN breaker_chain ON ` + schema.FullBreakers_ID + ` = breaker_chain.` + schema.Breakers_UPSTREAM_BREAKER_ID + `
+			SELECT ` + switchColumns + `
+			FROM ` + schema.SwitchesTable + `
+			JOIN switch_chain ON ` + schema.FullSwitches_ID + ` = switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `
 		)
-		SELECT DISTINCT ` + schema.Breakers_ID + `, ` + schema.Breakers_NAME + `, ` + schema.Breakers_BREAKER_GROUP_ID + `, ` + schema.Breakers_SPACE_GROUP_ID + `, ` + schema.Breakers_DISPLAY_ORDER + `, ` + schema.Breakers_UPSTREAM_BREAKER_ID + `
-		FROM breaker_chain
-		ORDER BY ` + schema.Breakers_ID + `
+		SELECT DISTINCT ` + schema.Switches_ID + `, ` + schema.Switches_NAME + `, ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_SPACE_GROUP_ID + `, ` + schema.Switches_DISPLAY_ORDER + `, ` + schema.Switches_UPSTREAM_SWITCH_ID + `
+		FROM switch_chain
+		ORDER BY ` + schema.Switches_ID + `
 	`
-	return queryBreakers(ctx, d.db, fields, query, deviceId)
+	return querySwitches(ctx, d.db, fields, query, deviceId)
 }
 
 func upsertDevicePosition(ctx context.Context, q querier, deviceId int, position models.Position) error {

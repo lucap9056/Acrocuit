@@ -12,11 +12,11 @@ import (
 type Storage struct {
 	close func()
 
-	SpaceGroups   repository.SpaceGroups
-	Spaces        repository.Spaces
-	BreakerGroups repository.BreakerGroups
-	Breakers      repository.Breakers
-	Devices       repository.Devices
+	SpaceGroups  repository.SpaceGroups
+	Spaces       repository.Spaces
+	SwitchPanels repository.SwitchPanels
+	Switches     repository.Switches
+	Devices      repository.Devices
 }
 
 func New(ctx context.Context, opts *options.Options) (*Storage, error) {
@@ -37,12 +37,12 @@ func newPostgres(ctx context.Context, dsn string) (*Storage, error) {
 	}
 
 	return &Storage{
-		close:         pool.Close,
-		SpaceGroups:   postgres.NewSpaceGroups(pool),
-		Spaces:        postgres.NewSpaces(pool),
-		BreakerGroups: postgres.NewBreakerGroups(pool),
-		Breakers:      postgres.NewBreakers(pool),
-		Devices:       postgres.NewDevices(pool),
+		close:        pool.Close,
+		SpaceGroups:  postgres.NewSpaceGroups(pool),
+		Spaces:       postgres.NewSpaces(pool),
+		SwitchPanels: postgres.NewSwitchPanels(pool),
+		Switches:     postgres.NewSwitches(pool),
+		Devices:      postgres.NewDevices(pool),
 	}, nil
 }
 
@@ -58,12 +58,12 @@ func newSQLite(ctx context.Context, path string) (*Storage, error) {
 	}
 
 	return &Storage{
-		close:         func() { db.Close() },
-		SpaceGroups:   sqlite.NewSpaceGroups(db),
-		Spaces:        sqlite.NewSpaces(db),
-		BreakerGroups: sqlite.NewBreakerGroups(db),
-		Breakers:      sqlite.NewBreakers(db),
-		Devices:       sqlite.NewDevices(db),
+		close:        func() { db.Close() },
+		SpaceGroups:  sqlite.NewSpaceGroups(db),
+		Spaces:       sqlite.NewSpaces(db),
+		SwitchPanels: sqlite.NewSwitchPanels(db),
+		Switches:     sqlite.NewSwitches(db),
+		Devices:      sqlite.NewDevices(db),
 	}, nil
 }
 

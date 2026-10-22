@@ -9,16 +9,16 @@ import (
 var rawFunctions string
 
 const (
-	baseFunc                 = "func"
-	baseOutResult            = "o_result"
-	baseOutID                = "o_id"
-	baseOutName              = "o_name"
-	baseOutSpaceGroupID      = "o_space_group_id"
-	baseOutBreakerGroupID    = "o_breaker_group_id"
-	baseOutDisplayOrder      = "o_display_order"
-	baseOutUpstreamBreakerID = "o_upstream_breaker_id"
-	baseErrSelfReference     = "err_self_reference"
-	baseErrCycleDetected     = "err_cycle_detected"
+	baseFunc                = "func"
+	baseOutResult           = "o_result"
+	baseOutID               = "o_id"
+	baseOutName             = "o_name"
+	baseOutSpaceGroupID     = "o_space_group_id"
+	baseOutSwitchPanelID    = "o_switch_panel_id"
+	baseOutDisplayOrder     = "o_display_order"
+	baseOutUpstreamSwitchID = "o_upstream_switch_id"
+	baseErrSelfReference    = "err_self_reference"
+	baseErrCycleDetected    = "err_cycle_detected"
 
 	FnSetSpace                               = "fn_set_space"
 	FnSetSpace_O_ID                          = baseOutID
@@ -34,34 +34,34 @@ const (
 	FnMoveSpace_O_DISPLAY_ORDER               = baseOutDisplayOrder
 	FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT = FnSetSpace_O_BACKGROUND_IMAGE_UPDATED_AT
 
-	FnSetBreaker                       = "fn_set_breaker"
-	FnSetBreaker_O_ID                  = baseOutID
-	FnSetBreaker_O_NAME                = baseOutName
-	FnSetBreaker_O_BREAKER_GROUP_ID    = baseOutBreakerGroupID
-	FnSetBreaker_O_SPACE_GROUP_ID      = baseOutSpaceGroupID
-	FnSetBreaker_O_DISPLAY_ORDER       = baseOutDisplayOrder
-	FnSetBreaker_O_UPSTREAM_BREAKER_ID = baseOutUpstreamBreakerID
+	FnSetSwitch                      = "fn_set_switch"
+	FnSetSwitch_O_ID                 = baseOutID
+	FnSetSwitch_O_NAME               = baseOutName
+	FnSetSwitch_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
+	FnSetSwitch_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
+	FnSetSwitch_O_DISPLAY_ORDER      = baseOutDisplayOrder
+	FnSetSwitch_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
 
-	FnMoveBreaker                       = "fn_move_breaker"
-	FnMoveBreaker_O_ID                  = baseOutID
-	FnMoveBreaker_O_NAME                = baseOutName
-	FnMoveBreaker_O_BREAKER_GROUP_ID    = baseOutBreakerGroupID
-	FnMoveBreaker_O_SPACE_GROUP_ID      = baseOutSpaceGroupID
-	FnMoveBreaker_O_DISPLAY_ORDER       = baseOutDisplayOrder
-	FnMoveBreaker_O_UPSTREAM_BREAKER_ID = baseOutUpstreamBreakerID
+	FnMoveSwitch                      = "fn_move_switch"
+	FnMoveSwitch_O_ID                 = baseOutID
+	FnMoveSwitch_O_NAME               = baseOutName
+	FnMoveSwitch_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
+	FnMoveSwitch_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
+	FnMoveSwitch_O_DISPLAY_ORDER      = baseOutDisplayOrder
+	FnMoveSwitch_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
 
-	FnSetBreakerUpstream                       = "fn_set_breaker_upstream"
-	FnSetBreakerUpstream_O_ID                  = baseOutID
-	FnSetBreakerUpstream_O_NAME                = baseOutName
-	FnSetBreakerUpstream_O_BREAKER_GROUP_ID    = baseOutBreakerGroupID
-	FnSetBreakerUpstream_O_SPACE_GROUP_ID      = baseOutSpaceGroupID
-	FnSetBreakerUpstream_O_DISPLAY_ORDER       = baseOutDisplayOrder
-	FnSetBreakerUpstream_O_UPSTREAM_BREAKER_ID = baseOutUpstreamBreakerID
-	FnSetBreakerUpstream_ERR_SELF_REFERENCE    = "AC001"
-	FnSetBreakerUpstream_ERR_CYCLE_DETECTED    = "AC002"
+	FnSetSwitchUpstream                      = "fn_set_switch_upstream"
+	FnSetSwitchUpstream_O_ID                 = baseOutID
+	FnSetSwitchUpstream_O_NAME               = baseOutName
+	FnSetSwitchUpstream_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
+	FnSetSwitchUpstream_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
+	FnSetSwitchUpstream_O_DISPLAY_ORDER      = baseOutDisplayOrder
+	FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
+	FnSetSwitchUpstream_ERR_SELF_REFERENCE   = "AC001"
+	FnSetSwitchUpstream_ERR_CYCLE_DETECTED   = "AC002"
 
-	FnAddDeviceBreaker          = "fn_add_device_breaker"
-	FnAddDeviceBreaker_O_RESULT = baseOutResult
+	FnAddDeviceSwitch          = "fn_add_device_switch"
+	FnAddDeviceSwitch_O_RESULT = baseOutResult
 )
 
 const (
@@ -71,14 +71,14 @@ const (
 	FnMoveSpace_OUTPUTS = FnMoveSpace_O_ID + "," + FnMoveSpace_O_NAME + "," + FnMoveSpace_O_SPACE_GROUP_ID + "," +
 		FnMoveSpace_O_DISPLAY_ORDER + "," + FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT
 
-	FnSetBreaker_OUTPUTS = FnSetBreaker_O_ID + "," + FnSetBreaker_O_NAME + "," + FnSetBreaker_O_BREAKER_GROUP_ID + "," +
-		FnSetBreaker_O_SPACE_GROUP_ID + "," + FnSetBreaker_O_DISPLAY_ORDER + "," + FnSetBreaker_O_UPSTREAM_BREAKER_ID
+	FnSetSwitch_OUTPUTS = FnSetSwitch_O_ID + "," + FnSetSwitch_O_NAME + "," + FnSetSwitch_O_SWITCH_PANEL_ID + "," +
+		FnSetSwitch_O_SPACE_GROUP_ID + "," + FnSetSwitch_O_DISPLAY_ORDER + "," + FnSetSwitch_O_UPSTREAM_SWITCH_ID
 
-	FnMoveBreaker_OUTPUTS = FnMoveBreaker_O_ID + "," + FnMoveBreaker_O_NAME + "," + FnMoveBreaker_O_BREAKER_GROUP_ID + "," +
-		FnMoveBreaker_O_SPACE_GROUP_ID + "," + FnMoveBreaker_O_DISPLAY_ORDER + "," + FnMoveBreaker_O_UPSTREAM_BREAKER_ID
+	FnMoveSwitch_OUTPUTS = FnMoveSwitch_O_ID + "," + FnMoveSwitch_O_NAME + "," + FnMoveSwitch_O_SWITCH_PANEL_ID + "," +
+		FnMoveSwitch_O_SPACE_GROUP_ID + "," + FnMoveSwitch_O_DISPLAY_ORDER + "," + FnMoveSwitch_O_UPSTREAM_SWITCH_ID
 
-	FnSetBreakerUpstream_OUTPUTS = FnSetBreakerUpstream_O_ID + "," + FnSetBreakerUpstream_O_NAME + "," + FnSetBreakerUpstream_O_BREAKER_GROUP_ID + "," +
-		FnSetBreakerUpstream_O_SPACE_GROUP_ID + "," + FnSetBreakerUpstream_O_DISPLAY_ORDER + "," + FnSetBreakerUpstream_O_UPSTREAM_BREAKER_ID
+	FnSetSwitchUpstream_OUTPUTS = FnSetSwitchUpstream_O_ID + "," + FnSetSwitchUpstream_O_NAME + "," + FnSetSwitchUpstream_O_SWITCH_PANEL_ID + "," +
+		FnSetSwitchUpstream_O_SPACE_GROUP_ID + "," + FnSetSwitchUpstream_O_DISPLAY_ORDER + "," + FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID
 )
 
 func init() {
@@ -102,45 +102,45 @@ func init() {
 			FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT: FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT,
 		}
 	}
-	funcMap[FnSetBreaker] = func() map[string]string {
+	funcMap[FnSetSwitch] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                           FnSetBreaker,
-			FnSetBreaker_O_ID:                  FnSetBreaker_O_ID,
-			FnSetBreaker_O_NAME:                FnSetBreaker_O_NAME,
-			FnSetBreaker_O_BREAKER_GROUP_ID:    FnSetBreaker_O_BREAKER_GROUP_ID,
-			FnSetBreaker_O_SPACE_GROUP_ID:      FnSetBreaker_O_SPACE_GROUP_ID,
-			FnSetBreaker_O_DISPLAY_ORDER:       FnSetBreaker_O_DISPLAY_ORDER,
-			FnSetBreaker_O_UPSTREAM_BREAKER_ID: FnSetBreaker_O_UPSTREAM_BREAKER_ID,
+			baseFunc:                         FnSetSwitch,
+			FnSetSwitch_O_ID:                 FnSetSwitch_O_ID,
+			FnSetSwitch_O_NAME:               FnSetSwitch_O_NAME,
+			FnSetSwitch_O_SWITCH_PANEL_ID:    FnSetSwitch_O_SWITCH_PANEL_ID,
+			FnSetSwitch_O_SPACE_GROUP_ID:     FnSetSwitch_O_SPACE_GROUP_ID,
+			FnSetSwitch_O_DISPLAY_ORDER:      FnSetSwitch_O_DISPLAY_ORDER,
+			FnSetSwitch_O_UPSTREAM_SWITCH_ID: FnSetSwitch_O_UPSTREAM_SWITCH_ID,
 		}
 	}
-	funcMap[FnMoveBreaker] = func() map[string]string {
+	funcMap[FnMoveSwitch] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                            FnMoveBreaker,
-			FnMoveBreaker_O_ID:                  FnMoveBreaker_O_ID,
-			FnMoveBreaker_O_NAME:                FnMoveBreaker_O_NAME,
-			FnMoveBreaker_O_BREAKER_GROUP_ID:    FnMoveBreaker_O_BREAKER_GROUP_ID,
-			FnMoveBreaker_O_SPACE_GROUP_ID:      FnMoveBreaker_O_SPACE_GROUP_ID,
-			FnMoveBreaker_O_DISPLAY_ORDER:       FnMoveBreaker_O_DISPLAY_ORDER,
-			FnMoveBreaker_O_UPSTREAM_BREAKER_ID: FnMoveBreaker_O_UPSTREAM_BREAKER_ID,
+			baseFunc:                          FnMoveSwitch,
+			FnMoveSwitch_O_ID:                 FnMoveSwitch_O_ID,
+			FnMoveSwitch_O_NAME:               FnMoveSwitch_O_NAME,
+			FnMoveSwitch_O_SWITCH_PANEL_ID:    FnMoveSwitch_O_SWITCH_PANEL_ID,
+			FnMoveSwitch_O_SPACE_GROUP_ID:     FnMoveSwitch_O_SPACE_GROUP_ID,
+			FnMoveSwitch_O_DISPLAY_ORDER:      FnMoveSwitch_O_DISPLAY_ORDER,
+			FnMoveSwitch_O_UPSTREAM_SWITCH_ID: FnMoveSwitch_O_UPSTREAM_SWITCH_ID,
 		}
 	}
-	funcMap[FnSetBreakerUpstream] = func() map[string]string {
+	funcMap[FnSetSwitchUpstream] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                                   FnSetBreakerUpstream,
-			FnSetBreakerUpstream_O_ID:                  FnSetBreakerUpstream_O_ID,
-			FnSetBreakerUpstream_O_NAME:                FnSetBreakerUpstream_O_NAME,
-			FnSetBreakerUpstream_O_BREAKER_GROUP_ID:    FnSetBreakerUpstream_O_BREAKER_GROUP_ID,
-			FnSetBreakerUpstream_O_SPACE_GROUP_ID:      FnSetBreakerUpstream_O_SPACE_GROUP_ID,
-			FnSetBreakerUpstream_O_DISPLAY_ORDER:       FnSetBreakerUpstream_O_DISPLAY_ORDER,
-			FnSetBreakerUpstream_O_UPSTREAM_BREAKER_ID: FnSetBreakerUpstream_O_UPSTREAM_BREAKER_ID,
-			baseErrSelfReference:                       FnSetBreakerUpstream_ERR_SELF_REFERENCE,
-			baseErrCycleDetected:                       FnSetBreakerUpstream_ERR_CYCLE_DETECTED,
+			baseFunc:                                 FnSetSwitchUpstream,
+			FnSetSwitchUpstream_O_ID:                 FnSetSwitchUpstream_O_ID,
+			FnSetSwitchUpstream_O_NAME:               FnSetSwitchUpstream_O_NAME,
+			FnSetSwitchUpstream_O_SWITCH_PANEL_ID:    FnSetSwitchUpstream_O_SWITCH_PANEL_ID,
+			FnSetSwitchUpstream_O_SPACE_GROUP_ID:     FnSetSwitchUpstream_O_SPACE_GROUP_ID,
+			FnSetSwitchUpstream_O_DISPLAY_ORDER:      FnSetSwitchUpstream_O_DISPLAY_ORDER,
+			FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID: FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID,
+			baseErrSelfReference:                     FnSetSwitchUpstream_ERR_SELF_REFERENCE,
+			baseErrCycleDetected:                     FnSetSwitchUpstream_ERR_CYCLE_DETECTED,
 		}
 	}
-	funcMap[FnAddDeviceBreaker] = func() map[string]string {
+	funcMap[FnAddDeviceSwitch] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                    FnAddDeviceBreaker,
-			FnAddDeviceBreaker_O_RESULT: FnAddDeviceBreaker_O_RESULT,
+			baseFunc:                   FnAddDeviceSwitch,
+			FnAddDeviceSwitch_O_RESULT: FnAddDeviceSwitch_O_RESULT,
 		}
 	}
 }

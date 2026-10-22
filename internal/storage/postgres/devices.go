@@ -209,7 +209,7 @@ func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId in
 	return nil
 }
 
-func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userEmail string, deviceId int, include string) ([]models.Breaker, error) {
+func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, deviceId int, include string) ([]models.Switch, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
@@ -227,15 +227,15 @@ func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userEmail string, dev
 		return nil, repository.ErrNotFound
 	}
 
-	keys, fields, err := models.ParseBreakerColumns(include)
+	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
 	}
 
 	query := `SELECT ` + keys + `
-		FROM ` + schema.DeviceBreakersTable + `
-		JOIN ` + schema.BreakersTable + ` ON ` + schema.JoinDeviceBreakers_Breakers + `
-		WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1`
+		FROM ` + schema.DeviceSwitchesTable + `
+		JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
+		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1`
 
 	rows, err := d.pool.Query(ctx, query, deviceId)
 	if err != nil {
@@ -243,23 +243,23 @@ func (d *pgDevices) GetDeviceBreakers(ctx context.Context, userEmail string, dev
 	}
 	defer rows.Close()
 
-	breakers := make([]models.Breaker, 0)
+	switches := make([]models.Switch, 0)
 	for rows.Next() {
-		var breaker models.Breaker
-		if err := rows.Scan(breaker.Values(fields)...); err != nil {
+		var sw models.Switch
+		if err := rows.Scan(sw.Values(fields)...); err != nil {
 			return nil, err
 		}
-		breaker.Build()
-		breakers = append(breakers, breaker)
+		sw.Build()
+		switches = append(switches, sw)
 	}
 
-	return breakers, rows.Err()
+	return switches, rows.Err()
 }
 
-func (d *pgDevices) AddDeviceBreaker(ctx context.Context, userEmail string, deviceId, breakerId int) error {
+func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int) error {
 	var result int
-	query := `SELECT ` + schema.FnAddDeviceBreaker_O_RESULT + ` FROM ` + schema.FnAddDeviceBreaker + `($1, $2, $3)`
-	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, breakerId).Scan(&result)
+	query := `SELECT ` + schema.FnAddDeviceSwitch_O_RESULT + ` FROM ` + schema.FnAddDeviceSwitch + `($1, $2, $3)`
+	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, switchId).Scan(&result)
 	if err != nil {
 		return err
 	}
@@ -274,16 +274,16 @@ func (d *pgDevices) AddDeviceBreaker(ctx context.Context, userEmail string, devi
 	}
 }
 
-func (d *pgDevices) DelDeviceBreaker(ctx context.Context, userEmail string, deviceId, breakerId int) error {
+func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int) error {
 	query := `
-		DELETE FROM ` + schema.DeviceBreakersTable + `
-		USING ` + schema.BreakersTable + `
-		JOIN ` + schema.BreakerGroupsTable + ` ON ` + schema.JoinBreakers_BreakerGroups + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_BreakerGroups + `
-		WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1 AND ` + schema.FullDeviceBreakers_BREAKER_ID + ` = $2
-			AND ` + schema.JoinDeviceBreakers_Breakers + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $3
+		DELETE FROM ` + schema.DeviceSwitchesTable + `
+		USING ` + schema.SwitchesTable + `
+		JOIN ` + schema.SwitchPanelsTable + ` ON ` + schema.JoinSwitches_SwitchPanels + `
+		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SwitchPanels + `
+		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1 AND ` + schema.FullDeviceSwitches_SWITCH_ID + ` = $2
+			AND ` + schema.JoinDeviceSwitches_Switches + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $3
 	`
-	t, err := d.pool.Exec(ctx, query, deviceId, breakerId, userEmail)
+	t, err := d.pool.Exec(ctx, query, deviceId, switchId, userEmail)
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (d *pgDevices) DelDeviceBreaker(ctx context.Context, userEmail string, devi
 	return nil
 }
 
-func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId int) ([]models.Breaker, error) {
+func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId int) ([]models.Switch, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
@@ -312,27 +312,27 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 		return nil, repository.ErrNotFound
 	}
 
-	_, fields, err := models.ParseBreakerColumns("")
+	_, fields, err := models.ParseSwitchColumns("")
 	if err != nil {
 		return nil, err
 	}
 
 	query := `
-		WITH RECURSIVE breaker_chain AS (
-			SELECT ` + schema.FullBreakers_ID + `, ` + schema.FullBreakers_NAME + `, ` + schema.FullBreakers_BREAKER_GROUP_ID + `, ` + schema.FullBreakers_SPACE_GROUP_ID + `, ` + schema.FullBreakers_DISPLAY_ORDER + `, ` + schema.FullBreakers_UPSTREAM_BREAKER_ID + `
-			FROM ` + schema.DeviceBreakersTable + `
-			JOIN ` + schema.BreakersTable + ` ON ` + schema.JoinDeviceBreakers_Breakers + `
-			WHERE ` + schema.FullDeviceBreakers_DEVICE_ID + ` = $1
+		WITH RECURSIVE switch_chain AS (
+			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `
+			FROM ` + schema.DeviceSwitchesTable + `
+			JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
+			WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1
 
 			UNION ALL
 
-			SELECT ` + schema.FullBreakers_ID + `, ` + schema.FullBreakers_NAME + `, ` + schema.FullBreakers_BREAKER_GROUP_ID + `, ` + schema.FullBreakers_SPACE_GROUP_ID + `, ` + schema.FullBreakers_DISPLAY_ORDER + `, ` + schema.FullBreakers_UPSTREAM_BREAKER_ID + `
-			FROM ` + schema.BreakersTable + `
-			JOIN breaker_chain ON ` + schema.FullBreakers_ID + ` = breaker_chain.` + schema.Breakers_UPSTREAM_BREAKER_ID + `
+			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `
+			FROM ` + schema.SwitchesTable + `
+			JOIN switch_chain ON ` + schema.FullSwitches_ID + ` = switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `
 		)
-		SELECT DISTINCT ` + schema.Breakers_ID + `, ` + schema.Breakers_NAME + `, ` + schema.Breakers_BREAKER_GROUP_ID + `, ` + schema.Breakers_SPACE_GROUP_ID + `, ` + schema.Breakers_DISPLAY_ORDER + `, ` + schema.Breakers_UPSTREAM_BREAKER_ID + `
-		FROM breaker_chain
-		ORDER BY ` + schema.Breakers_ID + `
+		SELECT DISTINCT ` + schema.Switches_ID + `, ` + schema.Switches_NAME + `, ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_SPACE_GROUP_ID + `, ` + schema.Switches_DISPLAY_ORDER + `, ` + schema.Switches_UPSTREAM_SWITCH_ID + `
+		FROM switch_chain
+		ORDER BY ` + schema.Switches_ID + `
 	`
 	rows, err := d.pool.Query(ctx, query, deviceId)
 	if err != nil {
@@ -340,15 +340,15 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 	}
 	defer rows.Close()
 
-	breakers := make([]models.Breaker, 0)
+	switches := make([]models.Switch, 0)
 	for rows.Next() {
-		var breaker models.Breaker
-		if err := rows.Scan(breaker.Values(fields)...); err != nil {
+		var sw models.Switch
+		if err := rows.Scan(sw.Values(fields)...); err != nil {
 			return nil, err
 		}
-		breaker.Build()
-		breakers = append(breakers, breaker)
+		sw.Build()
+		switches = append(switches, sw)
 	}
 
-	return breakers, rows.Err()
+	return switches, rows.Err()
 }

@@ -1,0 +1,154 @@
+package handlers
+
+import (
+	"acrocuit/internal/auth"
+	"acrocuit/internal/models"
+	"acrocuit/internal/response"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+type switchesController struct {
+	controller
+}
+
+const (
+	paramSwitchID = "switchId"
+	routeSwitchID = ":" + paramSwitchID
+)
+
+func switchesHandlers(r *gin.RouterGroup, base controller) {
+	ctr := &switchesController{base}
+
+	r.GET(routeSwitchID+"/downstream", ctr.GetSwitchDownstream)
+	r.GET(routeSwitchID, ctr.GetSwitch)
+	r.PUT(routeSwitchID, ctr.SetSwitch)
+	r.DELETE(routeSwitchID, ctr.DelSwitch)
+	r.PATCH(routeSwitchID+"/order", ctr.SetSwitchOrder)
+	r.PATCH(routeSwitchID+"/upstream", ctr.SetSwitchUpstream)
+}
+
+type switchDownstreamResponse struct {
+	Switches []models.Switch `json:"switches"`
+	Devices  []models.Device `json:"devices"`
+}
+
+func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	switches, devices, err := ctr.Switches.GetSwitchDownstream(c.Request.Context(), userEmail, switchId)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, switchDownstreamResponse{Switches: switches, Devices: devices})
+}
+
+func (ctr *switchesController) GetSwitch(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+	include := c.Query("include")
+
+	sw, err := ctr.Switches.GetSwitch(c.Request.Context(), userEmail, switchId, include)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, sw)
+}
+
+type setSwitchRequest struct {
+	Name *string `json:"name" binding:"omitempty,min=1,max=255"`
+}
+
+func (ctr *switchesController) SetSwitch(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	var req setSwitchRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+
+	sw, err := ctr.Switches.SetSwitch(c.Request.Context(), userEmail, switchId, req.Name)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, sw)
+}
+
+func (ctr *switchesController) DelSwitch(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	if err := ctr.Switches.DelSwitch(c.Request.Context(), userEmail, switchId); err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.Empty(c, http.StatusOK)
+}
+
+func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	var req setOrderRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+
+	switches, err := ctr.Switches.MoveSwitch(c.Request.Context(), userEmail, switchId, req.DisplayOrder)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, switches)
+}
+
+type setSwitchUpstreamRequest struct {
+	UpstreamSwitchId *int `json:"upstream_switch_id"`
+}
+
+func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	var req setSwitchUpstreamRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+
+	sw, err := ctr.Switches.SetSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, sw)
+}

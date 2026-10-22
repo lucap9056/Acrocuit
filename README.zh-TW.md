@@ -6,12 +6,12 @@
 
 ---
 
-以 `空間群組 → 空間 → 斷路器群組 → 斷路器` 記錄建築物的電路拓樸
+以 `空間群組 → 空間 → 開關面板 → 開關` 記錄建築物的電路拓樸
 
-- **排序**：空間與斷路器皆有 `display_order`，可模擬樓層與配電箱內的排列
-- **斷路器鏈**：斷路器可指向同一空間群組內的上游斷路器
-  - 查詢上游鏈與下游樹，找出關閉某個斷路器的影響範圍
-- **裝置接線**：裝置可掛在多個斷路器上，例如由兩個開關控制的燈
+- **排序**：空間與開關皆有 `display_order`，可模擬樓層與配電箱內的排列
+- **開關鏈**：開關可指向同一空間群組內的上游開關
+  - 查詢上游鏈與下游樹，找出關閉某個開關的影響範圍
+- **裝置接線**：裝置可掛在多個開關上，例如雙切燈
 - **背景圖**：每個空間可上傳一張背景圖
 
 ## 快速開始
@@ -115,6 +115,6 @@ cd web && bun run dev
 | `/api/meta` | 不需身份；`auth_required` 表示 request 是否須帶身份 |
 | `/api/space-groups` | |
 | `/api/spaces` | `/{id}/background-image`：multipart 欄位 `image`，PNG/JPEG/WebP/GIF，上限 10 MB |
-| `/api/breaker-groups` | |
-| `/api/breakers` | `/{id}/upstream`、`/{id}/downstream` |
-| `/api/devices` | `/{id}/breakers`、`/{id}/upstream` |
+| `/api/switch-panels` | |
+| `/api/switches` | `/{id}/upstream`、`/{id}/downstream` |
+| `/api/devices` | `/{id}/switches`、`/{id}/upstream` |

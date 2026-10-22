@@ -13,17 +13,17 @@ var rawPostgresSchema string
 var rawSQLiteSchema string
 
 const (
-	baseTable          = "table"
-	baseId             = "id"
-	baseName           = "name"
-	baseSpaceGroupID   = "space_group_id"
-	baseSpaceID        = "space_id"
-	baseBreakerGroupID = "breaker_group_id"
-	baseDisplayOrder   = "display_order"
-	basePositionX      = "position_x"
-	basePositionY      = "position_y"
-	basePositionZ      = "position_z"
-	baseDeviceID       = "device_id"
+	baseTable         = "table"
+	baseId            = "id"
+	baseName          = "name"
+	baseSpaceGroupID  = "space_group_id"
+	baseSpaceID       = "space_id"
+	baseSwitchPanelID = "switch_panel_id"
+	baseDisplayOrder  = "display_order"
+	basePositionX     = "position_x"
+	basePositionY     = "position_y"
+	basePositionZ     = "position_z"
+	baseDeviceID      = "device_id"
 
 	SpaceGroupsTable = "space_groups"
 	SpaceGroups_ID   = baseId
@@ -36,25 +36,25 @@ const (
 	Spaces_DISPLAY_ORDER               = baseDisplayOrder
 	Spaces_BACKGROUND_IMAGE_UPDATED_AT = "background_image_updated_at"
 
-	BreakerGroupsTable           = "breaker_groups"
-	BreakerGroups_ID             = baseId
-	BreakerGroups_NAME           = baseName
-	BreakerGroups_SPACE_ID       = baseSpaceID
-	BreakerGroups_SPACE_GROUP_ID = baseSpaceGroupID
+	SwitchPanelsTable           = "switch_panels"
+	SwitchPanels_ID             = baseId
+	SwitchPanels_NAME           = baseName
+	SwitchPanels_SPACE_ID       = baseSpaceID
+	SwitchPanels_SPACE_GROUP_ID = baseSpaceGroupID
 
-	BreakerGroupPositionsTable             = "breaker_group_positions"
-	BreakerGroupPositions_BREAKER_GROUP_ID = baseBreakerGroupID
-	BreakerGroupPositions_POSITION_X       = basePositionX
-	BreakerGroupPositions_POSITION_Y       = basePositionY
-	BreakerGroupPositions_POSITION_Z       = basePositionZ
+	SwitchPanelPositionsTable            = "switch_panel_positions"
+	SwitchPanelPositions_SWITCH_PANEL_ID = baseSwitchPanelID
+	SwitchPanelPositions_POSITION_X      = basePositionX
+	SwitchPanelPositions_POSITION_Y      = basePositionY
+	SwitchPanelPositions_POSITION_Z      = basePositionZ
 
-	BreakersTable                = "breakers"
-	Breakers_ID                  = baseId
-	Breakers_NAME                = baseName
-	Breakers_BREAKER_GROUP_ID    = baseBreakerGroupID
-	Breakers_SPACE_GROUP_ID      = baseSpaceGroupID
-	Breakers_DISPLAY_ORDER       = baseDisplayOrder
-	Breakers_UPSTREAM_BREAKER_ID = "upstream_breaker_id"
+	SwitchesTable               = "switches"
+	Switches_ID                 = baseId
+	Switches_NAME               = baseName
+	Switches_SWITCH_PANEL_ID    = baseSwitchPanelID
+	Switches_SPACE_GROUP_ID     = baseSpaceGroupID
+	Switches_DISPLAY_ORDER      = baseDisplayOrder
+	Switches_UPSTREAM_SWITCH_ID = "upstream_switch_id"
 
 	SpaceBackgroundImagesTable         = "space_background_images"
 	SpaceBackgroundImages_SPACE_ID     = baseSpaceID
@@ -72,9 +72,9 @@ const (
 	DevicePositions_POSITION_Y = basePositionY
 	DevicePositions_POSITION_Z = basePositionZ
 
-	DeviceBreakersTable       = "device_breakers"
-	DeviceBreakers_DEVICE_ID  = baseDeviceID
-	DeviceBreakers_BREAKER_ID = "breaker_id"
+	DeviceSwitchesTable      = "device_switches"
+	DeviceSwitches_DEVICE_ID = baseDeviceID
+	DeviceSwitches_SWITCH_ID = "switch_id"
 
 	SpaceGroupOwnersTable           = "space_group_owners"
 	SpaceGroupOwners_USER_EMAIL     = "user_email"
@@ -91,22 +91,22 @@ const (
 	FullSpaces_DISPLAY_ORDER               = SpacesTable + "." + Spaces_DISPLAY_ORDER
 	FullSpaces_BACKGROUND_IMAGE_UPDATED_AT = SpacesTable + "." + Spaces_BACKGROUND_IMAGE_UPDATED_AT
 
-	FullBreakerGroups_ID             = BreakerGroupsTable + "." + BreakerGroups_ID
-	FullBreakerGroups_NAME           = BreakerGroupsTable + "." + BreakerGroups_NAME
-	FullBreakerGroups_SPACE_ID       = BreakerGroupsTable + "." + BreakerGroups_SPACE_ID
-	FullBreakerGroups_SPACE_GROUP_ID = BreakerGroupsTable + "." + BreakerGroups_SPACE_GROUP_ID
+	FullSwitchPanels_ID             = SwitchPanelsTable + "." + SwitchPanels_ID
+	FullSwitchPanels_NAME           = SwitchPanelsTable + "." + SwitchPanels_NAME
+	FullSwitchPanels_SPACE_ID       = SwitchPanelsTable + "." + SwitchPanels_SPACE_ID
+	FullSwitchPanels_SPACE_GROUP_ID = SwitchPanelsTable + "." + SwitchPanels_SPACE_GROUP_ID
 
-	FullBreakerGroupPositions_BREAKER_GROUP_ID = BreakerGroupPositionsTable + "." + BreakerGroupPositions_BREAKER_GROUP_ID
-	FullBreakerGroupPositions_POSITION_X       = BreakerGroupPositionsTable + "." + BreakerGroupPositions_POSITION_X
-	FullBreakerGroupPositions_POSITION_Y       = BreakerGroupPositionsTable + "." + BreakerGroupPositions_POSITION_Y
-	FullBreakerGroupPositions_POSITION_Z       = BreakerGroupPositionsTable + "." + BreakerGroupPositions_POSITION_Z
+	FullSwitchPanelPositions_SWITCH_PANEL_ID = SwitchPanelPositionsTable + "." + SwitchPanelPositions_SWITCH_PANEL_ID
+	FullSwitchPanelPositions_POSITION_X      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_X
+	FullSwitchPanelPositions_POSITION_Y      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_Y
+	FullSwitchPanelPositions_POSITION_Z      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_Z
 
-	FullBreakers_ID                  = BreakersTable + "." + Breakers_ID
-	FullBreakers_NAME                = BreakersTable + "." + Breakers_NAME
-	FullBreakers_BREAKER_GROUP_ID    = BreakersTable + "." + Breakers_BREAKER_GROUP_ID
-	FullBreakers_SPACE_GROUP_ID      = BreakersTable + "." + Breakers_SPACE_GROUP_ID
-	FullBreakers_DISPLAY_ORDER       = BreakersTable + "." + Breakers_DISPLAY_ORDER
-	FullBreakers_UPSTREAM_BREAKER_ID = BreakersTable + "." + Breakers_UPSTREAM_BREAKER_ID
+	FullSwitches_ID                 = SwitchesTable + "." + Switches_ID
+	FullSwitches_NAME               = SwitchesTable + "." + Switches_NAME
+	FullSwitches_SWITCH_PANEL_ID    = SwitchesTable + "." + Switches_SWITCH_PANEL_ID
+	FullSwitches_SPACE_GROUP_ID     = SwitchesTable + "." + Switches_SPACE_GROUP_ID
+	FullSwitches_DISPLAY_ORDER      = SwitchesTable + "." + Switches_DISPLAY_ORDER
+	FullSwitches_UPSTREAM_SWITCH_ID = SwitchesTable + "." + Switches_UPSTREAM_SWITCH_ID
 
 	FullSpaceBackgroundImages_SPACE_ID     = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_SPACE_ID
 	FullSpaceBackgroundImages_CONTENT_TYPE = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_CONTENT_TYPE
@@ -121,26 +121,26 @@ const (
 	FullDevicePositions_POSITION_Y = DevicePositionsTable + "." + DevicePositions_POSITION_Y
 	FullDevicePositions_POSITION_Z = DevicePositionsTable + "." + DevicePositions_POSITION_Z
 
-	FullDeviceBreakers_DEVICE_ID  = DeviceBreakersTable + "." + DeviceBreakers_DEVICE_ID
-	FullDeviceBreakers_BREAKER_ID = DeviceBreakersTable + "." + DeviceBreakers_BREAKER_ID
+	FullDeviceSwitches_DEVICE_ID = DeviceSwitchesTable + "." + DeviceSwitches_DEVICE_ID
+	FullDeviceSwitches_SWITCH_ID = DeviceSwitchesTable + "." + DeviceSwitches_SWITCH_ID
 
 	FullSpaceGroupOwners_USER_EMAIL     = SpaceGroupOwnersTable + "." + SpaceGroupOwners_USER_EMAIL
 	FullSpaceGroupOwners_SPACE_GROUP_ID = SpaceGroupOwnersTable + "." + SpaceGroupOwners_SPACE_GROUP_ID
 )
 
 const (
-	JoinBreakerGroups_Spaces                = FullBreakerGroups_SPACE_ID + " = " + FullSpaces_ID
-	JoinSpaceGroupOwners_Spaces             = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaces_SPACE_GROUP_ID
-	JoinBreakerGroupPositions_BreakerGroups = FullBreakerGroupPositions_BREAKER_GROUP_ID + " = " + FullBreakerGroups_ID
-	JoinBreakers_BreakerGroups              = FullBreakers_BREAKER_GROUP_ID + " = " + FullBreakerGroups_ID
-	JoinSpaceGroupOwners_BreakerGroups      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullBreakerGroups_SPACE_GROUP_ID
-	JoinSpaceGroupOwners_Breakers           = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullBreakers_SPACE_GROUP_ID
-	JoinSpaceBackgroundImages_Spaces        = FullSpaceBackgroundImages_SPACE_ID + " = " + FullSpaces_ID
-	JoinDevices_Spaces                      = FullDevices_SPACE_ID + " = " + FullSpaces_ID
-	JoinDevicePositions_Devices             = FullDevicePositions_DEVICE_ID + " = " + FullDevices_ID
-	JoinDeviceBreakers_Devices              = FullDeviceBreakers_DEVICE_ID + " = " + FullDevices_ID
-	JoinDeviceBreakers_Breakers             = FullDeviceBreakers_BREAKER_ID + " = " + FullBreakers_ID
-	JoinSpaceGroupOwners_SpaceGroups        = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
+	JoinSwitchPanels_Spaces               = FullSwitchPanels_SPACE_ID + " = " + FullSpaces_ID
+	JoinSpaceGroupOwners_Spaces           = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaces_SPACE_GROUP_ID
+	JoinSwitchPanelPositions_SwitchPanels = FullSwitchPanelPositions_SWITCH_PANEL_ID + " = " + FullSwitchPanels_ID
+	JoinSwitches_SwitchPanels             = FullSwitches_SWITCH_PANEL_ID + " = " + FullSwitchPanels_ID
+	JoinSpaceGroupOwners_SwitchPanels     = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitchPanels_SPACE_GROUP_ID
+	JoinSpaceGroupOwners_Switches         = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitches_SPACE_GROUP_ID
+	JoinSpaceBackgroundImages_Spaces      = FullSpaceBackgroundImages_SPACE_ID + " = " + FullSpaces_ID
+	JoinDevices_Spaces                    = FullDevices_SPACE_ID + " = " + FullSpaces_ID
+	JoinDevicePositions_Devices           = FullDevicePositions_DEVICE_ID + " = " + FullDevices_ID
+	JoinDeviceSwitches_Devices            = FullDeviceSwitches_DEVICE_ID + " = " + FullDevices_ID
+	JoinDeviceSwitches_Switches           = FullDeviceSwitches_SWITCH_ID + " = " + FullSwitches_ID
+	JoinSpaceGroupOwners_SpaceGroups      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
 )
 
 var funcMap = template.FuncMap{
@@ -161,33 +161,33 @@ var funcMap = template.FuncMap{
 			Spaces_BACKGROUND_IMAGE_UPDATED_AT: Spaces_BACKGROUND_IMAGE_UPDATED_AT,
 		}
 	},
-	BreakerGroupsTable: func() map[string]string {
+	SwitchPanelsTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                    BreakerGroupsTable,
-			BreakerGroups_ID:             BreakerGroups_ID,
-			BreakerGroups_NAME:           BreakerGroups_NAME,
-			BreakerGroups_SPACE_ID:       BreakerGroups_SPACE_ID,
-			BreakerGroups_SPACE_GROUP_ID: BreakerGroups_SPACE_GROUP_ID,
+			baseTable:                   SwitchPanelsTable,
+			SwitchPanels_ID:             SwitchPanels_ID,
+			SwitchPanels_NAME:           SwitchPanels_NAME,
+			SwitchPanels_SPACE_ID:       SwitchPanels_SPACE_ID,
+			SwitchPanels_SPACE_GROUP_ID: SwitchPanels_SPACE_GROUP_ID,
 		}
 	},
-	BreakerGroupPositionsTable: func() map[string]string {
+	SwitchPanelPositionsTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                              BreakerGroupPositionsTable,
-			BreakerGroupPositions_BREAKER_GROUP_ID: BreakerGroupPositions_BREAKER_GROUP_ID,
-			BreakerGroupPositions_POSITION_X:       BreakerGroupPositions_POSITION_X,
-			BreakerGroupPositions_POSITION_Y:       BreakerGroupPositions_POSITION_Y,
-			BreakerGroupPositions_POSITION_Z:       BreakerGroupPositions_POSITION_Z,
+			baseTable:                            SwitchPanelPositionsTable,
+			SwitchPanelPositions_SWITCH_PANEL_ID: SwitchPanelPositions_SWITCH_PANEL_ID,
+			SwitchPanelPositions_POSITION_X:      SwitchPanelPositions_POSITION_X,
+			SwitchPanelPositions_POSITION_Y:      SwitchPanelPositions_POSITION_Y,
+			SwitchPanelPositions_POSITION_Z:      SwitchPanelPositions_POSITION_Z,
 		}
 	},
-	BreakersTable: func() map[string]string {
+	SwitchesTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                    BreakersTable,
-			Breakers_ID:                  Breakers_ID,
-			Breakers_NAME:                Breakers_NAME,
-			Breakers_BREAKER_GROUP_ID:    Breakers_BREAKER_GROUP_ID,
-			Breakers_SPACE_GROUP_ID:      Breakers_SPACE_GROUP_ID,
-			Breakers_DISPLAY_ORDER:       Breakers_DISPLAY_ORDER,
-			Breakers_UPSTREAM_BREAKER_ID: Breakers_UPSTREAM_BREAKER_ID,
+			baseTable:                   SwitchesTable,
+			Switches_ID:                 Switches_ID,
+			Switches_NAME:               Switches_NAME,
+			Switches_SWITCH_PANEL_ID:    Switches_SWITCH_PANEL_ID,
+			Switches_SPACE_GROUP_ID:     Switches_SPACE_GROUP_ID,
+			Switches_DISPLAY_ORDER:      Switches_DISPLAY_ORDER,
+			Switches_UPSTREAM_SWITCH_ID: Switches_UPSTREAM_SWITCH_ID,
 		}
 	},
 	SpaceBackgroundImagesTable: func() map[string]string {
@@ -215,11 +215,11 @@ var funcMap = template.FuncMap{
 			DevicePositions_POSITION_Z: DevicePositions_POSITION_Z,
 		}
 	},
-	DeviceBreakersTable: func() map[string]string {
+	DeviceSwitchesTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                 DeviceBreakersTable,
-			DeviceBreakers_DEVICE_ID:  DeviceBreakers_DEVICE_ID,
-			DeviceBreakers_BREAKER_ID: DeviceBreakers_BREAKER_ID,
+			baseTable:                DeviceSwitchesTable,
+			DeviceSwitches_DEVICE_ID: DeviceSwitches_DEVICE_ID,
+			DeviceSwitches_SWITCH_ID: DeviceSwitches_SWITCH_ID,
 		}
 	},
 	SpaceGroupOwnersTable: func() map[string]string {

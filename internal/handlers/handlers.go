@@ -34,13 +34,13 @@ func New(g *gin.Engine, s *storage.Storage, requireIdentity gin.HandlerFunc, opt
 	}
 
 	{
-		r := protected.Group("breaker-groups")
-		breakerGroupsHandlers(r, base)
+		r := protected.Group("switch-panels")
+		switchPanelsHandlers(r, base)
 	}
 
 	{
-		r := protected.Group("breakers")
-		breakersHandlers(r, base)
+		r := protected.Group("switches")
+		switchesHandlers(r, base)
 	}
 
 	{
