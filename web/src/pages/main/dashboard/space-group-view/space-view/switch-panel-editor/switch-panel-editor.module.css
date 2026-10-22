@@ -93,6 +93,33 @@
   }
 }
 
+.switch.shadow {
+  background: var(--surface-muted);
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+
+  > * {
+    visibility: hidden;
+  }
+}
+
+.switch > .handle {
+  padding: 0.125rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+
+  &:hover {
+    background: transparent;
+    color: var(--text);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
 .switch > .open {
   display: flex;
   flex: 1;
@@ -159,6 +186,11 @@
     }
   }
 
+  .switch {
+    gap: 0.375rem;
+    padding-left: 0.125rem;
+  }
+
   .switch > .open {
     align-items: center;
     gap: 0.625rem;
@@ -196,6 +228,14 @@
     padding: 0.625rem 0.375rem 0.375rem;
     background: linear-gradient(180deg, var(--surface), var(--surface-muted));
     box-shadow: var(--shadow-control);
+  }
+
+  .switch {
+    padding-top: 0.25rem;
+  }
+
+  .switch > .handle {
+    rotate: 90deg;
   }
 
   .switch > .open {

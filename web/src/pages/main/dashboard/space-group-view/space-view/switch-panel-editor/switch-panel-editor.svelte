@@ -6,9 +6,17 @@
 
 <script lang="ts">
   import ColumnsIcon from "phosphor-svelte/lib/ColumnsIcon";
+  import DotsSixVerticalIcon from "phosphor-svelte/lib/DotsSixVerticalIcon";
   import PlusIcon from "phosphor-svelte/lib/PlusIcon";
   import RowsIcon from "phosphor-svelte/lib/RowsIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
+  import { flip } from "svelte/animate";
+  import {
+    type DndEvent,
+    dragHandle,
+    dragHandleZone,
+    SHADOW_ITEM_MARKER_PROPERTY_NAME,
+  } from "svelte-dnd-action";
   import type { AuthSession, Switch, SwitchPanel } from "@/api";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
@@ -18,7 +26,9 @@
   import {
     addSwitch,
     fetchSwitches,
+    moveSwitch,
     removeSwitch,
+    watchSwitches,
   } from "@/lib/cache/switches";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
@@ -33,9 +43,17 @@
 
   const { session, switchPanel, onrename, oneditswitch }: Props = $props();
 
+  type DndSwitch = Switch & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
+
+  const FLIP_DURATION_MS = 150;
+
   let switches = $state<Switch[]>();
   let isPending = $state(false);
   let newSwitchName = $state("");
+  let draftItems = $state<DndSwitch[]>();
+  let isConfirmingMove = $state(false);
+
+  const items: DndSwitch[] = $derived(draftItems ?? switches ?? []);
 
   const canAdd = $derived(newSwitchName.trim() !== "" && !isPending);
 
@@ -45,6 +63,14 @@
   });
 
   onMount((signal) => {
+    watchSwitches(
+      session,
+      switchPanel.id,
+      (sws) => {
+        switches = sws;
+      },
+      signal,
+    );
     fetchSwitches(session, switchPanel.id)
       .then((sws) => {
         if (!signal.aborted) {
@@ -90,6 +116,77 @@
       event.preventDefault();
       add();
     }
+  };
+
+  const confirmAction = (text: string, action: string): Promise<void> => {
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+
+    dialog.push({
+      text,
+      buttons: [
+        {
+          text: t("common.cancel"),
+          type: "",
+          onclick: () => {
+            reject();
+            return true;
+          },
+        },
+        {
+          text: action,
+          type: "",
+          onclick: () => {
+            resolve();
+            return true;
+          },
+        },
+      ],
+    });
+
+    return promise;
+  };
+
+  const onconsider = (event: CustomEvent<DndEvent<DndSwitch>>) => {
+    draftItems = event.detail.items;
+  };
+
+  const onfinalize = (event: CustomEvent<DndEvent<DndSwitch>>) => {
+    const draggedId = String(event.detail.info.id);
+    const finalItems = event.detail.items;
+    const current = switches ?? [];
+
+    const fromIndex = current.findIndex((sw) => String(sw.id) === draggedId);
+    const toIndex = finalItems.findIndex((sw) => String(sw.id) === draggedId);
+
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+      draftItems = undefined;
+      return;
+    }
+
+    const sw = current[fromIndex];
+    const target = current[toIndex];
+    draftItems = finalItems;
+    isConfirmingMove = true;
+
+    confirmAction(
+      t("switches.confirmMove", { name: sw.name, position: toIndex + 1 }),
+      t("common.move"),
+    )
+      .then(() => {
+        update(t("loading.moveSwitch"), () =>
+          moveSwitch(session, {
+            ...withSwitchPanel(sw),
+            display_order: target.display_order,
+          }),
+        ).catch((err) => {
+          console.error(err);
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        draftItems = undefined;
+        isConfirmingMove = false;
+      });
   };
 
   const remove = (sw: Switch) => {
@@ -168,9 +265,33 @@
   {:else if switches.length === 0}
     <p class={styles.message}>{t("common.noneYet")}</p>
   {:else}
-    <ul class={[styles.switches, styles[view.layout]]}>
-      {#each switches as sw (sw.id)}
-        <li class={styles.switch}>
+    <ul
+      class={[styles.switches, styles[view.layout]]}
+      use:dragHandleZone={{
+        items,
+        flipDurationMs: FLIP_DURATION_MS,
+        dragDisabled: isConfirmingMove || isPending,
+        dropTargetStyle: {},
+        delayTouchStart: true,
+      }}
+      {onconsider}
+      {onfinalize}
+    >
+      {#each items as sw (sw.id)}
+        <li
+          class={[
+            styles.switch,
+            sw[SHADOW_ITEM_MARKER_PROPERTY_NAME] && styles.shadow,
+          ]}
+          animate:flip={{ duration: FLIP_DURATION_MS }}
+        >
+          <button
+            class={["icon_button", styles.handle]}
+            aria-label={t("switches.dragToReorder")}
+            use:dragHandle
+          >
+            <DotsSixVerticalIcon />
+          </button>
           <button class={styles.open} onclick={() => oneditswitch(sw)}>
             <span class={styles.toggle} aria-hidden="true">
               <span class={styles.lever}></span>

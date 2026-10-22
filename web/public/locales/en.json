@@ -52,7 +52,9 @@
     "confirmDelete": "Delete \"{{name}}\"?",
     "layout": "Layout",
     "rows": "Rows",
-    "columns": "Columns"
+    "columns": "Columns",
+    "dragToReorder": "Drag to reorder",
+    "confirmMove": "Move \"{{name}}\" to position {{position}}?"
   },
   "switchEditor": {
     "name": "Name",
@@ -149,6 +151,7 @@
     "createSwitch": "Creating switch…",
     "removeSwitch": "Removing switch…",
     "renameSwitch": "Renaming switch…",
+    "moveSwitch": "Moving switch…",
     "setSwitchUpstream": "Setting switch upstream…",
     "removeSwitchUpstream": "Removing switch upstream…",
     "fetchPowerChain": "Loading power chain…",

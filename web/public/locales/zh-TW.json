@@ -52,7 +52,9 @@
     "confirmDelete": "要刪除「{{name}}」嗎？",
     "layout": "排列方式",
     "rows": "列",
-    "columns": "欄"
+    "columns": "欄",
+    "dragToReorder": "拖曳以調整順序",
+    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？"
   },
   "switchEditor": {
     "name": "名稱",
@@ -149,6 +151,7 @@
     "createSwitch": "建立開關中…",
     "removeSwitch": "移除開關中…",
     "renameSwitch": "重新命名開關中…",
+    "moveSwitch": "移動開關中…",
     "setSwitchUpstream": "設定開關上游中…",
     "removeSwitchUpstream": "移除開關上游中…",
     "fetchPowerChain": "載入供電鏈中…",
