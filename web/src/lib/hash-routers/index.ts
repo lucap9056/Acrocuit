@@ -2,213 +2,252 @@ export type RouteParams = Record<string, string>;
 
 export type RouteHandler = (params?: RouteParams) => void;
 
-interface HashRouter {
-  on: (path: string, callback: RouteHandler) => RouteParams | undefined;
-  off: (path: string, callback: RouteHandler) => void;
+export interface HashRouter {
+  on: (
+    path: string,
+    handler: RouteHandler,
+    signal: AbortSignal,
+  ) => RouteParams | undefined;
   to: (path: string) => void;
   back: (fallbackPath?: string) => void;
+  backTo: (path: string) => void;
+  child: (prefix: string) => HashRouter;
 }
 
-enum RouteTransitionType {
-  OUT_OF_REGION,
-  PARAM_CHANGE,
-  NONE,
+export interface RootHashRouter extends HashRouter {
+  dispose: () => void;
 }
 
-const matchRoutePattern = (hash: string, pattern: string): boolean => {
-  if (typeof hash !== "string" || typeof pattern !== "string") {
-    throw new Error(
-      "[HashRouter] Invalid arguments: hash and pattern must be strings.",
-    );
-  }
+interface CompiledRoute {
+  regex: RegExp;
+  paramNames: string[];
+}
 
-  const cleanHash = `/${hash.replace(/^#/, "").replace(/^\//, "")}`;
-  const cleanPattern = `/${pattern.replace(/^\//, "")}`;
+interface Registration {
+  route: CompiledRoute;
+  handler: RouteHandler;
+}
 
-  const regexPath = cleanPattern
-    .replace(/:([^/]+)/g, "([^/]+)")
-    .replace(/\*/g, ".*");
+const trimPath = (path: string): string =>
+  path.replace(/^#/, "").replace(/^\/+|\/+$/g, "");
 
-  const regex = new RegExp(`^${regexPath}$`);
-  return regex.test(cleanHash);
-};
+const joinPath = (...paths: string[]): string =>
+  `/${paths
+    .map(trimPath)
+    .filter((p) => p !== "")
+    .join("/")}`;
 
-const getRouteTransitionType = (
-  previousHash: string,
-  currentHash: string,
-  path: string,
-): RouteTransitionType => {
-  const wasMatched = matchRoutePattern(previousHash, path);
-  const isMatched = matchRoutePattern(currentHash, path);
+const escapeRegExp = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  if (!wasMatched && isMatched) {
-    return RouteTransitionType.PARAM_CHANGE;
-  }
-
-  if (wasMatched && !isMatched) {
-    return RouteTransitionType.OUT_OF_REGION;
-  }
-
-  if (wasMatched && isMatched && previousHash !== currentHash) {
-    return RouteTransitionType.PARAM_CHANGE;
-  }
-
-  return RouteTransitionType.NONE;
-};
-
-const extractRouteParameters = (
-  transitionType: RouteTransitionType,
-  template: string,
-  currentHash: string,
-): RouteParams | undefined => {
-  if (transitionType === RouteTransitionType.OUT_OF_REGION) {
-    return undefined;
-  }
-
-  const cleanHash = `/${currentHash.replace(/^#/, "").replace(/^\//, "")}`;
-  const cleanTemplate = `/${template.replace(/^\//, "")}`;
-
+const compileRoute = (pattern: string): CompiledRoute => {
+  const segments = trimPath(pattern)
+    .split("/")
+    .filter((s) => s !== "");
   const paramNames: string[] = [];
-  const regexPattern = cleanTemplate
-    .replace(/:([^/]+)/g, (_, paramName) => {
-      paramNames.push(paramName);
-      return "([^/]+)";
+
+  const body = segments
+    .map((segment, index) => {
+      if (segment.startsWith(":")) {
+        paramNames.push(segment.slice(1));
+        return "/([^/]+)";
+      }
+      if (segment === "*") {
+        return index === segments.length - 1 ? "(?:/.*)?" : "/[^/]+";
+      }
+      return `/${escapeRegExp(segment)}`;
     })
-    .replace(/\*/g, "(.*)");
+    .join("");
 
-  const regex = new RegExp(`^${regexPattern}$`);
-  const match = cleanHash.match(regex);
+  return { regex: new RegExp(`^${body || "/"}$`), paramNames };
+};
 
+const matchRoute = (
+  route: CompiledRoute,
+  path: string,
+): RouteParams | undefined => {
+  const match = route.regex.exec(path);
   if (!match) {
     return undefined;
   }
 
   const params: RouteParams = {};
-  paramNames.forEach((name, index) => {
+  route.paramNames.forEach((name, index) => {
     params[name] = match[index + 1];
   });
-
   return params;
 };
+
+const isSameParams = (a?: RouteParams, b?: RouteParams): boolean => {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k])
+  );
+};
+
+const getCurrentPath = (): string =>
+  typeof window === "undefined" ? "/" : joinPath(window.location.hash);
 
 const getHistoryIndex = (): number | undefined => {
   const index = window.history.state?.hashRouterIndex;
   return typeof index === "number" ? index : undefined;
 };
 
-const stampHistoryIndex = (index: number) => {
+const getHistoryPreviousPath = (): string | undefined => {
+  const path = window.history.state?.hashRouterPreviousPath;
+  return typeof path === "string" ? path : undefined;
+};
+
+interface HistoryEntry {
+  index: number;
+  previousPath?: string;
+}
+
+const stampHistoryEntry = ({ index, previousPath }: HistoryEntry) => {
   window.history.replaceState(
-    { ...window.history.state, hashRouterIndex: index },
+    {
+      ...window.history.state,
+      hashRouterIndex: index,
+      hashRouterPreviousPath: previousPath,
+    },
     "",
   );
 };
 
-export const createHashRouter = (): HashRouter => {
-  const routeHandlers: Map<string, Set<RouteHandler>> = new Map();
-  let previousHash = "";
-
-  const getCurrentHash = (): string => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return window.location.hash.replace(/^#/, "") || "";
-  };
+export const createHashRouter = (): RootHashRouter => {
+  const registrations = new Set<Registration>();
+  const listenerController = new AbortController();
+  let previousPath = getCurrentPath();
+  let replacedHistoryEntry: HistoryEntry | undefined;
 
   const handleHashChange = () => {
-    const prevHash = previousHash;
-    const currHash = getCurrentHash();
-    previousHash = currHash;
+    const prevPath = previousPath;
+    const currPath = getCurrentPath();
+    previousPath = currPath;
 
-    for (const [path, handlers] of routeHandlers) {
-      const transitionType = getRouteTransitionType(prevHash, currHash, path);
-      if (transitionType !== RouteTransitionType.NONE) {
-        const params = extractRouteParameters(transitionType, path, currHash);
-        for (const handler of handlers) {
-          try {
-            handler(params);
-          } catch (error) {
-            console.error(
-              `[HashRouter] Error executing handler for route "${path}":`,
-              error,
-            );
-          }
-        }
+    for (const registration of [...registrations]) {
+      if (!registrations.has(registration)) {
+        continue;
+      }
+
+      const { route, handler } = registration;
+      const prevParams = matchRoute(route, prevPath);
+      const currParams = matchRoute(route, currPath);
+      if (isSameParams(prevParams, currParams)) {
+        continue;
+      }
+
+      try {
+        handler(currParams);
+      } catch (error) {
+        console.error(
+          `[HashRouter] Error executing handler for route "${route.regex}":`,
+          error,
+        );
       }
     }
   };
 
   if (typeof window !== "undefined") {
     if (getHistoryIndex() === undefined) {
-      stampHistoryIndex(0);
+      stampHistoryEntry({ index: 0 });
     }
 
     let lastHistoryIndex = getHistoryIndex() ?? 0;
-    window.addEventListener("hashchange", () => {
-      const existingIndex = getHistoryIndex();
-      if (existingIndex === undefined) {
-        lastHistoryIndex += 1;
-        stampHistoryIndex(lastHistoryIndex);
-      } else {
-        lastHistoryIndex = existingIndex;
-      }
-      handleHashChange();
-    });
+    window.addEventListener(
+      "hashchange",
+      () => {
+        const existingIndex = getHistoryIndex();
+        if (existingIndex === undefined) {
+          const entry = replacedHistoryEntry ?? {
+            index: lastHistoryIndex + 1,
+            previousPath,
+          };
+          replacedHistoryEntry = undefined;
+          lastHistoryIndex = entry.index;
+          stampHistoryEntry(entry);
+        } else {
+          lastHistoryIndex = existingIndex;
+        }
+        handleHashChange();
+      },
+      { signal: listenerController.signal },
+    );
   } else {
     console.warn(
       "[HashRouter] Running in a non-browser environment; window object is undefined.",
     );
   }
 
-  handleHashChange();
+  const register = (
+    path: string,
+    handler: RouteHandler,
+    signal: AbortSignal,
+  ): RouteParams | undefined => {
+    const route = compileRoute(path);
+    const params = matchRoute(route, getCurrentPath());
+    if (signal.aborted) {
+      return params;
+    }
+
+    const registration: Registration = { route, handler };
+    registrations.add(registration);
+    signal.addEventListener(
+      "abort",
+      () => {
+        registrations.delete(registration);
+      },
+      { once: true },
+    );
+    return params;
+  };
+
+  const navigate = (path: string) => {
+    if (getCurrentPath() !== path) {
+      window.location.hash = path;
+    }
+  };
+
+  const back = (fallbackPath: string) => {
+    if ((getHistoryIndex() ?? 0) > 0) {
+      window.history.back();
+    } else {
+      replacedHistoryEntry = {
+        index: getHistoryIndex() ?? 0,
+        previousPath: getHistoryPreviousPath(),
+      };
+      window.location.replace(`#${fallbackPath}`);
+    }
+  };
+
+  const backTo = (path: string) => {
+    if ((getHistoryIndex() ?? 0) > 0 && getHistoryPreviousPath() === path) {
+      window.history.back();
+    } else {
+      navigate(path);
+    }
+  };
+
+  const createScope = (prefix: string): HashRouter => ({
+    on: (path, handler, signal) =>
+      register(joinPath(prefix, path), handler, signal),
+    to: (path) => navigate(joinPath(prefix, path)),
+    back: (fallbackPath = "") => back(joinPath(prefix, fallbackPath)),
+    backTo: (path) => backTo(joinPath(prefix, path)),
+    child: (childPrefix) => createScope(joinPath(prefix, childPrefix)),
+  });
 
   return {
-    on: (path: string, callback: RouteHandler): RouteParams | undefined => {
-      if (path.trim() === "") {
-        throw new Error("[HashRouter] Route path must be a non-empty string.");
-      }
-
-      const currHash = getCurrentHash();
-
-      const handlersSet =
-        routeHandlers.get(path) ||
-        (() => {
-          const newSet = new Set<RouteHandler>();
-          routeHandlers.set(path, newSet);
-          return newSet;
-        })();
-
-      handlersSet.add(callback);
-
-      const transitionType = getRouteTransitionType("", currHash, path);
-      return extractRouteParameters(transitionType, path, currHash);
-    },
-    off: (path: string, callback: RouteHandler) => {
-      const handlersSet = routeHandlers.get(path);
-      if (handlersSet !== undefined) {
-        handlersSet.delete(callback);
-        if (handlersSet.size === 0) {
-          routeHandlers.delete(path);
-        }
-      }
-    },
-    to: (path: string) => {
-      const targetHash = `/${path.replace(/^#/, "").replace(/^\//, "")}`;
-      if (getCurrentHash() !== targetHash) {
-        window.location.hash = targetHash;
-      }
-    },
-    back: (fallbackPath: string = "") => {
-      if ((getHistoryIndex() ?? 0) > 0) {
-        window.history.back();
-      } else {
-        const targetHash = `/${fallbackPath.replace(/^#/, "").replace(/^\//, "")}`;
-        window.location.replace(`#${targetHash}`);
-      }
+    ...createScope(""),
+    dispose: () => {
+      listenerController.abort();
+      registrations.clear();
     },
   };
 };
-
-export default createHashRouter();
 
 export const field = (p: RouteParams, k: string, d: string): string => {
   if (typeof p[k] === "string") {
