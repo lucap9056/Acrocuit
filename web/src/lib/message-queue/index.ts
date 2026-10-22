@@ -3,7 +3,7 @@ export type Message<T> = {
   readonly payload: T;
 };
 
-export type Dismiss = { dismiss: () => boolean };
+export type Dismiss = { token: symbol; dismiss: () => boolean };
 
 export type QueueEvent<T> = { value: { messages: Message<T>[] } };
 
@@ -46,6 +46,7 @@ export const createMessageQueue = <T>(): MessageQueue<T> => {
       const token = Symbol();
       update([...items, { token, payload }]);
       return {
+        token,
         dismiss: () => dismiss(token),
       };
     },

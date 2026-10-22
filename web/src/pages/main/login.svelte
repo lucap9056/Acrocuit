@@ -28,7 +28,7 @@
   };
 
   const signIn = () => {
-    const loading = load.begin();
+    const loading = load.begin(t("loading.signIn"));
 
     error = undefined;
 
