@@ -1,8 +1,9 @@
 import type { AuthSession, Ref, Space, SpaceGroupId } from "@/api";
 import api from "@/api";
-import { clearCache as clearBreakerGroupsCache } from "@/lib/cache/breaker-groups";
-import { clearCache as clearBreakersCache } from "@/lib/cache/breakers";
+import { clearCache as clearSwitchPanelsCache } from "@/lib/cache/switch-panels";
+import { clearCache as clearSwitchesCache } from "@/lib/cache/switches";
 import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
+import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
 
 type CompleteSpace = Space & { space_group: Ref<SpaceGroupId> };
 
@@ -49,10 +50,7 @@ export const moveSpace = (s: AuthSession, space: CompleteSpace) => {
 
   return api.spaces
     .updateSpaceOrder(s, space.id, space.display_order)
-    .then(() => {
-      clearCache(sg);
-      return fetchSpaces(s, sg);
-    });
+    .then((spaces) => updateCache(sg, spaces));
 };
 
 export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
@@ -62,9 +60,10 @@ export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
   ]).then(([spaces]) => {
     const updatedSpaces = spaces.filter((sp) => sp.id !== space.id);
 
-    clearBreakerGroupsCache(space.id);
-    clearDevicesCache(space.id);
-    clearBreakersCache();
+    clearSwitchPanelsCache(space.id);
+    clearDevicesCache();
+    clearDeviceSwitchesCache();
+    clearSwitchesCache();
 
     return updateCache(space.space_group.id, updatedSpaces);
   });
@@ -76,7 +75,7 @@ export const renameSpace = (
 ) =>
   Promise.all([
     fetchSpaces(s, space.space_group.id),
-    api.spaces.updateSpace(s, space.id, { name }),
+    api.spaces.updateSpaceName(s, space.id, name),
   ]).then(([spaces, updatedSpace]) => {
     const updatedSpaces = spaces.map((sp) =>
       sp.id === space.id ? updatedSpace : sp,

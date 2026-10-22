@@ -1,7 +1,7 @@
 export type SpaceGroupId = Brand<number, "SpaceGroupId">;
 export type SpaceId = Brand<number, "SpaceId">;
-export type BreakerGroupId = Brand<number, "BreakerGroupId">;
-export type BreakerId = Brand<number, "BreakerId">;
+export type SwitchPanelId = Brand<number, "SwitchPanelId">;
+export type SwitchId = Brand<number, "SwitchId">;
 export type DeviceId = Brand<number, "DeviceId">;
 
 export type Ref<Id> = {
@@ -27,31 +27,31 @@ export type Space = {
   space_group: Ref<SpaceGroupId> | null;
 };
 
-export type BreakerGroup = {
-  id: BreakerGroupId;
+export type SwitchPanel = {
+  id: SwitchPanelId;
   name: string;
   space: Ref<SpaceId> | null;
   position: Position | null;
 };
 
-export type Breaker = {
-  id: BreakerId;
+export type Switch = {
+  id: SwitchId;
   name: string;
   display_order: number;
-  breaker_group: Ref<BreakerGroupId> | null;
-  upstream_breaker: Ref<BreakerId> | null;
+  switch_panel: Ref<SwitchPanelId> | null;
+  upstream_switch: Ref<SwitchId> | null;
 };
 
 export type Device = {
   id: DeviceId;
   name: string;
   space: Ref<SpaceId> | null;
-  breaker: Ref<BreakerId> | null;
+  switch: Ref<SwitchId> | null;
   position: Position | null;
 };
 
-export type BreakerDownstream = {
-  breakers: Breaker[];
+export type SwitchDownstream = {
+  switches: Switch[];
   devices: Device[];
 };
 

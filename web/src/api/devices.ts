@@ -1,7 +1,7 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
-  Breaker,
-  BreakerId,
+  Switch,
+  SwitchId,
   Device,
   DeviceId,
   Position,
@@ -18,15 +18,10 @@ const getDevice = (auth: AuthSession, deviceId: DeviceId) => {
     .then(unwrapApiResponse<Device>);
 };
 
-export type DeviceUpdate = {
-  name?: string;
-  position?: Position;
-};
-
-const updateDevice = (
+const updateDeviceName = (
   auth: AuthSession,
   deviceId: DeviceId,
-  update: DeviceUpdate,
+  name: string,
 ) => {
   return auth
     .fetch(`${base}/${deviceId}`, {
@@ -34,7 +29,7 @@ const updateDevice = (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(update),
+      body: JSON.stringify({ name }),
     })
     .then(unwrapApiResponse<Device>);
 };
@@ -63,37 +58,37 @@ const deleteDevice = (auth: AuthSession, deviceId: DeviceId) => {
     .then(unwrapApiResponse<undefined>);
 };
 
-const getDeviceBreakers = (auth: AuthSession, deviceId: DeviceId) => {
+const getDeviceSwitches = (auth: AuthSession, deviceId: DeviceId) => {
   return auth
-    .fetch(`${base}/${deviceId}/breakers`, {
+    .fetch(`${base}/${deviceId}/switches`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<Breaker[]>);
+    .then(unwrapApiResponse<Switch[]>);
 };
 
-const addDeviceBreaker = (
+const addDeviceSwitch = (
   auth: AuthSession,
   deviceId: DeviceId,
-  breakerId: BreakerId,
+  switchId: SwitchId,
 ) => {
   return auth
-    .fetch(`${base}/${deviceId}/breakers`, {
+    .fetch(`${base}/${deviceId}/switches`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ breaker_id: breakerId }),
+      body: JSON.stringify({ switch_id: switchId }),
     })
     .then(unwrapApiResponse<undefined>);
 };
 
-const deleteDeviceBreaker = (
+const deleteDeviceSwitch = (
   auth: AuthSession,
   deviceId: DeviceId,
-  breakerId: BreakerId,
+  switchId: SwitchId,
 ) => {
   return auth
-    .fetch(`${base}/${deviceId}/breakers/${breakerId}`, {
+    .fetch(`${base}/${deviceId}/switches/${switchId}`, {
       method: "DELETE",
     })
     .then(unwrapApiResponse<undefined>);
@@ -104,16 +99,16 @@ const getDeviceUpstream = (auth: AuthSession, deviceId: DeviceId) => {
     .fetch(`${base}/${deviceId}/upstream`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<Breaker[]>);
+    .then(unwrapApiResponse<Switch[]>);
 };
 
 export default {
   getDevice,
-  updateDevice,
+  updateDeviceName,
   updateDevicePosition,
   deleteDevice,
-  getDeviceBreakers,
-  addDeviceBreaker,
-  deleteDeviceBreaker,
+  getDeviceSwitches,
+  addDeviceSwitch,
+  deleteDeviceSwitch,
   getDeviceUpstream,
 };
