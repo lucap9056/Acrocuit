@@ -1,0 +1,85 @@
+package models
+
+import (
+	"acrocuit/schema"
+	"fmt"
+	"strings"
+)
+
+const SWITCH_ALL_COLUMNS = schema.FullSwitches_ID + "," + schema.FullSwitches_NAME + "," + schema.FullSwitches_SWITCH_PANEL_ID + "," + schema.FullSwitches_SPACE_GROUP_ID + "," + schema.FullSwitches_DISPLAY_ORDER + "," + schema.FullSwitches_UPSTREAM_SWITCH_ID
+
+type Switch struct {
+	Id               int    `json:"id"`
+	Name             string `json:"name"`
+	DisplayOrder     int    `json:"display_order"`
+	SwitchPanelId    int    `json:"-"`
+	SpaceGroupId     int    `json:"-"`
+	UpstreamSwitchId *int   `json:"-"`
+
+	SwitchPanel    *SwitchPanel `json:"switch_panel"`
+	UpstreamSwitch *Switch      `json:"upstream_switch"`
+}
+
+func (s *Switch) Build() {
+	if s.SwitchPanel == nil && s.SwitchPanelId != 0 {
+		s.SwitchPanel = &SwitchPanel{Id: s.SwitchPanelId, SpaceGroupId: s.SpaceGroupId}
+	}
+	if s.UpstreamSwitch == nil && s.UpstreamSwitchId != nil {
+		s.UpstreamSwitch = &Switch{Id: *s.UpstreamSwitchId, SpaceGroupId: s.SpaceGroupId}
+	}
+}
+
+func ParseSwitchColumns(columnsStr string) (string, []uint8, error) {
+	if strings.TrimSpace(columnsStr) == "" {
+		return SWITCH_ALL_COLUMNS, []uint8{0, 1, 2, 3, 4, 5}, nil
+	}
+
+	collector := newColumnCollector(columnsStr)
+	defer collector.Release()
+
+	scanner := newColumnScanner(columnsStr)
+
+	for scanner.Next() {
+		col := scanner.Text()
+		switch col {
+		case schema.Switches_ID, schema.FullSwitches_ID:
+			collector.Append(0, schema.FullSwitches_ID)
+		case schema.Switches_NAME, schema.FullSwitches_NAME:
+			collector.Append(1, schema.FullSwitches_NAME)
+		case schema.Switches_SWITCH_PANEL_ID, schema.FullSwitches_SWITCH_PANEL_ID:
+			collector.Append(2, schema.FullSwitches_SWITCH_PANEL_ID)
+		case schema.Switches_SPACE_GROUP_ID, schema.FullSwitches_SPACE_GROUP_ID:
+			collector.Append(3, schema.FullSwitches_SPACE_GROUP_ID)
+		case schema.Switches_DISPLAY_ORDER, schema.FullSwitches_DISPLAY_ORDER:
+			collector.Append(4, schema.FullSwitches_DISPLAY_ORDER)
+		case schema.Switches_UPSTREAM_SWITCH_ID, schema.FullSwitches_UPSTREAM_SWITCH_ID:
+			collector.Append(5, schema.FullSwitches_UPSTREAM_SWITCH_ID)
+		default:
+			return "", nil, fmt.Errorf("invalid column: %s", col)
+		}
+	}
+
+	keys, fields := collector.Result()
+	return keys, fields, nil
+}
+
+func (s *Switch) Values(fields []uint8) []any {
+	values := make([]any, len(fields))
+	for i, f := range fields {
+		switch f {
+		case 0:
+			values[i] = &s.Id
+		case 1:
+			values[i] = &s.Name
+		case 2:
+			values[i] = &s.SwitchPanelId
+		case 3:
+			values[i] = &s.SpaceGroupId
+		case 4:
+			values[i] = &s.DisplayOrder
+		case 5:
+			values[i] = &s.UpstreamSwitchId
+		}
+	}
+	return values
+}

@@ -35,12 +35,12 @@ func NewSpaces(pool *pgxpool.Pool) repository.Spaces {
 	return &pgSpaces{pool: pool}
 }
 
-func NewBreakerGroups(pool *pgxpool.Pool) repository.BreakerGroups {
-	return &pgBreakerGroups{pool: pool}
+func NewSwitchPanels(pool *pgxpool.Pool) repository.SwitchPanels {
+	return &pgSwitchPanels{pool: pool}
 }
 
-func NewBreakers(pool *pgxpool.Pool) repository.Breakers {
-	return &pgBreakers{pool: pool}
+func NewSwitches(pool *pgxpool.Pool) repository.Switches {
+	return &pgSwitches{pool: pool}
 }
 
 func NewDevices(pool *pgxpool.Pool) repository.Devices {

@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	host              = env("ACROCUIT_HOST", "http://localhost:8080")
-	apiPath           = "/api"
-	identityToken     = env("ACROCUIT_IDENTITY_TOKEN", "")
-	spaceGroupId      = env("ACROCUIT_SPACE_GROUP_ID", "1")
-	spaceId           = env("ACROCUIT_SPACE_ID", "1")
-	breakerGroupId    = env("ACROCUIT_BREAKER_GROUP_ID", "1")
-	breakerId         = env("ACROCUIT_BREAKER_ID", "1")
-	upstreamBreakerId = env("ACROCUIT_UPSTREAM_BREAKER_ID", "2")
-	deviceId          = env("ACROCUIT_DEVICE_ID", "1")
+	host             = env("ACROCUIT_HOST", "http://localhost:8080")
+	apiPath          = "/api"
+	identityToken    = env("ACROCUIT_IDENTITY_TOKEN", "")
+	spaceGroupId     = env("ACROCUIT_SPACE_GROUP_ID", "1")
+	spaceId          = env("ACROCUIT_SPACE_ID", "1")
+	switchPanelId    = env("ACROCUIT_SWITCH_PANEL_ID", "1")
+	switchId         = env("ACROCUIT_SWITCH_ID", "1")
+	upstreamSwitchId = env("ACROCUIT_UPSTREAM_SWITCH_ID", "2")
+	deviceId         = env("ACROCUIT_DEVICE_ID", "1")
 )
 
 func env(key, fallback string) string {
@@ -127,12 +127,12 @@ func TestDelSpaceBackgroundImage(t *testing.T) {
 	call(t, http.MethodDelete, "/spaces/"+spaceId+"/background-image", nil)
 }
 
-func TestGetBreakerGroups(t *testing.T) {
-	call(t, http.MethodGet, "/spaces/"+spaceId+"/breaker-groups", nil)
+func TestGetSwitchPanels(t *testing.T) {
+	call(t, http.MethodGet, "/spaces/"+spaceId+"/switch-panels", nil)
 }
 
-func TestAddBreakerGroup(t *testing.T) {
-	call(t, http.MethodPost, "/spaces/"+spaceId+"/breaker-groups", map[string]any{"name": "breaker group", "position": position{}})
+func TestAddSwitchPanel(t *testing.T) {
+	call(t, http.MethodPost, "/spaces/"+spaceId+"/switch-panels", map[string]any{"name": "switch panel", "position": position{}})
 }
 
 func TestGetDevices(t *testing.T) {
@@ -143,52 +143,52 @@ func TestAddDevice(t *testing.T) {
 	call(t, http.MethodPost, "/spaces/"+spaceId+"/devices", map[string]any{"name": "device", "position": position{}})
 }
 
-func TestGetBreakerGroup(t *testing.T) {
-	call(t, http.MethodGet, "/breaker-groups/"+breakerGroupId, nil)
+func TestGetSwitchPanel(t *testing.T) {
+	call(t, http.MethodGet, "/switch-panels/"+switchPanelId, nil)
 }
 
-func TestSetBreakerGroup(t *testing.T) {
-	call(t, http.MethodPut, "/breaker-groups/"+breakerGroupId, map[string]any{"name": "breaker group"})
+func TestSetSwitchPanel(t *testing.T) {
+	call(t, http.MethodPut, "/switch-panels/"+switchPanelId, map[string]any{"name": "switch panel"})
 }
 
-func TestDelBreakerGroup(t *testing.T) {
-	call(t, http.MethodDelete, "/breaker-groups/"+breakerGroupId, nil)
+func TestDelSwitchPanel(t *testing.T) {
+	call(t, http.MethodDelete, "/switch-panels/"+switchPanelId, nil)
 }
 
-func TestSetBreakerGroupPosition(t *testing.T) {
-	call(t, http.MethodPut, "/breaker-groups/"+breakerGroupId+"/position", map[string]any{"position": position{}})
+func TestSetSwitchPanelPosition(t *testing.T) {
+	call(t, http.MethodPut, "/switch-panels/"+switchPanelId+"/position", map[string]any{"position": position{}})
 }
 
-func TestGetBreakers(t *testing.T) {
-	call(t, http.MethodGet, "/breaker-groups/"+breakerGroupId+"/breakers", nil)
+func TestGetSwitches(t *testing.T) {
+	call(t, http.MethodGet, "/switch-panels/"+switchPanelId+"/switches", nil)
 }
 
-func TestAddBreaker(t *testing.T) {
-	call(t, http.MethodPost, "/breaker-groups/"+breakerGroupId+"/breakers", map[string]any{"name": "breaker", "upstream_breaker_id": json.RawMessage(upstreamBreakerId)})
+func TestAddSwitch(t *testing.T) {
+	call(t, http.MethodPost, "/switch-panels/"+switchPanelId+"/switches", map[string]any{"name": "switch", "upstream_switch_id": json.RawMessage(upstreamSwitchId)})
 }
 
-func TestGetBreaker(t *testing.T) {
-	call(t, http.MethodGet, "/breakers/"+breakerId, nil)
+func TestGetSwitch(t *testing.T) {
+	call(t, http.MethodGet, "/switches/"+switchId, nil)
 }
 
-func TestGetBreakerDownstream(t *testing.T) {
-	call(t, http.MethodGet, "/breakers/"+breakerId+"/downstream", nil)
+func TestGetSwitchDownstream(t *testing.T) {
+	call(t, http.MethodGet, "/switches/"+switchId+"/downstream", nil)
 }
 
-func TestSetBreaker(t *testing.T) {
-	call(t, http.MethodPut, "/breakers/"+breakerId, map[string]any{"name": "breaker"})
+func TestSetSwitch(t *testing.T) {
+	call(t, http.MethodPut, "/switches/"+switchId, map[string]any{"name": "switch"})
 }
 
-func TestDelBreaker(t *testing.T) {
-	call(t, http.MethodDelete, "/breakers/"+breakerId, nil)
+func TestDelSwitch(t *testing.T) {
+	call(t, http.MethodDelete, "/switches/"+switchId, nil)
 }
 
-func TestSetBreakerOrder(t *testing.T) {
-	call(t, http.MethodPatch, "/breakers/"+breakerId+"/order", map[string]any{"display_order": 1})
+func TestSetSwitchOrder(t *testing.T) {
+	call(t, http.MethodPatch, "/switches/"+switchId+"/order", map[string]any{"display_order": 1})
 }
 
-func TestSetBreakerUpstream(t *testing.T) {
-	call(t, http.MethodPatch, "/breakers/"+breakerId+"/upstream", map[string]any{"upstream_breaker_id": json.RawMessage(upstreamBreakerId)})
+func TestSetSwitchUpstream(t *testing.T) {
+	call(t, http.MethodPatch, "/switches/"+switchId+"/upstream", map[string]any{"upstream_switch_id": json.RawMessage(upstreamSwitchId)})
 }
 
 func TestGetDevice(t *testing.T) {
@@ -211,14 +211,14 @@ func TestGetDeviceUpstream(t *testing.T) {
 	call(t, http.MethodGet, "/devices/"+deviceId+"/upstream", nil)
 }
 
-func TestGetDeviceBreakers(t *testing.T) {
-	call(t, http.MethodGet, "/devices/"+deviceId+"/breakers", nil)
+func TestGetDeviceSwitches(t *testing.T) {
+	call(t, http.MethodGet, "/devices/"+deviceId+"/switches", nil)
 }
 
-func TestAddDeviceBreaker(t *testing.T) {
-	call(t, http.MethodPost, "/devices/"+deviceId+"/breakers", map[string]any{"breaker_id": json.RawMessage(breakerId)})
+func TestAddDeviceSwitch(t *testing.T) {
+	call(t, http.MethodPost, "/devices/"+deviceId+"/switches", map[string]any{"switch_id": json.RawMessage(switchId)})
 }
 
-func TestDelDeviceBreaker(t *testing.T) {
-	call(t, http.MethodDelete, "/devices/"+deviceId+"/breakers/"+breakerId, nil)
+func TestDelDeviceSwitch(t *testing.T) {
+	call(t, http.MethodDelete, "/devices/"+deviceId+"/switches/"+switchId, nil)
 }

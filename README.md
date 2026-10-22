@@ -6,12 +6,12 @@ English | [繁體中文](README.zh-TW.md)
 
 ---
 
-Records a building's circuit topology as `space group → space → breaker group → breaker`.
+Records a building's circuit topology as `space group → space → switch panel → switch`.
 
-- **Ordering**: spaces and breakers have a `display_order` for floors and panel layout
-- **Breaker chains**: a breaker can point to an upstream breaker in the same space group
+- **Ordering**: spaces and switches have a `display_order` for floors and panel layout
+- **Switch chains**: a switch can point to an upstream switch in the same space group
   - Query the upstream chain and downstream tree to see what switching one off affects
-- **Device wiring**: a device can hang off several breakers, e.g. a light with two switches
+- **Device wiring**: a device can hang off several switches, e.g. a two-way light
 - **Background images**: each space can have one background image
 
 ## Getting Started
@@ -115,6 +115,6 @@ cd web && bun run dev
 | `/api/meta` | Public; `auth_required` tells whether requests need an identity |
 | `/api/space-groups` | |
 | `/api/spaces` | `/{id}/background-image`: multipart field `image`, PNG/JPEG/WebP/GIF, up to 10 MB |
-| `/api/breaker-groups` | |
-| `/api/breakers` | `/{id}/upstream`, `/{id}/downstream` |
-| `/api/devices` | `/{id}/breakers`, `/{id}/upstream` |
+| `/api/switch-panels` | |
+| `/api/switches` | `/{id}/upstream`, `/{id}/downstream` |
+| `/api/devices` | `/{id}/switches`, `/{id}/upstream` |

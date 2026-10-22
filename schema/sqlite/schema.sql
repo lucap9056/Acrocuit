@@ -23,45 +23,45 @@ CREATE TABLE IF NOT EXISTS {{space_background_images.table}} (
     CONSTRAINT fk_space_background_images_space FOREIGN KEY ({{space_background_images.space_id}}) REFERENCES {{spaces.table}}({{spaces.id}}) ON DELETE CASCADE
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS {{breaker_groups.table}} (
-    {{breaker_groups.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
-    {{breaker_groups.name}} TEXT NOT NULL CHECK (length({{breaker_groups.name}}) <= 255),
-    {{breaker_groups.space_id}} INTEGER NOT NULL,
-    {{breaker_groups.space_group_id}} INTEGER NOT NULL,
-    CONSTRAINT fk_breaker_groups_space FOREIGN KEY ({{breaker_groups.space_id}}, {{breaker_groups.space_group_id}}) REFERENCES {{spaces.table}}({{spaces.id}}, {{spaces.space_group_id}}) ON DELETE CASCADE,
-    CONSTRAINT uq_breaker_groups_id_space_group_id UNIQUE ({{breaker_groups.id}}, {{breaker_groups.space_group_id}})
+CREATE TABLE IF NOT EXISTS {{switch_panels.table}} (
+    {{switch_panels.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
+    {{switch_panels.name}} TEXT NOT NULL CHECK (length({{switch_panels.name}}) <= 255),
+    {{switch_panels.space_id}} INTEGER NOT NULL,
+    {{switch_panels.space_group_id}} INTEGER NOT NULL,
+    CONSTRAINT fk_switch_panels_space FOREIGN KEY ({{switch_panels.space_id}}, {{switch_panels.space_group_id}}) REFERENCES {{spaces.table}}({{spaces.id}}, {{spaces.space_group_id}}) ON DELETE CASCADE,
+    CONSTRAINT uq_switch_panels_id_space_group_id UNIQUE ({{switch_panels.id}}, {{switch_panels.space_group_id}})
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS ix_breaker_groups_space_id ON {{breaker_groups.table}}({{breaker_groups.space_id}});
+CREATE INDEX IF NOT EXISTS ix_switch_panels_space_id ON {{switch_panels.table}}({{switch_panels.space_id}});
 
-CREATE TABLE IF NOT EXISTS {{breaker_group_positions.table}} (
-    {{breaker_group_positions.breaker_group_id}} INTEGER PRIMARY KEY,
-    {{breaker_group_positions.position_x}} INTEGER NOT NULL,
-    {{breaker_group_positions.position_y}} INTEGER NOT NULL,
-    {{breaker_group_positions.position_z}} INTEGER NOT NULL,
-    CONSTRAINT fk_breaker_group_positions_breaker_group FOREIGN KEY ({{breaker_group_positions.breaker_group_id}}) REFERENCES {{breaker_groups.table}}({{breaker_groups.id}}) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS {{switch_panel_positions.table}} (
+    {{switch_panel_positions.switch_panel_id}} INTEGER PRIMARY KEY,
+    {{switch_panel_positions.position_x}} INTEGER NOT NULL,
+    {{switch_panel_positions.position_y}} INTEGER NOT NULL,
+    {{switch_panel_positions.position_z}} INTEGER NOT NULL,
+    CONSTRAINT fk_switch_panel_positions_switch_panel FOREIGN KEY ({{switch_panel_positions.switch_panel_id}}) REFERENCES {{switch_panels.table}}({{switch_panels.id}}) ON DELETE CASCADE
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS {{breakers.table}} (
-    {{breakers.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
-    {{breakers.name}} TEXT NOT NULL CHECK (length({{breakers.name}}) <= 255),
-    {{breakers.breaker_group_id}} INTEGER NOT NULL,
-    {{breakers.space_group_id}} INTEGER NOT NULL,
-    {{breakers.display_order}} INTEGER NOT NULL,
-    {{breakers.upstream_breaker_id}} INTEGER,
-    CONSTRAINT fk_breakers_breaker_group FOREIGN KEY ({{breakers.breaker_group_id}}, {{breakers.space_group_id}}) REFERENCES {{breaker_groups.table}}({{breaker_groups.id}}, {{breaker_groups.space_group_id}}) ON DELETE CASCADE,
-    CONSTRAINT uq_breakers_breaker_group_display_order UNIQUE ({{breakers.breaker_group_id}}, {{breakers.display_order}}),
-    CONSTRAINT uq_breakers_id_breaker_group_id UNIQUE ({{breakers.id}}, {{breakers.breaker_group_id}}),
-    CONSTRAINT fk_breakers_upstream_breaker FOREIGN KEY ({{breakers.upstream_breaker_id}}) REFERENCES {{breakers.table}}({{breakers.id}}) ON DELETE SET NULL,
-    CONSTRAINT chk_breakers_not_self_upstream CHECK (
-        {{breakers.upstream_breaker_id}} IS NULL
-        OR {{breakers.upstream_breaker_id}} <> {{breakers.id}}
+CREATE TABLE IF NOT EXISTS {{switches.table}} (
+    {{switches.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
+    {{switches.name}} TEXT NOT NULL CHECK (length({{switches.name}}) <= 255),
+    {{switches.switch_panel_id}} INTEGER NOT NULL,
+    {{switches.space_group_id}} INTEGER NOT NULL,
+    {{switches.display_order}} INTEGER NOT NULL,
+    {{switches.upstream_switch_id}} INTEGER,
+    CONSTRAINT fk_switches_switch_panel FOREIGN KEY ({{switches.switch_panel_id}}, {{switches.space_group_id}}) REFERENCES {{switch_panels.table}}({{switch_panels.id}}, {{switch_panels.space_group_id}}) ON DELETE CASCADE,
+    CONSTRAINT uq_switches_switch_panel_display_order UNIQUE ({{switches.switch_panel_id}}, {{switches.display_order}}),
+    CONSTRAINT uq_switches_id_switch_panel_id UNIQUE ({{switches.id}}, {{switches.switch_panel_id}}),
+    CONSTRAINT fk_switches_upstream_switch FOREIGN KEY ({{switches.upstream_switch_id}}) REFERENCES {{switches.table}}({{switches.id}}) ON DELETE SET NULL,
+    CONSTRAINT chk_switches_not_self_upstream CHECK (
+        {{switches.upstream_switch_id}} IS NULL
+        OR {{switches.upstream_switch_id}} <> {{switches.id}}
     )
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS ix_breakers_breaker_group_id ON {{breakers.table}}({{breakers.breaker_group_id}});
+CREATE INDEX IF NOT EXISTS ix_switches_switch_panel_id ON {{switches.table}}({{switches.switch_panel_id}});
 
-CREATE INDEX IF NOT EXISTS ix_breakers_upstream_breaker_id ON {{breakers.table}}({{breakers.upstream_breaker_id}});
+CREATE INDEX IF NOT EXISTS ix_switches_upstream_switch_id ON {{switches.table}}({{switches.upstream_switch_id}});
 
 CREATE TABLE IF NOT EXISTS {{devices.table}} (
     {{devices.id}} INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,12 +80,12 @@ CREATE TABLE IF NOT EXISTS {{device_positions.table}} (
 
 CREATE INDEX IF NOT EXISTS ix_devices_space_id ON {{devices.table}}({{devices.space_id}});
 
-CREATE TABLE IF NOT EXISTS {{device_breakers.table}} (
-    {{device_breakers.device_id}} INTEGER NOT NULL,
-    {{device_breakers.breaker_id}} INTEGER NOT NULL,
-    CONSTRAINT pk_device_breakers PRIMARY KEY ({{device_breakers.device_id}}, {{device_breakers.breaker_id}}),
-    CONSTRAINT fk_device_breakers_device FOREIGN KEY ({{device_breakers.device_id}}) REFERENCES {{devices.table}}({{devices.id}}) ON DELETE CASCADE,
-    CONSTRAINT fk_device_breakers_breaker FOREIGN KEY ({{device_breakers.breaker_id}}) REFERENCES {{breakers.table}}({{breakers.id}}) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS {{device_switches.table}} (
+    {{device_switches.device_id}} INTEGER NOT NULL,
+    {{device_switches.switch_id}} INTEGER NOT NULL,
+    CONSTRAINT pk_device_switches PRIMARY KEY ({{device_switches.device_id}}, {{device_switches.switch_id}}),
+    CONSTRAINT fk_device_switches_device FOREIGN KEY ({{device_switches.device_id}}) REFERENCES {{devices.table}}({{devices.id}}) ON DELETE CASCADE,
+    CONSTRAINT fk_device_switches_switch FOREIGN KEY ({{device_switches.switch_id}}) REFERENCES {{switches.table}}({{switches.id}}) ON DELETE CASCADE
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS ix_device_breakers_breaker_id ON {{device_breakers.table}}({{device_breakers.breaker_id}});
+CREATE INDEX IF NOT EXISTS ix_device_switches_switch_id ON {{device_switches.table}}({{device_switches.switch_id}});

@@ -26,9 +26,9 @@ func devicesHandlers(r *gin.RouterGroup, base controller) {
 	r.PUT(routeDeviceID+"/position", ctr.SetDevicePosition)
 	r.DELETE(routeDeviceID, ctr.DelDevice)
 
-	r.GET(routeDeviceID+"/breakers", ctr.GetDeviceBreakers)
-	r.POST(routeDeviceID+"/breakers", ctr.AddDeviceBreaker)
-	r.DELETE(routeDeviceID+"/breakers/"+routeBreakerID, ctr.DelDeviceBreaker)
+	r.GET(routeDeviceID+"/switches", ctr.GetDeviceSwitches)
+	r.POST(routeDeviceID+"/switches", ctr.AddDeviceSwitch)
+	r.DELETE(routeDeviceID+"/switches/"+routeSwitchID, ctr.DelDeviceSwitch)
 
 	r.GET(routeDeviceID+"/upstream", ctr.GetDeviceUpstream)
 }
@@ -112,7 +112,7 @@ func (ctr *devicesController) DelDevice(c *gin.Context) {
 	response.Empty(c, http.StatusOK)
 }
 
-func (ctr *devicesController) GetDeviceBreakers(c *gin.Context) {
+func (ctr *devicesController) GetDeviceSwitches(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
@@ -120,32 +120,32 @@ func (ctr *devicesController) GetDeviceBreakers(c *gin.Context) {
 	}
 	include := c.Query("include")
 
-	breakers, err := ctr.Devices.GetDeviceBreakers(c.Request.Context(), userEmail, deviceId, include)
+	switches, err := ctr.Devices.GetDeviceSwitches(c.Request.Context(), userEmail, deviceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, breakers)
+	response.OK(c, switches)
 }
 
-type addDeviceBreakerRequest struct {
-	BreakerId int `json:"breaker_id" binding:"required"`
+type addDeviceSwitchRequest struct {
+	SwitchId int `json:"switch_id" binding:"required"`
 }
 
-func (ctr *devicesController) AddDeviceBreaker(c *gin.Context) {
+func (ctr *devicesController) AddDeviceSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
 
-	var req addDeviceBreakerRequest
+	var req addDeviceSwitchRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	if err := ctr.Devices.AddDeviceBreaker(c.Request.Context(), userEmail, deviceId, req.BreakerId); err != nil {
+	if err := ctr.Devices.AddDeviceSwitch(c.Request.Context(), userEmail, deviceId, req.SwitchId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -153,18 +153,18 @@ func (ctr *devicesController) AddDeviceBreaker(c *gin.Context) {
 	response.Empty(c, http.StatusOK)
 }
 
-func (ctr *devicesController) DelDeviceBreaker(c *gin.Context) {
+func (ctr *devicesController) DelDeviceSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
 	deviceId, ok := intParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
-	breakerId, ok := intParam(c, paramBreakerID)
+	switchId, ok := intParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
 
-	if err := ctr.Devices.DelDeviceBreaker(c.Request.Context(), userEmail, deviceId, breakerId); err != nil {
+	if err := ctr.Devices.DelDeviceSwitch(c.Request.Context(), userEmail, deviceId, switchId); err != nil {
 		handleStorageErr(c, err)
 		return
 	}
@@ -179,11 +179,11 @@ func (ctr *devicesController) GetDeviceUpstream(c *gin.Context) {
 		return
 	}
 
-	breakers, err := ctr.Devices.GetDeviceUpstream(c.Request.Context(), userEmail, deviceId)
+	switches, err := ctr.Devices.GetDeviceUpstream(c.Request.Context(), userEmail, deviceId)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, breakers)
+	response.OK(c, switches)
 }

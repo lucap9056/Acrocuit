@@ -30,8 +30,8 @@ func spacesHandlers(r *gin.RouterGroup, base controller) {
 	r.PUT(routeSpaceID+"/background-image", ctr.SetBackgroundImage)
 	r.DELETE(routeSpaceID+"/background-image", ctr.DelBackgroundImage)
 
-	r.GET(routeSpaceID+"/breaker-groups", ctr.GetBreakerGroups)
-	r.POST(routeSpaceID+"/breaker-groups", ctr.AddBreakerGroup)
+	r.GET(routeSpaceID+"/switch-panels", ctr.GetSwitchPanels)
+	r.POST(routeSpaceID+"/switch-panels", ctr.AddSwitchPanel)
 
 	r.GET(routeSpaceID+"/devices", ctr.GetDevices)
 	r.POST(routeSpaceID+"/devices", ctr.AddDevice)
@@ -119,7 +119,7 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 	response.OK(c, spaces)
 }
 
-func (ctr *spacesController) GetBreakerGroups(c *gin.Context) {
+func (ctr *spacesController) GetSwitchPanels(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
@@ -127,39 +127,39 @@ func (ctr *spacesController) GetBreakerGroups(c *gin.Context) {
 	}
 	include := c.Query("include")
 
-	breakerGroups, err := ctr.BreakerGroups.GetBreakerGroups(c.Request.Context(), userEmail, spaceId, include)
+	switchPanels, err := ctr.SwitchPanels.GetSwitchPanels(c.Request.Context(), userEmail, spaceId, include)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, breakerGroups)
+	response.OK(c, switchPanels)
 }
 
-type createBreakerGroupRequest struct {
+type createSwitchPanelRequest struct {
 	Name     string           `json:"name" binding:"required,min=1,max=255"`
 	Position *models.Position `json:"position"`
 }
 
-func (ctr *spacesController) AddBreakerGroup(c *gin.Context) {
+func (ctr *spacesController) AddSwitchPanel(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
 	spaceId, ok := intParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
 
-	var req createBreakerGroupRequest
+	var req createSwitchPanelRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	breakerGroup, err := ctr.BreakerGroups.AddBreakerGroup(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
+	switchPanel, err := ctr.SwitchPanels.AddSwitchPanel(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, breakerGroup)
+	response.OK(c, switchPanel)
 }
 
 func (ctr *spacesController) GetDevices(c *gin.Context) {

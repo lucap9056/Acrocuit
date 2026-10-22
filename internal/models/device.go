@@ -13,13 +13,13 @@ type Device struct {
 	Name         string `json:"name"`
 	SpaceId      int    `json:"-"`
 	SpaceGroupId int    `json:"-"`
-	BreakerId    int    `json:"-"`
+	SwitchId     int    `json:"-"`
 	PositionX    *int   `json:"-"`
 	PositionY    *int   `json:"-"`
 	PositionZ    *int   `json:"-"`
 
 	Space    *Space    `json:"space"`
-	Breaker  *Breaker  `json:"breaker"`
+	Switch   *Switch   `json:"switch"`
 	Position *Position `json:"position"`
 }
 
@@ -27,8 +27,8 @@ func (d *Device) Build() {
 	if d.Space == nil && d.SpaceId != 0 {
 		d.Space = &Space{Id: d.SpaceId, SpaceGroupId: d.SpaceGroupId}
 	}
-	if d.Breaker == nil && d.BreakerId != 0 {
-		d.Breaker = &Breaker{Id: d.BreakerId}
+	if d.Switch == nil && d.SwitchId != 0 {
+		d.Switch = &Switch{Id: d.SwitchId}
 	}
 	if d.Position == nil && d.PositionX != nil {
 		d.Position = &Position{X: *d.PositionX, Y: *d.PositionY, Z: *d.PositionZ}

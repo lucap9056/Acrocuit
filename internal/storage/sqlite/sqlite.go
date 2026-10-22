@@ -65,12 +65,12 @@ func NewSpaces(db *sql.DB) repository.Spaces {
 	return &sqliteSpaces{db: db}
 }
 
-func NewBreakerGroups(db *sql.DB) repository.BreakerGroups {
-	return &sqliteBreakerGroups{db: db}
+func NewSwitchPanels(db *sql.DB) repository.SwitchPanels {
+	return &sqliteSwitchPanels{db: db}
 }
 
-func NewBreakers(db *sql.DB) repository.Breakers {
-	return &sqliteBreakers{db: db}
+func NewSwitches(db *sql.DB) repository.Switches {
+	return &sqliteSwitches{db: db}
 }
 
 func NewDevices(db *sql.DB) repository.Devices {
@@ -147,7 +147,7 @@ type orderedTable struct {
 
 var (
 	spacesOrder   = orderedTable{schema.SpacesTable, schema.Spaces_ID, schema.Spaces_SPACE_GROUP_ID, schema.Spaces_DISPLAY_ORDER}
-	breakersOrder = orderedTable{schema.BreakersTable, schema.Breakers_ID, schema.Breakers_BREAKER_GROUP_ID, schema.Breakers_DISPLAY_ORDER}
+	switchesOrder = orderedTable{schema.SwitchesTable, schema.Switches_ID, schema.Switches_SWITCH_PANEL_ID, schema.Switches_DISPLAY_ORDER}
 )
 
 func (o orderedTable) move(ctx context.Context, tx *sql.Tx, groupId, id, from, to int) error {

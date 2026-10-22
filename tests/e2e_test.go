@@ -120,31 +120,31 @@ func newRequest(t *testing.T, method, path string, body any) *http.Request {
 	return req
 }
 
-func downstream(c *client, breakerId int) ([]models.Breaker, []models.Device) {
+func downstream(c *client, switchId int) ([]models.Switch, []models.Device) {
 	c.t.Helper()
 
-	path := fmt.Sprintf("/breakers/%d/downstream", breakerId)
+	path := fmt.Sprintf("/switches/%d/downstream", switchId)
 	var tree map[string]json.RawMessage
 	req := newRequest(c.t, http.MethodGet, path, nil)
 	status := c.Send(req, &tree)
 	require.Equal(c.t, http.StatusOK, status, "GET %s", path)
 
-	var breakers []models.Breaker
+	var switches []models.Switch
 	var devices []models.Device
-	require.NoError(c.t, json.Unmarshal(tree["breakers"], &breakers), "decode downstream breakers")
+	require.NoError(c.t, json.Unmarshal(tree["switches"], &switches), "decode downstream switches")
 	require.NoError(c.t, json.Unmarshal(tree["devices"], &devices), "decode downstream devices")
-	return breakers, devices
+	return switches, devices
 }
 
-func upstream(c *client, deviceId int) []models.Breaker {
+func upstream(c *client, deviceId int) []models.Switch {
 	c.t.Helper()
 
 	path := fmt.Sprintf("/devices/%d/upstream", deviceId)
-	var breakers []models.Breaker
+	var switches []models.Switch
 	req := newRequest(c.t, http.MethodGet, path, nil)
-	status := c.Send(req, &breakers)
+	status := c.Send(req, &switches)
 	require.Equal(c.t, http.StatusOK, status, "GET %s", path)
-	return breakers
+	return switches
 }
 
 func idsOf(ids map[string]int, names ...string) []int {
@@ -155,35 +155,35 @@ func idsOf(ids map[string]int, names ...string) []int {
 	return result
 }
 
-func breakerIds(breakers []models.Breaker) []int {
-	result := make([]int, len(breakers))
-	for i, b := range breakers {
+func switchIds(switches []models.Switch) []int {
+	result := make([]int, len(switches))
+	for i, b := range switches {
 		result[i] = b.Id
 	}
 	return result
 }
 
-func hasDeviceOnBreaker(devices []models.Device, deviceId, breakerId int) bool {
+func hasDeviceOnSwitch(devices []models.Device, deviceId, switchId int) bool {
 	return slices.ContainsFunc(devices, func(d models.Device) bool {
-		return d.Id == deviceId && d.Breaker != nil && d.Breaker.Id == breakerId
+		return d.Id == deviceId && d.Switch != nil && d.Switch.Id == switchId
 	})
 }
 
-func logTree(t *testing.T, rootId int, breakers []models.Breaker, devices []models.Device) {
+func logTree(t *testing.T, rootId int, switches []models.Switch, devices []models.Device) {
 	t.Helper()
 
-	children := make(map[int][]models.Breaker)
-	names := make(map[int]string, len(breakers))
-	for _, b := range breakers {
+	children := make(map[int][]models.Switch)
+	names := make(map[int]string, len(switches))
+	for _, b := range switches {
 		names[b.Id] = b.Name
-		if b.UpstreamBreaker != nil {
-			children[b.UpstreamBreaker.Id] = append(children[b.UpstreamBreaker.Id], b)
+		if b.UpstreamSwitch != nil {
+			children[b.UpstreamSwitch.Id] = append(children[b.UpstreamSwitch.Id], b)
 		}
 	}
 	attached := make(map[int][]models.Device)
 	for _, d := range devices {
-		if d.Breaker != nil {
-			attached[d.Breaker.Id] = append(attached[d.Breaker.Id], d)
+		if d.Switch != nil {
+			attached[d.Switch.Id] = append(attached[d.Switch.Id], d)
 		}
 	}
 
@@ -262,7 +262,7 @@ func TestE2E(t *testing.T) {
 		spaces[name] = space.Id
 	}
 
-	breakerGroups := make(map[string]int)
+	switchPanels := make(map[string]int)
 	for _, tc := range []struct{ space, name string }{
 		{"space1", "group1"},
 		{"space2", "group2"},
@@ -270,59 +270,59 @@ func TestE2E(t *testing.T) {
 		{"space4", "group4"},
 		{"space5", "group5"},
 	} {
-		path := fmt.Sprintf("/spaces/%d/breaker-groups", spaces[tc.space])
+		path := fmt.Sprintf("/spaces/%d/switch-panels", spaces[tc.space])
 		body := map[string]any{"name": tc.name}
 
-		var breakerGroup models.BreakerGroup
+		var switchPanel models.SwitchPanel
 		req := newRequest(t, http.MethodPost, path, body)
-		status := c.Send(req, &breakerGroup)
-		require.Equal(t, http.StatusOK, status, "create breaker group %s", tc.name)
-		breakerGroups[tc.name] = breakerGroup.Id
+		status := c.Send(req, &switchPanel)
+		require.Equal(t, http.StatusOK, status, "create switch panel %s", tc.name)
+		switchPanels[tc.name] = switchPanel.Id
 	}
 
-	breakers := make(map[string]int)
+	switches := make(map[string]int)
 	for _, tc := range []struct{ group, name, upstream string }{
-		{"group1", "breaker1", ""},
-		{"group1", "breaker2", "breaker1"},
-		{"group1", "breaker3", "breaker1"},
-		{"group2", "breaker4", "breaker2"},
-		{"group2", "breaker5", "breaker2"},
-		{"group3", "breaker6", "breaker2"},
-		{"group4", "breaker7", "breaker3"},
-		{"group5", "breaker8", "breaker3"},
-		{"group2", "breaker9", "breaker5"},
-		{"group4", "breaker10", "breaker7"},
-		{"group5", "breaker11", "breaker8"},
+		{"group1", "switch1", ""},
+		{"group1", "switch2", "switch1"},
+		{"group1", "switch3", "switch1"},
+		{"group2", "switch4", "switch2"},
+		{"group2", "switch5", "switch2"},
+		{"group3", "switch6", "switch2"},
+		{"group4", "switch7", "switch3"},
+		{"group5", "switch8", "switch3"},
+		{"group2", "switch9", "switch5"},
+		{"group4", "switch10", "switch7"},
+		{"group5", "switch11", "switch8"},
 	} {
-		path := fmt.Sprintf("/breaker-groups/%d/breakers", breakerGroups[tc.group])
+		path := fmt.Sprintf("/switch-panels/%d/switches", switchPanels[tc.group])
 		body := map[string]any{"name": tc.name}
 		if tc.upstream != "" {
-			body["upstream_breaker_id"] = breakers[tc.upstream]
+			body["upstream_switch_id"] = switches[tc.upstream]
 		}
 
-		var breaker models.Breaker
+		var sw models.Switch
 		req := newRequest(t, http.MethodPost, path, body)
-		status := c.Send(req, &breaker)
-		require.Equal(t, http.StatusOK, status, "create breaker %s", tc.name)
-		breakers[tc.name] = breaker.Id
+		status := c.Send(req, &sw)
+		require.Equal(t, http.StatusOK, status, "create switch %s", tc.name)
+		switches[tc.name] = sw.Id
 	}
 
-	root := breakers["breaker1"]
-	left := breakers["breaker10"]
-	right := breakers["breaker11"]
+	root := switches["switch1"]
+	left := switches["switch10"]
+	right := switches["switch11"]
 
-	t.Run("BreakerUpstreamRejectsCycle", func(t *testing.T) {
+	t.Run("SwitchUpstreamRejectsCycle", func(t *testing.T) {
 		c := c.with(t)
-		for _, tc := range []struct{ breaker, upstream string }{
-			{"breaker1", "breaker10"},
-			{"breaker10", "breaker10"},
+		for _, tc := range []struct{ sw, upstream string }{
+			{"switch1", "switch10"},
+			{"switch10", "switch10"},
 		} {
-			path := fmt.Sprintf("/breakers/%d/upstream", breakers[tc.breaker])
-			body := map[string]any{"upstream_breaker_id": breakers[tc.upstream]}
+			path := fmt.Sprintf("/switches/%d/upstream", switches[tc.sw])
+			body := map[string]any{"upstream_switch_id": switches[tc.upstream]}
 
 			req := newRequest(t, http.MethodPatch, path, body)
 			status := c.Send(req, nil)
-			assert.Equal(t, http.StatusBadRequest, status, "set upstream of %s to %s", tc.breaker, tc.upstream)
+			assert.Equal(t, http.StatusBadRequest, status, "set upstream of %s to %s", tc.sw, tc.upstream)
 		}
 	})
 
@@ -352,57 +352,57 @@ func TestE2E(t *testing.T) {
 
 	shared := devices["device9"]
 
-	for _, tc := range []struct{ device, breaker string }{
-		{"device1", "breaker4"},
-		{"device2", "breaker4"},
-		{"device3", "breaker5"},
-		{"device4", "breaker9"},
-		{"device5", "breaker6"},
-		{"device6", "breaker6"},
-		{"device7", "breaker6"},
-		{"device8", "breaker7"},
-		{"device9", "breaker10"},
-		{"device9", "breaker11"},
-		{"device10", "breaker8"},
-		{"device11", "breaker8"},
+	for _, tc := range []struct{ device, sw string }{
+		{"device1", "switch4"},
+		{"device2", "switch4"},
+		{"device3", "switch5"},
+		{"device4", "switch9"},
+		{"device5", "switch6"},
+		{"device6", "switch6"},
+		{"device7", "switch6"},
+		{"device8", "switch7"},
+		{"device9", "switch10"},
+		{"device9", "switch11"},
+		{"device10", "switch8"},
+		{"device11", "switch8"},
 	} {
-		path := fmt.Sprintf("/devices/%d/breakers", devices[tc.device])
-		body := map[string]any{"breaker_id": breakers[tc.breaker]}
+		path := fmt.Sprintf("/devices/%d/switches", devices[tc.device])
+		body := map[string]any{"switch_id": switches[tc.sw]}
 
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, nil)
-		require.Equal(t, http.StatusOK, status, "attach %s to %s", tc.device, tc.breaker)
+		require.Equal(t, http.StatusOK, status, "attach %s to %s", tc.device, tc.sw)
 	}
 
 	t.Run("AttachDeviceRejectsDuplicate", func(t *testing.T) {
 		c := c.with(t)
-		path := fmt.Sprintf("/devices/%d/breakers", shared)
-		body := map[string]any{"breaker_id": left}
+		path := fmt.Sprintf("/devices/%d/switches", shared)
+		body := map[string]any{"switch_id": left}
 
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, nil)
-		assert.Equal(t, http.StatusConflict, status, "attach device9 to breaker10 again")
+		assert.Equal(t, http.StatusConflict, status, "attach device9 to switch10 again")
 	})
 
-	allBreakers := make([]string, 0, len(breakers))
-	for name := range breakers {
-		allBreakers = append(allBreakers, name)
+	allSwitches := make([]string, 0, len(switches))
+	for name := range switches {
+		allSwitches = append(allSwitches, name)
 	}
 
-	t.Run("BreakerDownstreamIncludesDescendants", func(t *testing.T) {
+	t.Run("SwitchDownstreamIncludesDescendants", func(t *testing.T) {
 		c := c.with(t)
-		treeBreakers, treeDevices := downstream(c, root)
-		logTree(t, root, treeBreakers, treeDevices)
+		treeSwitches, treeDevices := downstream(c, root)
+		logTree(t, root, treeSwitches, treeDevices)
 
-		assert.ElementsMatch(t, idsOf(breakers, allBreakers...), breakerIds(treeBreakers), "downstream breakers")
-		assert.True(t, hasDeviceOnBreaker(treeDevices, shared, left), "device9 should appear under breaker10")
-		assert.True(t, hasDeviceOnBreaker(treeDevices, shared, right), "device9 should appear under breaker11")
+		assert.ElementsMatch(t, idsOf(switches, allSwitches...), switchIds(treeSwitches), "downstream switches")
+		assert.True(t, hasDeviceOnSwitch(treeDevices, shared, left), "device9 should appear under switch10")
+		assert.True(t, hasDeviceOnSwitch(treeDevices, shared, right), "device9 should appear under switch11")
 	})
 
 	t.Run("DeviceUpstreamDeduplicatesSharedPath", func(t *testing.T) {
 		c := c.with(t)
-		want := idsOf(breakers, "breaker10", "breaker7", "breaker11", "breaker8", "breaker3", "breaker1")
-		assert.ElementsMatch(t, want, breakerIds(upstream(c, shared)), "upstream of device9")
+		want := idsOf(switches, "switch10", "switch7", "switch11", "switch8", "switch3", "switch1")
+		assert.ElementsMatch(t, want, switchIds(upstream(c, shared)), "upstream of device9")
 	})
 
 	spaceId := spaces["space2"]
@@ -490,9 +490,9 @@ func TestE2E(t *testing.T) {
 
 		for _, path := range []string{
 			removedPath,
-			fmt.Sprintf("/breaker-groups/%d", breakerGroups["group5"]),
-			fmt.Sprintf("/breakers/%d", breakers["breaker8"]),
-			fmt.Sprintf("/breakers/%d", right),
+			fmt.Sprintf("/switch-panels/%d", switchPanels["group5"]),
+			fmt.Sprintf("/switches/%d", switches["switch8"]),
+			fmt.Sprintf("/switches/%d", right),
 			fmt.Sprintf("/devices/%d", devices["device10"]),
 			fmt.Sprintf("/devices/%d", devices["device11"]),
 		} {
@@ -501,18 +501,18 @@ func TestE2E(t *testing.T) {
 			assert.Equal(t, http.StatusNotFound, status, "GET %s after deleting space5", path)
 		}
 
-		want := idsOf(breakers, "breaker10", "breaker7", "breaker3", "breaker1")
-		assert.ElementsMatch(t, want, breakerIds(upstream(c, shared)), "upstream of device9 after deleting space5")
+		want := idsOf(switches, "switch10", "switch7", "switch3", "switch1")
+		assert.ElementsMatch(t, want, switchIds(upstream(c, shared)), "upstream of device9 after deleting space5")
 
-		remaining := slices.DeleteFunc(slices.Clone(allBreakers), func(name string) bool {
-			return name == "breaker8" || name == "breaker11"
+		remaining := slices.DeleteFunc(slices.Clone(allSwitches), func(name string) bool {
+			return name == "switch8" || name == "switch11"
 		})
-		treeBreakers, treeDevices := downstream(c, root)
-		logTree(t, root, treeBreakers, treeDevices)
+		treeSwitches, treeDevices := downstream(c, root)
+		logTree(t, root, treeSwitches, treeDevices)
 
-		assert.ElementsMatch(t, idsOf(breakers, remaining...), breakerIds(treeBreakers), "downstream breakers after deleting space5")
-		assert.True(t, hasDeviceOnBreaker(treeDevices, shared, left), "device9 should remain under breaker10")
-		assert.True(t, hasDeviceOnBreaker(treeDevices, devices["device3"], breakers["breaker5"]), "device3 should be unaffected")
+		assert.ElementsMatch(t, idsOf(switches, remaining...), switchIds(treeSwitches), "downstream switches after deleting space5")
+		assert.True(t, hasDeviceOnSwitch(treeDevices, shared, left), "device9 should remain under switch10")
+		assert.True(t, hasDeviceOnSwitch(treeDevices, devices["device3"], switches["switch5"]), "device3 should be unaffected")
 	})
 
 	t.Run("DeleteSpaceGroupCascades", func(t *testing.T) {
@@ -529,8 +529,8 @@ func TestE2E(t *testing.T) {
 			ids    map[string]int
 		}{
 			{"/spaces", spaces},
-			{"/breaker-groups", breakerGroups},
-			{"/breakers", breakers},
+			{"/switch-panels", switchPanels},
+			{"/switches", switches},
 			{"/devices", devices},
 		} {
 			for _, id := range tc.ids {
