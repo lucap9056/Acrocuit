@@ -22,6 +22,9 @@
   --transition: 120ms ease;
 
   --font: "Ubuntu", system-ui, "Noto Sans TC", sans-serif;
+  --font-drawing:
+    "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, "Noto Sans TC",
+    monospace;
 
   color-scheme: light;
 }

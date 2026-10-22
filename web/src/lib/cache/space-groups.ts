@@ -1,5 +1,6 @@
 import type { AuthSession, SpaceGroup } from "@/api";
 import api from "@/api";
+import { clearSpaceGroupCache } from "@/lib/cache/spaces";
 
 let cache: Promise<SpaceGroup[]> | undefined;
 
@@ -50,6 +51,8 @@ export const removeSpaceGroup = (s: AuthSession, sg: SpaceGroup) =>
     api.spaceGroups.deleteSpaceGroup(s, sg.id),
   ]).then(([spaceGroups]) => {
     const updatedSpaceGroups = spaceGroups.filter((g) => g.id !== sg.id);
+
+    clearSpaceGroupCache(sg.id);
 
     return updateCache(updatedSpaceGroups);
   });
