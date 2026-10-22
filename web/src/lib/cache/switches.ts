@@ -14,6 +14,8 @@ export const clearCache = cache.clear;
 
 export const fetchSwitches = cache.fetch;
 
+export const watchSwitches = cache.watch;
+
 export const addSwitch = (
   s: AuthSession,
   panel: SwitchPanelId,

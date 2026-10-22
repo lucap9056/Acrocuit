@@ -9,6 +9,7 @@ export type DialogButtonHandler = () =>
 export interface DialogButton {
   text: string;
   type: string;
+  align?: "start";
   onclick: DialogButtonHandler;
 }
 
