@@ -197,11 +197,6 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 		return nil, err
 	}
 
-	_, fields, err := models.ParseSwitchColumns("")
-	if err != nil {
-		return nil, err
-	}
-
 	query := `
 		WITH RECURSIVE switch_chain AS (
 			SELECT ` + switchColumns + `
@@ -215,11 +210,10 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 			FROM ` + schema.SwitchesTable + `
 			JOIN switch_chain ON ` + schema.FullSwitches_ID + ` = switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `
 		)
-		SELECT DISTINCT ` + schema.Switches_ID + `, ` + schema.Switches_NAME + `, ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_SPACE_GROUP_ID + `, ` + schema.Switches_DISPLAY_ORDER + `, ` + schema.Switches_UPSTREAM_SWITCH_ID + `
-		FROM switch_chain
-		ORDER BY ` + schema.Switches_ID + `
+		SELECT DISTINCT ` + switchChainWithPanelColumns + switchChainJoinPanel + `
+		ORDER BY switch_chain.` + schema.Switches_ID + `
 	`
-	return querySwitches(ctx, d.db, fields, query, deviceId)
+	return querySwitchesWithPanel(ctx, d.db, query, deviceId)
 }
 
 func upsertDevicePosition(ctx context.Context, q querier, deviceId int, position models.Position) error {

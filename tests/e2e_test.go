@@ -405,6 +405,51 @@ func TestE2E(t *testing.T) {
 		assert.ElementsMatch(t, want, switchIds(upstream(c, shared)), "upstream of device9")
 	})
 
+	t.Run("PowerChainIncludesPanelsAndPositions", func(t *testing.T) {
+		c := c.with(t)
+		panelPosition := models.Position{X: 1, Y: 2, Z: 3}
+		devicePosition := models.Position{X: 4, Y: 5, Z: 6}
+
+		path := fmt.Sprintf("/switch-panels/%d/position", switchPanels["group4"])
+		req := newRequest(t, http.MethodPut, path, map[string]any{"position": panelPosition})
+		require.Equal(t, http.StatusOK, c.Send(req, nil), "PUT %s", path)
+
+		path = fmt.Sprintf("/devices/%d/position", devices["device8"])
+		req = newRequest(t, http.MethodPut, path, map[string]any{"position": devicePosition})
+		require.Equal(t, http.StatusOK, c.Send(req, nil), "PUT %s", path)
+
+		assertPanel := func(sw models.Switch, source string) {
+			t.Helper()
+			panel := sw.SwitchPanel
+			require.NotNil(t, panel, "%s: switch #%d panel", source, sw.Id)
+			require.NotNil(t, panel.Space, "%s: switch #%d panel space", source, sw.Id)
+			if panel.Id == switchPanels["group4"] {
+				assert.Equal(t, "group4", panel.Name, "%s: panel name", source)
+				assert.Equal(t, spaces["space4"], panel.Space.Id, "%s: panel space", source)
+				assert.Equal(t, &panelPosition, panel.Position, "%s: panel position", source)
+			} else {
+				assert.NotEmpty(t, panel.Name, "%s: switch #%d panel name", source, sw.Id)
+				assert.Nil(t, panel.Position, "%s: switch #%d panel position", source, sw.Id)
+			}
+		}
+
+		treeSwitches, treeDevices := downstream(c, root)
+		for _, sw := range treeSwitches {
+			assertPanel(sw, "downstream")
+		}
+		for _, d := range treeDevices {
+			if d.Id == devices["device8"] {
+				assert.Equal(t, &devicePosition, d.Position, "downstream device8 position")
+			} else {
+				assert.Nil(t, d.Position, "downstream device #%d position", d.Id)
+			}
+		}
+
+		for _, sw := range upstream(c, shared) {
+			assertPanel(sw, "upstream")
+		}
+	})
+
 	spaceId := spaces["space2"]
 	spacePath := fmt.Sprintf("/spaces/%d", spaceId)
 	backgroundImagePath := spacePath + "/background-image"

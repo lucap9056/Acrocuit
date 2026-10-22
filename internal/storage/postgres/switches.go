@@ -12,6 +12,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	switchChainWithPanelColumns = `switch_chain.` + schema.Switches_ID + `, switch_chain.` + schema.Switches_NAME + `, switch_chain.` + schema.Switches_SWITCH_PANEL_ID + `, switch_chain.` + schema.Switches_SPACE_GROUP_ID + `, switch_chain.` + schema.Switches_DISPLAY_ORDER + `, switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `, ` + models.SWITCH_PANEL_WITH_POSITION_COLUMNS
+	switchChainJoinPanel        = `
+		FROM switch_chain
+		JOIN ` + schema.SwitchPanelsTable + ` ON ` + schema.FullSwitchPanels_ID + ` = switch_chain.` + schema.Switches_SWITCH_PANEL_ID + `
+		LEFT JOIN ` + schema.SwitchPanelPositionsTable + ` ON ` + schema.JoinSwitchPanelPositions_SwitchPanels
+)
+
 type pgSwitches struct {
 	pool *pgxpool.Pool
 }
@@ -215,11 +223,6 @@ func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId i
 }
 
 func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId int) ([]models.Switch, []models.Device, error) {
-	_, fields, err := models.ParseSwitchColumns("")
-	if err != nil {
-		return nil, nil, err
-	}
-
 	query := `
 		WITH RECURSIVE switch_chain AS (
 			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `, 0 AS depth
@@ -235,9 +238,8 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 			FROM ` + schema.SwitchesTable + `
 			JOIN switch_chain ON ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + ` = switch_chain.` + schema.Switches_ID + `
 		)
-		SELECT ` + schema.Switches_ID + `, ` + schema.Switches_NAME + `, ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_SPACE_GROUP_ID + `, ` + schema.Switches_DISPLAY_ORDER + `, ` + schema.Switches_UPSTREAM_SWITCH_ID + `
-		FROM switch_chain
-		ORDER BY depth
+		SELECT ` + switchChainWithPanelColumns + switchChainJoinPanel + `
+		ORDER BY switch_chain.depth
 	`
 	rows, err := s.pool.Query(ctx, query, switchId, userEmail)
 	if err != nil {
@@ -248,7 +250,7 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 	ids := make([]int, 0)
 	for rows.Next() {
 		var sw models.Switch
-		if err := rows.Scan(sw.Values(fields)...); err != nil {
+		if err := rows.Scan(sw.ValuesWithPanel()...); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
@@ -266,9 +268,10 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 	}
 
 	deviceQuery := `
-		SELECT ` + schema.FullDevices_ID + `, ` + schema.FullDevices_NAME + `, ` + schema.FullDevices_SPACE_ID + `, ` + schema.FullDeviceSwitches_SWITCH_ID + `
+		SELECT ` + schema.FullDevices_ID + `, ` + schema.FullDevices_NAME + `, ` + schema.FullDevices_SPACE_ID + `, ` + schema.FullDeviceSwitches_SWITCH_ID + `, ` + schema.FullDevicePositions_POSITION_X + `, ` + schema.FullDevicePositions_POSITION_Y + `, ` + schema.FullDevicePositions_POSITION_Z + `
 		FROM ` + schema.DevicesTable + `
 		JOIN ` + schema.DeviceSwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Devices + `
+		LEFT JOIN ` + schema.DevicePositionsTable + ` ON ` + schema.JoinDevicePositions_Devices + `
 		WHERE ` + schema.FullDeviceSwitches_SWITCH_ID + ` = ANY($1)
 		ORDER BY ` + schema.FullDeviceSwitches_SWITCH_ID + `, ` + schema.FullDevices_ID + `
 	`
@@ -281,7 +284,7 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 	devices := make([]models.Device, 0)
 	for deviceRows.Next() {
 		var d models.Device
-		if err := deviceRows.Scan(&d.Id, &d.Name, &d.SpaceId, &d.SwitchId); err != nil {
+		if err := deviceRows.Scan(&d.Id, &d.Name, &d.SpaceId, &d.SwitchId, &d.PositionX, &d.PositionY, &d.PositionZ); err != nil {
 			return nil, nil, err
 		}
 		d.Build()

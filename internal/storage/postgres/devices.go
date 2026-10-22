@@ -312,11 +312,6 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 		return nil, repository.ErrNotFound
 	}
 
-	_, fields, err := models.ParseSwitchColumns("")
-	if err != nil {
-		return nil, err
-	}
-
 	query := `
 		WITH RECURSIVE switch_chain AS (
 			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `
@@ -330,9 +325,8 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 			FROM ` + schema.SwitchesTable + `
 			JOIN switch_chain ON ` + schema.FullSwitches_ID + ` = switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `
 		)
-		SELECT DISTINCT ` + schema.Switches_ID + `, ` + schema.Switches_NAME + `, ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_SPACE_GROUP_ID + `, ` + schema.Switches_DISPLAY_ORDER + `, ` + schema.Switches_UPSTREAM_SWITCH_ID + `
-		FROM switch_chain
-		ORDER BY ` + schema.Switches_ID + `
+		SELECT DISTINCT ` + switchChainWithPanelColumns + switchChainJoinPanel + `
+		ORDER BY switch_chain.` + schema.Switches_ID + `
 	`
 	rows, err := d.pool.Query(ctx, query, deviceId)
 	if err != nil {
@@ -343,7 +337,7 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 	switches := make([]models.Switch, 0)
 	for rows.Next() {
 		var sw models.Switch
-		if err := rows.Scan(sw.Values(fields)...); err != nil {
+		if err := rows.Scan(sw.ValuesWithPanel()...); err != nil {
 			return nil, err
 		}
 		sw.Build()

@@ -8,6 +8,8 @@ import (
 
 const SWITCH_ALL_COLUMNS = schema.FullSwitches_ID + "," + schema.FullSwitches_NAME + "," + schema.FullSwitches_SWITCH_PANEL_ID + "," + schema.FullSwitches_SPACE_GROUP_ID + "," + schema.FullSwitches_DISPLAY_ORDER + "," + schema.FullSwitches_UPSTREAM_SWITCH_ID
 
+var switchAllFields = []uint8{0, 1, 2, 3, 4, 5}
+
 type Switch struct {
 	Id               int    `json:"id"`
 	Name             string `json:"name"`
@@ -27,6 +29,12 @@ func (s *Switch) Build() {
 	if s.UpstreamSwitch == nil && s.UpstreamSwitchId != nil {
 		s.UpstreamSwitch = &Switch{Id: *s.UpstreamSwitchId, SpaceGroupId: s.SpaceGroupId}
 	}
+	s.SwitchPanel.Build()
+}
+
+func (s *Switch) ValuesWithPanel() []any {
+	s.SwitchPanel = &SwitchPanel{}
+	return append(s.Values(switchAllFields), s.SwitchPanel.Values(switchPanelWithPositionFields)...)
 }
 
 func ParseSwitchColumns(columnsStr string) (string, []uint8, error) {
