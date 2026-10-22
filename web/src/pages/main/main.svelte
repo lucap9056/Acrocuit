@@ -9,12 +9,15 @@
   import load from "@/components/loading-bar";
   import LoadingBar from "@/components/loading-bar/loading-bar.svelte";
   import Toast from "@/components/toast/toast.svelte";
+  import { createHashRouter } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import Dashboard from "./dashboard/dashboard.svelte";
   import Login from "./login.svelte";
   import { clearSession, getSession, setSession } from "./main";
   import styles from "./main.module.css";
+
+  const router = createHashRouter();
 
   let session = $state<AuthSession>();
   let sessionErr = $state<Error>();
@@ -68,6 +71,10 @@
   onMount((signal) => {
     mountSignal = signal;
     connect(signal);
+
+    return () => {
+      router.dispose();
+    };
   });
 
   const onLogin = (token: TokenPair) => {
@@ -90,7 +97,7 @@
 
 {#if isLoaded}
   {#if session}
-    <Dashboard {session} />
+    <Dashboard {session} {router} />
   {:else if isUnauthenticated}
     <Login onsuccess={onLogin} />
   {:else}

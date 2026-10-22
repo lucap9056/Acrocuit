@@ -2,25 +2,27 @@
   import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
   import type { AuthSession, SpaceGroup } from "@/api";
-  import dialog, { type DialogContentProps } from "@/components/dialog";
+  import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
-  import router from "@/lib/hash-routers";
-  import { onMount } from "@/lib/lifecycle";
   import {
     addSpaceGroup,
     fetchSpaceGroups,
     removeSpaceGroup,
     updateSpaceGroup,
   } from "@/lib/cache/space-groups";
+  import type { HashRouter } from "@/lib/hash-routers";
+  import { t } from "@/lib/i18n";
+  import { onMount } from "@/lib/lifecycle";
 
   import styles from "./space-group-selector.module.css";
 
   interface Props {
     session: AuthSession;
+    router: HashRouter;
   }
 
-  const { session }: Props = $props();
+  const { session, router }: Props = $props();
   let spaceGroups = $state<SpaceGroup[]>([]);
   let loadError = $state<string>();
   let isLoaded = $state(false);
@@ -32,7 +34,7 @@
   };
 
   const loadSpaceGroups = (s: AuthSession, signal: AbortSignal) => {
-    const loading = load.begin();
+    const loading = load.begin(t("loading.fetchSpaceGroups"));
     fetchSpaceGroups(s)
       .then((sgs) => {
         if (!signal.aborted) {
@@ -67,7 +69,7 @@
       content: setSpaceGroupName,
       buttons: [
         {
-          text: "cancel",
+          text: t("common.cancel"),
           type: "",
           onclick: () => {
             reject();
@@ -89,8 +91,8 @@
   };
 
   const create = () => {
-    showDialog("create").then((name) => {
-      const loading = load.begin();
+    showDialog(t("common.create")).then((name) => {
+      const loading = load.begin(t("loading.createSpaceGroup"));
       addSpaceGroup(session, name)
         .then(showSpaceGroups)
         .catch((err) => {
@@ -103,8 +105,8 @@
   };
 
   const rename = async (sg: SpaceGroup) => {
-    showDialog("rename", sg.name).then((name) => {
-      const loading = load.begin();
+    showDialog(t("common.rename"), sg.name).then((name) => {
+      const loading = load.begin(t("loading.renameSpaceGroup"));
 
       updateSpaceGroup(session, { ...sg, name })
         .then((sgs) => {
@@ -125,7 +127,7 @@
         text: "",
         buttons: [
           {
-            text: "cancel",
+            text: t("common.cancel"),
             type: "",
             onclick: () => {
               reject();
@@ -133,7 +135,7 @@
             },
           },
           {
-            text: "remove",
+            text: t("common.remove"),
             type: "",
             onclick: () => {
               resolve(true);
@@ -143,7 +145,7 @@
         ],
       });
     }).then(() => {
-      const loading = load.begin();
+      const loading = load.begin(t("loading.removeSpaceGroup"));
 
       removeSpaceGroup(session, sg)
         .then((sgs) => {
@@ -165,14 +167,16 @@
   };
 </script>
 
-{#snippet setSpaceGroupName({ dismiss }: DialogContentProps)}
+{#snippet setSpaceGroupName()}
   <input type="text" bind:value={spaceGroupName}>
 {/snippet}
 
 <div class="space_groups {styles.space_groups}">
   <div class="heading {styles.heading}">
-    <h1 class={styles.title}>Space groups</h1>
-    <button class={styles.create} onclick={create}>New space group</button>
+    <h1 class={styles.title}>{t("spaceGroups.title")}</h1>
+    <button class={styles.create} onclick={create}>
+      {t("spaceGroups.new")}
+    </button>
   </div>
 
   {#if loadError}
@@ -180,7 +184,7 @@
   {:else if isLoaded && spaceGroups.length === 0}
     <div>
       <p class={styles.message}>
-        No space groups yet. A space group is usually one building or site.
+        {t("spaceGroups.empty")}
       </p>
     </div>
   {:else}
@@ -194,14 +198,14 @@
             <button
               class="icon_button"
               onclick={() => rename(sg)}
-              {@attach tooltip("Rename")}
+              {@attach tooltip(t("common.rename"))}
             >
               <PencilSimpleIcon />
             </button>
             <button
               class="icon_button {styles.delete}"
               onclick={() => remove(sg)}
-              {@attach tooltip("Delete")}
+              {@attach tooltip(t("common.delete"))}
             >
               <TrashIcon />
             </button>

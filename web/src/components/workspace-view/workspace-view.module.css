@@ -1,17 +1,145 @@
 .workspace {
+  --side-width: 18rem;
+
+  position: relative;
+  container-type: inline-size;
   display: flex;
   flex-flow: row;
+  flex: 1;
+  min-height: 0;
 
-  .items {
+  .header {
     display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.25rem;
+    height: 2.5rem;
+    padding: 0 0.3125rem;
   }
 
-  .view {
+  .mirrored {
+    transform: scaleX(-1);
+  }
+
+  .main {
+    isolation: isolate;
+    display: flex;
+    flex-flow: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toolbar {
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+
+    .toolbar_content {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      gap: 0.25rem;
+    }
+  }
+
+  .center {
     display: flex;
     flex: 1;
+    min-height: 0;
+    overflow: auto;
   }
 
-  .info {
+  .side {
+    width: var(--side-width);
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--surface);
+    transition:
+      width 200ms ease,
+      box-shadow 200ms ease;
+
+    &[data-visible="false"] {
+      width: 0;
+      box-shadow: none;
+    }
+
+    .panel {
+      display: flex;
+      flex-flow: column;
+      width: var(--side-width);
+      height: 100%;
+    }
+
+    .header,
+    .content {
+      scrollbar-gutter: stable;
+    }
+
+    .header {
+      overflow: hidden;
+    }
+
+    .content {
+      display: flex;
+      flex-flow: column;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+  }
+
+  .left {
+    .panel {
+      border-right: 1px solid var(--border);
+    }
+
+    .header_end {
+      display: flex;
+      margin-left: auto;
+    }
+  }
+
+  .right {
     display: flex;
+    justify-content: flex-end;
+
+    .panel {
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+    }
+  }
+
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 0;
+    border-radius: 0;
+    background: var(--overlay);
+    cursor: default;
+
+    &:hover {
+      background: var(--overlay);
+    }
+  }
+
+  &.narrow {
+    --side-width: min(18rem, 85cqw);
+  }
+
+  &.narrow .side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: var(--shadow-lg);
+
+    &.left {
+      left: 0;
+    }
+
+    &.right {
+      right: 0;
+    }
   }
 }

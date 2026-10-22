@@ -8,7 +8,9 @@
   flex-flow: column;
 
   .header {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 24rem) 1fr;
+    align-items: center;
     height: 2.5rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -16,8 +18,18 @@
     z-index: 1;
 
     .center {
-      flex: 1;
+      display: flex;
+      justify-content: center;
+      min-width: 0;
+      padding: 0 0.5rem;
     }
+    .left {
+      justify-self: start;
+    }
+    .right {
+      justify-self: end;
+    }
+    .left,
     .right {
       text-align: center;
       display: flex;

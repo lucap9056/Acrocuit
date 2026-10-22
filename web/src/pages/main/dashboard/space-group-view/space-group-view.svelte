@@ -1,42 +1,62 @@
 <script lang="ts">
   import type { AuthSession, Space, SpaceGroup } from "@/api";
+  import back from "@/components/back-button";
+  import headerTitle from "@/components/header-title";
   import load from "@/components/loading-bar";
   import { fetchSpaces } from "@/lib/cache/spaces";
-  import router, {
+  import {
     field,
+    type HashRouter,
     type RouteHandler,
     type RouteParams,
   } from "@/lib/hash-routers";
+  import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
-
+  import type { Workspace } from "@/lib/workspace";
+  import FloorInfo from "./floor-info/floor-info.svelte";
+  import { FloorOverview } from "./floor-overview.svelte";
+  import FloorOverviewCanvas from "./floor-overview-canvas/floor-overview-canvas.svelte";
+  import FloorOverviewToolbar from "./floor-overview-toolbar/floor-overview-toolbar.svelte";
   import styles from "./space-group-view.module.css";
-    import type { Workspace } from "@/lib/workspace";
+  import SpaceList from "./space-list/space-list.svelte";
+  import SpaceView from "./space-view/space-view.svelte";
 
   interface Props {
     session: AuthSession;
-    workspace:Workspace;
+    workspace: Workspace;
+    router: HashRouter;
     spaceGroup: SpaceGroup;
   }
 
-  const { session, workspace, spaceGroup }: Props = $props();
+  const { session, workspace, router, spaceGroup }: Props = $props();
 
-  let spaces = $state<Space[]>([]);
+  let spaces = $state<Space[]>();
+  let selectedSpace = $state<Space>();
+  let spaceGroupRouter = $state.raw<HashRouter>();
 
-  let currentIndex = $state(0);
-  let isFocus = $state(false);
+  const overview = new FloorOverview();
 
-  const onSpaceSelected = (signal: AbortSignal, spaceIdStr: string) => {
+  const onspacesupdate = (updatedSpaces: Space[]) => {
+    spaces = updatedSpaces;
+    selectedSpace = updatedSpaces.find(({ id }) => id === selectedSpace?.id);
+  };
+
+  const onSpaceSelected = (
+    signal: AbortSignal,
+    scopedRouter: HashRouter,
+    spaceIdStr: string,
+  ) => {
     const spaceId = parseInt(spaceIdStr, 10);
     if (Number.isNaN(spaceId)) {
-      router.back(`/space-groups/${spaceGroup.id.toString()}`);
+      scopedRouter.back();
       return;
     }
 
-    const loading = load.begin();
+    const loading = load.begin(t("loading.fetchSpace"));
     fetchSpaces(session, spaceGroup.id)
       .then((s) => {
         if (!signal.aborted) {
-          currentIndex = s.findIndex(({ id }) => id === spaceId);
+          selectedSpace = s.find(({ id }) => id === spaceId);
         }
       })
       .catch((err) => {
@@ -48,14 +68,20 @@
   };
 
   onMount((signal) => {
-    currentIndex = 0;
-    workspace.set({
+    workspace.push(
+      {
         leftpart: spaceList,
-        centerpart: spacesView,
-        rightpart:spaceInfo
-    });
+        centerpart: floorView,
+        toolbarpart: viewToolbar,
+        rightpart: spaceInfo,
+      },
+      signal,
+    );
+    back.push(() => router.backTo(""), signal);
 
-    const loading = load.begin();
+    headerTitle.push(title, signal);
+
+    const loading = load.begin(t("loading.fetchSpaces"));
 
     fetchSpaces(session, spaceGroup.id)
       .then((s) => {
@@ -70,47 +96,73 @@
         loading.release();
       });
 
+    const scopedRouter = router.child(`space-groups/${spaceGroup.id}`);
+    spaceGroupRouter = scopedRouter;
     const paramName = "spaceId";
-    const routePath = `space-groups/*/space/:${paramName}`;
+    const routePath = `space/:${paramName}/*`;
 
     const onSpaceSelectedRouteHandle: RouteHandler = (params?: RouteParams) => {
       if (params !== undefined) {
         const spaceId = field(params, paramName, "");
 
-        onSpaceSelected(signal, spaceId);
-      } else {
-        if (!signal.aborted) {
-          currentIndex = 0;
-        }
+        onSpaceSelected(signal, scopedRouter, spaceId);
+      } else if (!signal.aborted) {
+        selectedSpace = undefined;
       }
     };
 
-    const params = router.on(routePath, onSpaceSelectedRouteHandle);
+    const params = scopedRouter.on(
+      routePath,
+      onSpaceSelectedRouteHandle,
+      signal,
+    );
     onSpaceSelectedRouteHandle(params);
 
     return () => {
-      router.off(routePath, onSpaceSelectedRouteHandle);
+      spaceGroupRouter = undefined;
     };
   });
 </script>
 
 {#snippet spaceList()}
-<div></div>
+  {#if spaceGroupRouter}
+    <SpaceList
+      {session}
+      {spaceGroup}
+      router={spaceGroupRouter}
+      bind:spaces
+      onspacehover={(id) => overview.revealSpace(id)}
+    />
+  {/if}
 {/snippet}
 
-{#snippet spacesView()}
-    <div class={styles.items}>
-      {#each spaces as space}
-        <div>{space.name}</div>
-      {/each}
-    </div>
+{#snippet title()}
+  <span class={styles.space_group_name}>{spaceGroup.name}</span>
+{/snippet}
+
+{#snippet viewToolbar()}
+  <FloorOverviewToolbar {overview} />
+{/snippet}
+
+{#snippet floorView()}
+  <FloorOverviewCanvas {session} {spaceGroup} {spaces} {overview} />
 {/snippet}
 
 {#snippet spaceInfo()}
-<div></div>
-  
+  {#if spaces}
+    <FloorInfo {session} {spaces} {overview} />
+  {/if}
 {/snippet}
 
-{#if spaces.length > 0 && isFocus}
-<div></div>
+{#if spaceGroupRouter}
+  {#each selectedSpace ? [selectedSpace] : [] as space (space.id)}
+    <SpaceView
+      {session}
+      {workspace}
+      router={spaceGroupRouter}
+      {spaceGroup}
+      {space}
+      {onspacesupdate}
+    />
+  {/each}
 {/if}
