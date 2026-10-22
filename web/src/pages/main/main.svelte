@@ -8,6 +8,7 @@
   import Dialog from "@/components/dialog/dialog.svelte";
   import load from "@/components/loading-bar";
   import LoadingBar from "@/components/loading-bar/loading-bar.svelte";
+  import Toast from "@/components/toast/toast.svelte";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import Dashboard from "./dashboard/dashboard.svelte";
@@ -39,7 +40,7 @@
   };
 
   const connect = (signal: AbortSignal) => {
-    const loading = load.begin();
+    const loading = load.begin(t("loading.connect"));
 
     getSession(callback)
       .then((s) => {
@@ -104,3 +105,4 @@
 
 <Dialog />
 <LoadingBar />
+<Toast />
