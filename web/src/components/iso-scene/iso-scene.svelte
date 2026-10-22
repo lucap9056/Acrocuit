@@ -1,5 +1,10 @@
 <script lang="ts">
-  import type { IsoPlane, IsoSnapshot } from "@/lib/iso-scene/snapshot";
+  import { untrack } from "svelte";
+  import type {
+    IsoMarker,
+    IsoPlane,
+    IsoSnapshot,
+  } from "@/lib/iso-scene/snapshot";
   import { onMount } from "@/lib/lifecycle";
   import { revealPoints, zoomAt } from "./camera/navigate";
   import type { Point } from "./camera/projection";
@@ -17,7 +22,12 @@
     tilt: number;
     palette?: ScenePalette;
     highlightId?: number;
+    highlightMarkerId?: string;
+    initialViewport?: ViewportState;
     oninspect?: (plane: IsoPlane) => void;
+    oninspectmarker?: (marker: IsoMarker) => void;
+    onopenmarker?: (marker: IsoMarker) => void;
+    onviewportchange?: (viewport: ViewportState | undefined) => void;
   }
 
   const {
@@ -25,7 +35,12 @@
     tilt,
     palette = BLUEPRINT_PALETTE,
     highlightId,
+    highlightMarkerId,
+    initialViewport,
     oninspect,
+    oninspectmarker,
+    onopenmarker,
+    onviewportchange,
   }: Props = $props();
 
   const BUTTON_ZOOM_FACTOR = 1.25;
@@ -38,7 +53,9 @@
   let width = $state(0);
   let height = $state(0);
   let dpr = $state(1);
-  let viewportOverride = $state.raw<ViewportState>();
+  let viewportOverride = $state.raw<ViewportState | undefined>(
+    untrack(() => initialViewport),
+  );
   let revealFrame: number | undefined;
   let isPanning = $state(false);
 
@@ -62,12 +79,21 @@
     }
   };
 
+  const inspectMarker = (marker: IsoMarker) => {
+    if (marker.id !== highlightMarkerId) {
+      oninspectmarker?.(marker);
+    }
+  };
+
   const inspectElementAt = (clientX: number, clientY: number) => {
     const target = document
       .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>("[data-plane-index]");
+      ?.closest<HTMLElement>("[data-plane-index], [data-marker-index]");
+    const marker = layout.markers[Number(target?.dataset.markerIndex)]?.marker;
     const plane = layout.planes[Number(target?.dataset.planeIndex)]?.plane;
-    if (plane) {
+    if (marker) {
+      inspectMarker(marker);
+    } else if (plane) {
       inspect(plane);
     }
   };
@@ -146,7 +172,11 @@
   export const getZoomLevel = () => zoomLevel;
 
   $effect(() => {
-    painter?.paint(layout, { dpr, highlightId, palette });
+    painter?.paint(layout, { dpr, highlightId, highlightMarkerId, palette });
+  });
+
+  $effect(() => {
+    onviewportchange?.(viewportOverride);
   });
 
   onMount((signal) => {
@@ -189,5 +219,11 @@
   onpointercancel={gestures.onpointercancel}
 >
   <canvas class={styles.canvas} bind:this={canvas}></canvas>
-  <HitLayer {layout} oninspect={inspect} />
+  <HitLayer
+    {layout}
+    {highlightMarkerId}
+    oninspect={inspect}
+    oninspectmarker={inspectMarker}
+    onopenmarker={(marker) => onopenmarker?.(marker)}
+  />
 </div>

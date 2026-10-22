@@ -29,3 +29,17 @@ export const tracePolygon = (
   });
   ctx.closePath();
 };
+
+export const tracePolyline = (
+  ctx: CanvasRenderingContext2D,
+  points: Point[],
+) => {
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) {
+      ctx.moveTo(p.x, p.y);
+    } else {
+      ctx.lineTo(p.x, p.y);
+    }
+  });
+};

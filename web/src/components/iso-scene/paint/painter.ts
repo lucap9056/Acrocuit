@@ -3,6 +3,8 @@ import { gridLayer } from "./grid";
 import { highlightLayer } from "./highlight";
 import { labelsLayer } from "./labels";
 import type { PaintContext, PaintLayer } from "./layer";
+import { linksLayer } from "./links";
+import { markersLayer } from "./markers";
 import { planesLayer } from "./planes";
 import { titleBlockLayer } from "./title-block";
 
@@ -10,6 +12,8 @@ export const defaultLayers: PaintLayer[] = [
   gridLayer,
   planesLayer,
   highlightLayer,
+  linksLayer,
+  markersLayer,
   labelsLayer,
   titleBlockLayer,
 ];
