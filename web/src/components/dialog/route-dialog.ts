@@ -1,7 +1,11 @@
 import type { HashRouter, RouteParams } from "@/lib/hash-routers";
 import { t } from "@/lib/i18n";
-import type { DialogMessage } from "./index";
+import type { DialogButton, DialogMessage } from "./index";
 import dialog from "./index";
+
+export type RouteDialogMessage = Omit<DialogMessage, "buttons"> & {
+  actions?: DialogButton[];
+};
 
 export interface RouteDialogOptions {
   router: HashRouter;
@@ -10,7 +14,7 @@ export interface RouteDialogOptions {
   open: (
     params: RouteParams,
     signal: AbortSignal,
-  ) => Promise<Omit<DialogMessage, "buttons"> | undefined>;
+  ) => Promise<RouteDialogMessage | undefined>;
   onopened?: (signal: AbortSignal) => void;
   signal: AbortSignal;
 }
@@ -59,14 +63,16 @@ export const routeDialog = ({
           return;
         }
 
+        const { actions = [], ...content } = message;
         const { token } = dialog.push({
-          ...message,
+          ...content,
           buttons: [
+            ...actions,
             {
               text: t("common.close"),
               type: "",
               onclick: () => {
-                router.backTo(closeTo);
+                router.close(closeTo);
                 return false;
               },
             },

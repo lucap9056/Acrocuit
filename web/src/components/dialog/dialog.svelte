@@ -39,32 +39,34 @@
 
 {#if lastMessage}
   <div class={styles.dialog}>
-    <div class={styles.dialog_message}>
-      {#key lastMessage.token}
-        {#if lastMessage.payload.text}
-          <div class={styles.dialog_text}>{lastMessage.payload.text}</div>
+    {#each messages as message (message.token)}
+      {@const isTop = message.token === lastMessage.token}
+      <div class={styles.dialog_message} hidden={!isTop} inert={!isTop}>
+        {#if message.payload.text}
+          <div class={styles.dialog_text}>{message.payload.text}</div>
         {/if}
-        {#if lastMessage.payload.content}
+        {#if message.payload.content}
           <div class={styles.dialog_content}>
-            {@render lastMessage.payload.content({
-              dismiss: () => dialog.dismiss(lastMessage.token),
+            {@render message.payload.content({
+              dismiss: () => dialog.dismiss(message.token),
             })}
           </div>
         {/if}
-      {/key}
-      {#if lastMessage.payload.buttons.length > 0}
-        <div class={styles.dialog_buttons}>
-          {#each lastMessage.payload.buttons as button, i}
-            <button
-              data-type={button.type}
-              disabled={pendingToken === lastMessage.token}
-              onclick={() => onclick(lastMessage, i)}
-            >
-              {button.text}
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
+        {#if message.payload.buttons.length > 0}
+          <div class={styles.dialog_buttons}>
+            {#each message.payload.buttons as button, i}
+              <button
+                data-type={button.type}
+                data-align={button.align}
+                disabled={pendingToken === message.token}
+                onclick={() => onclick(message, i)}
+              >
+                {button.text}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/each}
   </div>
 {/if}

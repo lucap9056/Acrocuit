@@ -2,15 +2,21 @@ export type RouteParams = Record<string, string>;
 
 export type RouteHandler = (params?: RouteParams) => void;
 
+export interface NavigateOptions {
+  origin?: string;
+}
+
 export interface HashRouter {
   on: (
     path: string,
     handler: RouteHandler,
     signal: AbortSignal,
   ) => RouteParams | undefined;
-  to: (path: string) => void;
+  to: (path: string, options?: NavigateOptions) => void;
   back: (fallbackPath?: string) => void;
   backTo: (path: string) => void;
+  close: (fallbackPath?: string) => void;
+  origin: () => string | undefined;
   child: (prefix: string) => HashRouter;
 }
 
@@ -101,17 +107,24 @@ const getHistoryPreviousPath = (): string | undefined => {
   return typeof path === "string" ? path : undefined;
 };
 
+const getHistoryOrigin = (): string | undefined => {
+  const origin = window.history.state?.hashRouterOrigin;
+  return typeof origin === "string" ? origin : undefined;
+};
+
 interface HistoryEntry {
   index: number;
   previousPath?: string;
+  origin?: string;
 }
 
-const stampHistoryEntry = ({ index, previousPath }: HistoryEntry) => {
+const stampHistoryEntry = ({ index, previousPath, origin }: HistoryEntry) => {
   window.history.replaceState(
     {
       ...window.history.state,
       hashRouterIndex: index,
       hashRouterPreviousPath: previousPath,
+      hashRouterOrigin: origin,
     },
     "",
   );
@@ -122,6 +135,7 @@ export const createHashRouter = (): RootHashRouter => {
   const listenerController = new AbortController();
   let previousPath = getCurrentPath();
   let replacedHistoryEntry: HistoryEntry | undefined;
+  let pendingOrigin: string | undefined;
 
   const handleHashChange = () => {
     const prevPath = previousPath;
@@ -165,8 +179,10 @@ export const createHashRouter = (): RootHashRouter => {
           const entry = replacedHistoryEntry ?? {
             index: lastHistoryIndex + 1,
             previousPath,
+            origin: pendingOrigin,
           };
           replacedHistoryEntry = undefined;
+          pendingOrigin = undefined;
           lastHistoryIndex = entry.index;
           stampHistoryEntry(entry);
         } else {
@@ -205,8 +221,9 @@ export const createHashRouter = (): RootHashRouter => {
     return params;
   };
 
-  const navigate = (path: string) => {
+  const navigate = (path: string, options?: NavigateOptions) => {
     if (getCurrentPath() !== path) {
+      pendingOrigin = options?.origin;
       window.location.hash = path;
     }
   };
@@ -231,12 +248,22 @@ export const createHashRouter = (): RootHashRouter => {
     }
   };
 
+  const close = (fallbackPath: string) => {
+    if (getHistoryOrigin() !== undefined && (getHistoryIndex() ?? 0) > 0) {
+      window.history.back();
+    } else {
+      backTo(fallbackPath);
+    }
+  };
+
   const createScope = (prefix: string): HashRouter => ({
     on: (path, handler, signal) =>
       register(joinPath(prefix, path), handler, signal),
-    to: (path) => navigate(joinPath(prefix, path)),
+    to: (path, options) => navigate(joinPath(prefix, path), options),
     back: (fallbackPath = "") => back(joinPath(prefix, fallbackPath)),
     backTo: (path) => backTo(joinPath(prefix, path)),
+    close: (fallbackPath = "") => close(joinPath(prefix, fallbackPath)),
+    origin: getHistoryOrigin,
     child: (childPrefix) => createScope(joinPath(prefix, childPrefix)),
   });
 
