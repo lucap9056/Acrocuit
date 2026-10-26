@@ -1,9 +1,12 @@
 <script lang="ts">
-  import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon";
+  import BracketsCurlyIcon from "phosphor-svelte/lib/BracketsCurlyIcon";
+  import PlusIcon from "phosphor-svelte/lib/PlusIcon";
+  import TrashIcon from "phosphor-svelte/lib/TrashIcon";
   import { untrack } from "svelte";
   import type {
+    Attributes,
     AuthSession,
-    Space,
+    LinkedSwitch,
     SpaceGroup,
     SpaceId,
     Switch,
@@ -11,13 +14,23 @@
     SwitchPanel,
     SwitchPanelId,
   } from "@/api";
-  import api from "@/api";
+  import { ApiError } from "@/api";
+  import AttributesSection from "@/components/attributes-section/attributes-section.svelte";
+  import CollapsibleSection from "@/components/collapsible-section/collapsible-section.svelte";
+  import { editLinkAttributes } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
   import load from "@/components/loading-bar";
   import Spinner from "@/components/spinner/spinner.svelte";
   import SwitchSelector from "@/components/switch-selector/switch-selector.svelte";
   import Textbox from "@/components/textbox/textbox.svelte";
   import { tooltip } from "@/components/tooltip";
-  import { renameSwitch, setSwitchUpstream } from "@/lib/cache/switches";
+  import { SWITCH_ATTRIBUTE_FIELDS } from "@/lib/attributes";
+  import {
+    addSwitchUpstream,
+    fetchSwitchUpstreams,
+    removeSwitchUpstream,
+    setSwitchUpstreamAttributes,
+  } from "@/lib/cache/switch-upstreams";
+  import { renameSwitch, setSwitchAttributes } from "@/lib/cache/switches";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import styles from "./switch-editor.module.css";
@@ -25,121 +38,81 @@
   interface Props {
     session: AuthSession;
     spaceGroup: SpaceGroup;
-    space: Space;
+    spaceId: SpaceId;
     switchPanel: SwitchPanel;
     sw: Switch;
   }
 
-  interface UpstreamSelection {
-    spaceId: SpaceId;
-    switchPanelId: SwitchPanelId | null;
-    switchId: SwitchId | null;
-  }
-
-  const { session, spaceGroup, space, switchPanel, sw }: Props = $props();
+  const {
+    session,
+    spaceGroup,
+    spaceId: initialSpaceId,
+    switchPanel,
+    sw,
+  }: Props = $props();
 
   let current = $state(untrack(() => sw));
-  let downstreamIds = $state<SwitchId[]>(untrack(() => [sw.id]));
-  let isReady = $state(false);
+  let upstreams = $state<LinkedSwitch[]>();
   let isPending = $state(false);
-  let spaceId = $state<SpaceId>(untrack(() => space.id));
+  let addError = $state<{ switchId: SwitchId; message: string }>();
+  let spaceId = $state<SpaceId>(untrack(() => initialSpaceId));
   let switchPanelId = $state<SwitchPanelId | null>(null);
   let switchId = $state<SwitchId | null>(null);
 
-  const isDirty = $derived(
-    switchId !== (current.upstream_switch?.id ?? null),
-  );
-
-  const withSwitchPanel = (target: Switch) => ({
-    ...target,
-    switch_panel: { id: switchPanel.id },
-  });
-
-  const fetchUpstreamSelection = async (
-    target: Switch,
-  ): Promise<UpstreamSelection> => {
-    const none = { spaceId: space.id, switchPanelId: null, switchId: null };
-    if (!target.upstream_switch) {
-      return none;
-    }
-
-    const upstream = await api.switches.getSwitch(
-      session,
-      target.upstream_switch.id,
-    );
-    if (!upstream.switch_panel) {
-      return none;
-    }
-
-    const panel = await api.switchPanels.getSwitchPanel(
-      session,
-      upstream.switch_panel.id,
-    );
-    return {
-      spaceId: panel.space?.id ?? space.id,
-      switchPanelId: panel.id,
-      switchId: upstream.id,
-    };
-  };
-
-  const loadSelection = (signal?: AbortSignal) => {
-    isReady = false;
-    return fetchUpstreamSelection(current)
-      .then((selection) => {
-        if (signal?.aborted) {
-          return;
-        }
-        spaceId = selection.spaceId;
-        switchPanelId = selection.switchPanelId;
-        switchId = selection.switchId;
-        isReady = true;
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  };
+  const excludedIds = $derived([
+    current.id,
+    ...(upstreams?.map(({ id }) => id) ?? []),
+  ]);
 
   onMount((signal) => {
-    loadSelection(signal);
-
-    api.switches
-      .getSwitchDownstream(session, current.id)
-      .then(({ switches }) => {
+    fetchSwitchUpstreams(session, current.id)
+      .then((sws) => {
         if (!signal.aborted) {
-          downstreamIds = switches.map((s) => s.id);
+          upstreams = sws;
         }
       })
       .catch((err) => {
         console.error(err);
       });
   });
-
-  const replaceCurrent = (switches: Switch[]) => {
-    current = switches.find((s) => s.id === current.id) ?? current;
-  };
 
   const rename = (name: string) => {
     const loading = load.begin(t("loading.renameSwitch"));
-    return renameSwitch(session, withSwitchPanel(current), name)
-      .then(replaceCurrent)
+    return renameSwitch(
+      session,
+      { ...current, switch_panel: { id: switchPanel.id } },
+      name,
+    )
+      .then((switches) => {
+        current = switches.find((s) => s.id === current.id) ?? current;
+      })
       .finally(() => {
         loading.release();
       });
   };
 
-  const saveUpstream = () => {
-    if (!isDirty || isPending) {
-      return;
-    }
-    const target = switchId;
+  const saveAttributes = (attributes: Attributes) => {
+    const loading = load.begin(t("loading.updateSwitchAttributes"));
+    return setSwitchAttributes(
+      session,
+      { ...current, switch_panel: { id: switchPanel.id } },
+      attributes,
+    )
+      .then((switches) => {
+        current = switches.find((s) => s.id === current.id) ?? current;
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
+
+  const update = (message: string, request: () => Promise<LinkedSwitch[]>) => {
     isPending = true;
-    const loading = load.begin(
-      target === null
-        ? t("loading.removeSwitchUpstream")
-        : t("loading.setSwitchUpstream"),
-    );
-    setSwitchUpstream(session, withSwitchPanel(current), target)
-      .then(replaceCurrent)
+    const loading = load.begin(message);
+    return request()
+      .then((sws) => {
+        upstreams = sws;
+      })
       .catch((err) => {
         console.error(err);
       })
@@ -147,6 +120,61 @@
         isPending = false;
         loading.release();
       });
+  };
+
+  const describeAddError = (err: unknown) =>
+    err instanceof ApiError && err.status === 400
+      ? t("switchEditor.cycleRejected")
+      : (err as Error).message;
+
+  const add = () => {
+    if (switchId === null) {
+      return;
+    }
+
+    const target = switchId;
+    addError = undefined;
+    isPending = true;
+    const loading = load.begin(t("loading.addSwitchUpstream"));
+    addSwitchUpstream(session, current.id, target)
+      .then((sws) => {
+        upstreams = sws;
+        switchId = null;
+      })
+      .catch((err) => {
+        console.error(err);
+        addError = { switchId: target, message: describeAddError(err) };
+      })
+      .finally(() => {
+        isPending = false;
+        loading.release();
+      });
+  };
+
+  const editUpstreamAttributes = (upstream: LinkedSwitch) => {
+    editLinkAttributes(upstream.link.attributes, (attributes) => {
+      isPending = true;
+      const loading = load.begin(t("loading.updateSwitchUpstream"));
+      return setSwitchUpstreamAttributes(
+        session,
+        current.id,
+        upstream.id,
+        attributes,
+      )
+        .then((sws) => {
+          upstreams = sws;
+        })
+        .finally(() => {
+          isPending = false;
+          loading.release();
+        });
+    });
+  };
+
+  const remove = (upstream: Switch) => {
+    update(t("loading.removeSwitchUpstream"), () =>
+      removeSwitchUpstream(session, current.id, upstream.id),
+    );
   };
 </script>
 
@@ -157,10 +185,9 @@
     value={current.name}
     onsave={rename}
   />
-  <section class={styles.field}>
-    <h3 class={styles.heading}>{t("switchEditor.upstream")}</h3>
-    {#if isReady}
-      <div class={styles.upstream}>
+  <CollapsibleSection title={t("switchEditor.upstream")} open>
+    <ul class={styles.rows}>
+      <li class={styles.row}>
         <div class={styles.selector}>
           <SwitchSelector
             {session}
@@ -168,24 +195,62 @@
             bind:spaceId
             bind:switchPanelId
             bind:switchId
-            excludedSwitchIds={downstreamIds}
-            disabled={isPending}
+            excludedSwitchIds={excludedIds}
           />
         </div>
         <button
-          class={["icon_button", styles.save, !isDirty && styles.hidden]}
-          aria-label={t("common.save")}
-          disabled={isPending || !isDirty}
-          onclick={saveUpstream}
-          {@attach tooltip(t("common.save"))}
+          class="icon_button {styles.add}"
+          aria-label={t("switchEditor.addUpstream")}
+          disabled={switchId === null || isPending}
+          onclick={add}
+          {@attach tooltip(t("switchEditor.addUpstream"))}
         >
-          <FloppyDiskIcon />
+          <PlusIcon />
         </button>
-      </div>
-    {:else}
-      <div class={styles.loading} role="status" aria-label={t("common.loading")}>
-        <Spinner />
-      </div>
-    {/if}
-  </section>
+      </li>
+      {#if addError && addError.switchId === switchId}
+        <li class={styles.error} role="alert">{addError.message}</li>
+      {/if}
+      {#if upstreams === undefined}
+        <li
+          class={styles.loading}
+          role="status"
+          aria-label={t("common.loading")}
+        >
+          <Spinner />
+        </li>
+      {:else if upstreams.length === 0}
+        <li class={styles.message}>{t("common.noneYet")}</li>
+      {:else}
+        {#each upstreams as upstream (upstream.id)}
+          <li class={styles.row}>
+            <span class={styles.name}>{upstream.name}</span>
+            <button
+              class="icon_button {styles.edit}"
+              aria-label={t("attributes.edit")}
+              disabled={isPending}
+              onclick={() => editUpstreamAttributes(upstream)}
+              {@attach tooltip(t("attributes.edit"))}
+            >
+              <BracketsCurlyIcon />
+            </button>
+            <button
+              class="icon_button {styles.delete}"
+              aria-label={t("common.remove")}
+              disabled={isPending}
+              onclick={() => remove(upstream)}
+              {@attach tooltip(t("common.remove"))}
+            >
+              <TrashIcon />
+            </button>
+          </li>
+        {/each}
+      {/if}
+    </ul>
+  </CollapsibleSection>
+  <AttributesSection
+    fields={SWITCH_ATTRIBUTE_FIELDS}
+    attributes={current.attributes}
+    onsave={saveAttributes}
+  />
 </div>

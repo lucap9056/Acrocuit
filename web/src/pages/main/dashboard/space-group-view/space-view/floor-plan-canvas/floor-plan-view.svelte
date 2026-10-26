@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import type { SwitchPanel, Device, Position } from "@/api";
+  import type { Device, Position, SwitchPanel } from "@/api";
   import type { Point } from "@/components/iso-scene/camera/projection";
   import type { ViewportState } from "@/components/iso-scene/camera/viewport";
   import { createGestures } from "@/components/iso-scene/interaction/gestures";
@@ -15,10 +15,10 @@
     PositionDrafts,
   } from "@/pages/main/dashboard/space-group-view/space-view/position-drafts.svelte";
   import {
-    switchPanelKey,
     deviceKey,
     type FocusKey,
     type SpaceFocus,
+    switchPanelKey,
   } from "@/pages/main/dashboard/space-group-view/space-view/space-focus.svelte";
   import styles from "./floor-plan-canvas.module.css";
   import {

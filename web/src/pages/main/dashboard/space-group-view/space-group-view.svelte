@@ -99,7 +99,7 @@
     const scopedRouter = router.child(`space-groups/${spaceGroup.id}`);
     spaceGroupRouter = scopedRouter;
     const paramName = "spaceId";
-    const routePath = `space/:${paramName}/*`;
+    const routePath = `spaces/:${paramName}/*`;
 
     const onSpaceSelectedRouteHandle: RouteHandler = (params?: RouteParams) => {
       if (params !== undefined) {
@@ -144,14 +144,14 @@
   <FloorOverviewToolbar {overview} />
 {/snippet}
 
-{#snippet floorView()}
-  <FloorOverviewCanvas {session} {spaceGroup} {spaces} {overview} />
-{/snippet}
-
 {#snippet spaceInfo()}
   {#if spaces}
     <FloorInfo {session} {spaces} {overview} />
   {/if}
+{/snippet}
+
+{#snippet floorView()}
+  <FloorOverviewCanvas {session} {spaceGroup} {spaces} {overview} />
 {/snippet}
 
 {#if spaceGroupRouter}

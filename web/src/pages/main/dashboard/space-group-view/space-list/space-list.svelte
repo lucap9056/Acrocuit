@@ -273,7 +273,7 @@
           </button>
           <button
             class={styles.select}
-            onclick={() => router.to(`space/${space.id}`)}
+            onclick={() => router.to(`spaces/${space.id}`)}
           >
             <span class={styles.name}>{space.name}</span>
           </button>

@@ -1,16 +1,20 @@
 import type {
+  Attributes,
   ChainSwitch,
   Device,
   DeviceId,
+  DeviceLink,
   Position,
   Ref,
   Space,
   SpaceId,
   Switch,
   SwitchId,
+  SwitchLink,
   SwitchPanel,
   SwitchPanelId,
 } from "@/api";
+import type { Supply } from "./load";
 
 export type ChainPlaceKey = string;
 
@@ -30,11 +34,15 @@ export interface ChainPlace {
 
 export type ChainDetail =
   | { kind: "panel"; panel: SwitchPanel; switches: Switch[] }
-  | { kind: "switch"; sw: Switch; panel: SwitchPanel; upstream?: Switch }
-  | { kind: "device"; device: Device; feeders: Switch[] };
+  | { kind: "switch"; sw: Switch; panel: SwitchPanel; upstreams: Switch[] }
+  | { kind: "device"; device: Device; feeders: Switch[] }
+  | { kind: "link"; link: ChainLink };
 
 export interface ChainIndex {
-  switches: Map<SwitchId, { sw: Switch; panel: SwitchPanel }>;
+  switches: Map<
+    SwitchId,
+    { sw: Switch; panel: SwitchPanel; upstreams: Switch[] }
+  >;
   panels: Map<SwitchPanelId, { panel: SwitchPanel; switches: Switch[] }>;
   devices: Map<DeviceId, { device: Device; feeders: Switch[] }>;
 }
@@ -43,20 +51,31 @@ export type ChainNode =
   | { kind: "switch"; sw: Switch; panel: SwitchPanel }
   | { kind: "device"; device: Device };
 
+export interface ChainLink {
+  key: string;
+  upstream: { sw: Switch; panel: SwitchPanel };
+  downstream: ChainNode;
+  attributes: Attributes | null;
+}
+
 export interface ChainTreeNode {
   key: string;
   node: ChainNode;
   isFocus: boolean;
   feedsSink: boolean;
+  link: Attributes | null;
   children: ChainTreeNode[];
 }
 
 export interface PowerChain {
   id: string;
+  direction: "upstream" | "downstream";
+  supply: Supply;
   title: string;
   focusSpaceId: SpaceId;
   roots: ChainTreeNode[];
   sink?: ChainNode;
+  sinkLinks?: Map<SwitchId, Attributes | null>;
   places: ChainPlace[];
   edges: [downstream: ChainPlaceKey, upstream: ChainPlaceKey][];
 }
@@ -64,12 +83,35 @@ export interface PowerChain {
 export interface SwitchForestOptions {
   focusSwitchId?: SwitchId;
   feedsSink?: (sw: Switch) => boolean;
-  leaves?: (sw: Switch) => ChainTreeNode[];
+  leaves?: (sw: Switch, parentKey: string) => ChainTreeNode[];
 }
 
 export const panelKey = (id: SwitchPanelId): ChainPlaceKey => `panel:${id}`;
 
 export const deviceKey = (id: DeviceId): ChainPlaceKey => `device:${id}`;
+
+export const chainNodeKey = (node: ChainNode) =>
+  node.kind === "switch" ? `switch:${node.sw.id}` : `device:${node.device.id}`;
+
+export const chainLinkKey = (upstream: SwitchId, node: ChainNode) =>
+  `switch:${upstream}>${chainNodeKey(node)}`;
+
+export const chainLink = (
+  upstream: ChainNode,
+  downstream: ChainNode,
+  attributes: Attributes | null,
+): ChainLink | undefined =>
+  upstream.kind === "switch"
+    ? {
+        key: chainLinkKey(upstream.sw.id, downstream),
+        upstream: { sw: upstream.sw, panel: upstream.panel },
+        downstream,
+        attributes,
+      }
+    : undefined;
+
+export const treeLinkKey = ({ key }: ChainTreeNode) =>
+  key.split(">").slice(-2).join(">");
 
 export const panelPlace = (
   panel: SwitchPanel,
@@ -96,12 +138,14 @@ export const devicePlace = (device: Device, isFocus: boolean): ChainPlace => ({
 
 export const deviceLeaf = (
   device: Device,
-  feeder: SwitchId,
+  parentKey: string,
+  link: Attributes | null,
 ): ChainTreeNode => ({
-  key: `device:${device.id}@${feeder}`,
+  key: `${parentKey}>device:${device.id}`,
   node: { kind: "device", device },
   isFocus: false,
   feedsSink: false,
+  link,
   children: [],
 });
 
@@ -113,44 +157,61 @@ export const panelsOf = (switches: ChainSwitch[]): SwitchPanel[] => [
 
 export const buildSwitchForest = (
   switches: ChainSwitch[],
+  links: SwitchLink[],
   { focusSwitchId, feedsSink, leaves }: SwitchForestOptions = {},
 ): ChainTreeNode[] => {
-  const nodes = new Map<SwitchId, ChainTreeNode>(
-    switches.map((sw) => [
-      sw.id,
-      {
-        key: `switch:${sw.id}`,
-        node: { kind: "switch", sw, panel: sw.switch_panel },
-        isFocus: sw.id === focusSwitchId,
-        feedsSink: feedsSink?.(sw) ?? false,
-        children: [],
-      },
-    ]),
-  );
+  const byId = new Map(switches.map((sw) => [sw.id, sw]));
+  const downstreams = new Map<
+    SwitchId,
+    { sw: ChainSwitch; link: Attributes | null }[]
+  >();
+  const fed = new Set<SwitchId>();
+  for (const {
+    upstream_switch_id,
+    downstream_switch_id,
+    attributes,
+  } of links) {
+    const downstream = byId.get(downstream_switch_id);
+    if (downstream && byId.has(upstream_switch_id)) {
+      downstreams.set(upstream_switch_id, [
+        ...(downstreams.get(upstream_switch_id) ?? []),
+        { sw: downstream, link: attributes },
+      ]);
+      fed.add(downstream_switch_id);
+    }
+  }
 
-  const roots: ChainTreeNode[] = [];
-  for (const sw of switches) {
-    const node = nodes.get(sw.id);
-    if (!node) {
-      continue;
-    }
-    const upstreamId = sw.upstream_switch?.id;
-    const parent = upstreamId === undefined ? undefined : nodes.get(upstreamId);
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  for (const sw of switches) {
-    nodes.get(sw.id)?.children.push(...(leaves?.(sw) ?? []));
-  }
-  return roots;
+  const grow = (
+    sw: ChainSwitch,
+    parentKey?: string,
+    link: Attributes | null = null,
+  ): ChainTreeNode => {
+    const key =
+      parentKey === undefined
+        ? `switch:${sw.id}`
+        : `${parentKey}>switch:${sw.id}`;
+    return {
+      key,
+      node: { kind: "switch", sw, panel: sw.switch_panel },
+      isFocus: sw.id === focusSwitchId,
+      feedsSink: feedsSink?.(sw) ?? false,
+      link,
+      children: [
+        ...(downstreams.get(sw.id) ?? []).map((child) =>
+          grow(child.sw, key, child.link),
+        ),
+        ...(leaves?.(sw, key) ?? []),
+      ],
+    };
+  };
+
+  return switches.filter(({ id }) => !fed.has(id)).map((sw) => grow(sw));
 };
 
 export const collectEdges = (
   switches: Switch[],
-  deviceFeeds: [DeviceId, SwitchId][],
+  switchLinks: SwitchLink[],
+  deviceLinks: DeviceLink[],
 ): PowerChain["edges"] => {
   const panelOf = new Map(
     switches.map(({ id, switch_panel }) => [
@@ -168,16 +229,68 @@ export const collectEdges = (
     }
   };
 
-  for (const sw of switches) {
-    if (sw.upstream_switch) {
-      addEdge(panelOf.get(sw.id), panelOf.get(sw.upstream_switch.id));
-    }
+  for (const { upstream_switch_id, downstream_switch_id } of switchLinks) {
+    addEdge(panelOf.get(downstream_switch_id), panelOf.get(upstream_switch_id));
   }
-  for (const [device, sw] of deviceFeeds) {
-    addEdge(deviceKey(device), panelOf.get(sw));
+  for (const { device_id, switch_id } of deviceLinks) {
+    addEdge(deviceKey(device_id), panelOf.get(switch_id));
   }
   return [...edges.values()];
 };
+
+export interface ChainAttachment {
+  items: Set<string>;
+  nodes: Set<string>;
+  places: Set<ChainPlaceKey>;
+  edges: Set<string>;
+}
+
+const nodePlaceKey = (node: ChainNode): ChainPlaceKey =>
+  node.kind === "switch" ? panelKey(node.panel.id) : deviceKey(node.device.id);
+
+export const attachChain = (
+  roots: ChainTreeNode[],
+  isEnabled: (node: ChainNode) => boolean,
+): ChainAttachment => {
+  const attachment: ChainAttachment = {
+    items: new Set(),
+    nodes: new Set(),
+    places: new Set(),
+    edges: new Set(),
+  };
+
+  const visit = (item: ChainTreeNode, parentPlace?: ChainPlaceKey) => {
+    if (!item.isFocus && !isEnabled(item.node)) {
+      return;
+    }
+    const place = nodePlaceKey(item.node);
+    attachment.items.add(item.key);
+    attachment.nodes.add(chainNodeKey(item.node));
+    attachment.places.add(place);
+    if (parentPlace !== undefined && parentPlace !== place) {
+      attachment.edges.add(`${place}>${parentPlace}`);
+    }
+    for (const child of item.children) {
+      visit(child, place);
+    }
+  };
+
+  for (const root of roots) {
+    visit(root);
+  }
+  return attachment;
+};
+
+export const withAttachment = (
+  chain: PowerChain,
+  attachment: ChainAttachment,
+): PowerChain => ({
+  ...chain,
+  places: chain.places.filter(({ key }) => attachment.places.has(key)),
+  edges: chain.edges.filter(([downstream, upstream]) =>
+    attachment.edges.has(`${downstream}>${upstream}`),
+  ),
+});
 
 export const nodeSpaceId = (node: ChainNode): SpaceId | undefined =>
   node.kind === "switch" ? node.panel.space?.id : node.device.space?.id;
@@ -231,33 +344,46 @@ export const indexChain = ({ roots, sink }: PowerChain): ChainIndex => {
     panels: new Map(),
     devices: new Map(),
   };
+  const addUnique = <T>(items: T[], item: T) => {
+    if (!items.includes(item)) {
+      items.push(item);
+    }
+  };
   const addFeeder = (device: Device, feeder: Switch) => {
     const entry = index.devices.get(device.id) ?? { device, feeders: [] };
-    entry.feeders.push(feeder);
+    addUnique(entry.feeders, feeder);
     index.devices.set(device.id, entry);
   };
 
-  const visit = ({ node, feedsSink, children }: ChainTreeNode) => {
-    if (node.kind !== "switch") {
+  const visit = (
+    { node, feedsSink, children }: ChainTreeNode,
+    parent?: Switch,
+  ) => {
+    if (node.kind === "device") {
+      if (parent) {
+        addFeeder(node.device, parent);
+      }
       return;
     }
     const { sw, panel } = node;
-    index.switches.set(sw.id, { sw, panel });
-    const entry = index.panels.get(panel.id) ?? { panel, switches: [] };
-    entry.switches.push(sw);
-    index.panels.set(panel.id, entry);
+    const entry = index.switches.get(sw.id) ?? { sw, panel, upstreams: [] };
+    if (parent) {
+      addUnique(entry.upstreams, parent);
+    }
+    index.switches.set(sw.id, entry);
+    const panelEntry = index.panels.get(panel.id) ?? { panel, switches: [] };
+    addUnique(panelEntry.switches, sw);
+    index.panels.set(panel.id, panelEntry);
     if (feedsSink && sink?.kind === "device") {
       addFeeder(sink.device, sw);
     }
     for (const child of children) {
-      if (child.node.kind === "device") {
-        addFeeder(child.node.device, sw);
-      } else {
-        visit(child);
-      }
+      visit(child, sw);
     }
   };
-  roots.forEach(visit);
+  for (const root of roots) {
+    visit(root);
+  }
   return index;
 };
 
@@ -272,13 +398,11 @@ export const describeNode = (
       feeders: index.devices.get(node.device.id)?.feeders ?? [],
     };
   }
-  const upstreamId = node.sw.upstream_switch?.id;
   return {
     kind: "switch",
     sw: node.sw,
     panel: node.panel,
-    upstream:
-      upstreamId === undefined ? undefined : index.switches.get(upstreamId)?.sw,
+    upstreams: index.switches.get(node.sw.id)?.upstreams ?? [],
   };
 };
 
@@ -294,10 +418,26 @@ export const describePlace = (
         switches: index.panels.get(target.panel.id)?.switches ?? [],
       };
 
-export const detailPlaceKey = (detail: ChainDetail): ChainPlaceKey =>
-  detail.kind === "device"
-    ? deviceKey(detail.device.id)
-    : panelKey(detail.panel.id);
+export const detailPlaceKey = (
+  detail: ChainDetail,
+): ChainPlaceKey | undefined => {
+  switch (detail.kind) {
+    case "device":
+      return deviceKey(detail.device.id);
+    case "link":
+      return undefined;
+    default:
+      return panelKey(detail.panel.id);
+  }
+};
 
-export const detailSpaceId = (detail: ChainDetail): SpaceId | undefined =>
-  detail.kind === "device" ? detail.device.space?.id : detail.panel.space?.id;
+export const detailSpaceId = (detail: ChainDetail): SpaceId | undefined => {
+  switch (detail.kind) {
+    case "device":
+      return detail.device.space?.id;
+    case "link":
+      return undefined;
+    default:
+      return detail.panel.space?.id;
+  }
+};

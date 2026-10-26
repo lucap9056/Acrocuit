@@ -1,6 +1,6 @@
+import type en from "@public/locales/en.json";
 import i18next from "i18next";
 import HttpBackend from "i18next-http-backend";
-import type en from "../../../public/locales/en.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -34,5 +34,7 @@ export const translationKeys = <P extends string>(prefix: P) => {
     `${P}${string}`
   >[];
 };
+
+export const currentLocale = () => i18next.resolvedLanguage ?? baseLocale;
 
 export { t } from "i18next";

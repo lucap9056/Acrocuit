@@ -1,5 +1,12 @@
 import type { AuthSession } from "@/api/auth/auth-session";
-import type { Switch, SwitchDownstream, SwitchId } from "@/api/models";
+import type {
+  Attributes,
+  LinkedSwitch,
+  PowerChainGraph,
+  Switch,
+  SwitchId,
+  SwitchLink,
+} from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
 const base = "/api/switches";
@@ -28,6 +35,22 @@ const updateSwitchName = (
     .then(unwrapApiResponse<Switch>);
 };
 
+const updateSwitchAttributes = (
+  auth: AuthSession,
+  switchId: SwitchId,
+  attributes: Attributes,
+) => {
+  return auth
+    .fetch(`${base}/${switchId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attributes }),
+    })
+    .then(unwrapApiResponse<Switch>);
+};
+
 const deleteSwitch = (auth: AuthSession, switchId: SwitchId) => {
   return auth
     .fetch(`${base}/${switchId}`, {
@@ -52,20 +75,61 @@ const updateSwitchOrder = (
     .then(unwrapApiResponse<Switch[]>);
 };
 
-const updateSwitchUpstream = (
+const getSwitchUpstreams = (auth: AuthSession, switchId: SwitchId) => {
+  return auth
+    .fetch(`${base}/${switchId}/upstreams`, {
+      method: "GET",
+    })
+    .then(unwrapApiResponse<LinkedSwitch[]>);
+};
+
+const addSwitchUpstream = (
   auth: AuthSession,
   switchId: SwitchId,
-  upstreamSwitchId: SwitchId | null,
+  upstreamSwitchId: SwitchId,
+  attributes?: Attributes,
 ) => {
   return auth
-    .fetch(`${base}/${switchId}/upstream`, {
-      method: "PATCH",
+    .fetch(`${base}/${switchId}/upstreams`, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ upstream_switch_id: upstreamSwitchId }),
+      body: JSON.stringify({
+        upstream_switch_id: upstreamSwitchId,
+        attributes,
+      }),
     })
-    .then(unwrapApiResponse<Switch>);
+    .then(unwrapApiResponse<SwitchLink>);
+};
+
+const updateSwitchUpstream = (
+  auth: AuthSession,
+  switchId: SwitchId,
+  upstreamSwitchId: SwitchId,
+  attributes: Attributes,
+) => {
+  return auth
+    .fetch(`${base}/${switchId}/upstreams/${upstreamSwitchId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attributes }),
+    })
+    .then(unwrapApiResponse<SwitchLink>);
+};
+
+const deleteSwitchUpstream = (
+  auth: AuthSession,
+  switchId: SwitchId,
+  upstreamSwitchId: SwitchId,
+) => {
+  return auth
+    .fetch(`${base}/${switchId}/upstreams/${upstreamSwitchId}`, {
+      method: "DELETE",
+    })
+    .then(unwrapApiResponse<undefined>);
 };
 
 const getSwitchDownstream = (auth: AuthSession, switchId: SwitchId) => {
@@ -73,14 +137,18 @@ const getSwitchDownstream = (auth: AuthSession, switchId: SwitchId) => {
     .fetch(`${base}/${switchId}/downstream`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<SwitchDownstream>);
+    .then(unwrapApiResponse<PowerChainGraph>);
 };
 
 export default {
   getSwitch,
   updateSwitchName,
+  updateSwitchAttributes,
   deleteSwitch,
   updateSwitchOrder,
+  getSwitchUpstreams,
+  addSwitchUpstream,
   updateSwitchUpstream,
+  deleteSwitchUpstream,
   getSwitchDownstream,
 };

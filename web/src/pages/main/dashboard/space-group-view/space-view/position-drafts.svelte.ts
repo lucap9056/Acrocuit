@@ -1,5 +1,5 @@
 import { SvelteMap } from "svelte/reactivity";
-import type { SwitchPanel, Device, Position } from "@/api";
+import type { Device, Position, SwitchPanel } from "@/api";
 import type { FocusKey } from "./space-focus.svelte";
 
 export type PositionDraft =

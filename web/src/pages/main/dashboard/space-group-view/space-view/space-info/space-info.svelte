@@ -1,7 +1,7 @@
 <script lang="ts">
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
   import UploadSimpleIcon from "phosphor-svelte/lib/UploadSimpleIcon";
-  import type { SwitchPanel, Device, Space } from "@/api";
+  import type { Device, Space, SwitchPanel } from "@/api";
   import { t } from "@/lib/i18n";
   import styles from "./space-info.module.css";
 

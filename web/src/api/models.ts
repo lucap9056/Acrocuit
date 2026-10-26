@@ -14,6 +14,8 @@ export type Position = {
   z: number;
 };
 
+export type Attributes = Record<string, unknown>;
+
 export type SpaceGroup = {
   id: SpaceGroupId;
   name: string;
@@ -30,6 +32,7 @@ export type Space = {
 export type SwitchPanel = {
   id: SwitchPanelId;
   name: string;
+  attributes: Attributes | null;
   space: Ref<SpaceId> | null;
   position: Position | null;
 };
@@ -38,25 +41,47 @@ export type Switch = {
   id: SwitchId;
   name: string;
   display_order: number;
+  attributes: Attributes | null;
   switch_panel: Ref<SwitchPanelId> | null;
-  upstream_switch: Ref<SwitchId> | null;
 };
 
 export type Device = {
   id: DeviceId;
   name: string;
+  attributes: Attributes | null;
   space: Ref<SpaceId> | null;
-  switch: Ref<SwitchId> | null;
   position: Position | null;
+};
+
+export type LinkInfo = {
+  attributes: Attributes | null;
+};
+
+export type LinkedSwitch = Switch & {
+  link: LinkInfo;
+};
+
+export type SwitchLink = {
+  upstream_switch_id: SwitchId;
+  downstream_switch_id: SwitchId;
+  attributes: Attributes | null;
+};
+
+export type DeviceLink = {
+  device_id: DeviceId;
+  switch_id: SwitchId;
+  attributes: Attributes | null;
 };
 
 export type ChainSwitch = Omit<Switch, "switch_panel"> & {
   switch_panel: SwitchPanel;
 };
 
-export type SwitchDownstream = {
+export type PowerChainGraph = {
   switches: ChainSwitch[];
+  switch_links: SwitchLink[];
   devices: Device[];
+  device_links: DeviceLink[];
 };
 
 export type Meta = {

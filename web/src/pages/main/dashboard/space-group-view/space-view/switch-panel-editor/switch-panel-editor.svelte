@@ -1,7 +1,23 @@
 <script lang="ts" module>
+  import { readCookie, writeCookie } from "@/lib/cookie";
+
   type SwitchLayout = "rows" | "columns";
 
-  const view = $state<{ layout: SwitchLayout }>({ layout: "rows" });
+  const LAYOUT_COOKIE = "switch-panel-layout";
+
+  const view = $state<{ layout: SwitchLayout }>({
+    layout: readCookie(LAYOUT_COOKIE) === "columns" ? "columns" : "rows",
+  });
+
+  export interface ReadonlyView {
+    hint: string;
+    includes: (sw: Switch) => boolean;
+  }
+
+  const setLayout = (layout: SwitchLayout) => {
+    view.layout = layout;
+    writeCookie(LAYOUT_COOKIE, layout);
+  };
 </script>
 
 <script lang="ts">
@@ -17,12 +33,17 @@
     dragHandleZone,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
   } from "svelte-dnd-action";
-  import type { AuthSession, Switch, SwitchPanel } from "@/api";
+  import type { Attributes, AuthSession, Switch, SwitchPanel } from "@/api";
+  import AttributesSection from "@/components/attributes-section/attributes-section.svelte";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
   import Spinner from "@/components/spinner/spinner.svelte";
   import Textbox from "@/components/textbox/textbox.svelte";
   import { tooltip } from "@/components/tooltip";
+  import {
+    SWITCH_PANEL_ATTRIBUTE_FIELDS,
+    switchCapacity,
+  } from "@/lib/attributes";
   import {
     addSwitch,
     fetchSwitches,
@@ -37,11 +58,20 @@
   interface Props {
     session: AuthSession;
     switchPanel: SwitchPanel;
-    onrename: (name: string) => Promise<unknown>;
+    readonly?: ReadonlyView;
+    onrename?: (name: string) => Promise<unknown>;
+    onsaveattributes?: (attributes: Attributes) => Promise<unknown>;
     oneditswitch: (sw: Switch) => void;
   }
 
-  const { session, switchPanel, onrename, oneditswitch }: Props = $props();
+  const {
+    session,
+    switchPanel,
+    readonly,
+    onrename,
+    onsaveattributes,
+    oneditswitch,
+  }: Props = $props();
 
   type DndSwitch = Switch & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
 
@@ -53,9 +83,16 @@
   let draftItems = $state<DndSwitch[]>();
   let isConfirmingMove = $state(false);
 
-  const items: DndSwitch[] = $derived(draftItems ?? switches ?? []);
+  const visibleSwitches = $derived(
+    readonly ? switches?.filter(readonly.includes) : switches,
+  );
+  const items: DndSwitch[] = $derived(draftItems ?? visibleSwitches ?? []);
 
-  const canAdd = $derived(newSwitchName.trim() !== "" && !isPending);
+  const capacity = $derived(switchCapacity(switchPanel.attributes));
+  const isFull = $derived(
+    capacity !== undefined && (switches?.length ?? 0) >= capacity,
+  );
+  const canAdd = $derived(newSwitchName.trim() !== "" && !isPending && !isFull);
 
   const withSwitchPanel = (sw: Switch) => ({
     ...sw,
@@ -215,12 +252,16 @@
   };
 </script>
 
-{#snippet layoutButton(layout: SwitchLayout, label: string, Icon: typeof RowsIcon)}
+{#snippet layoutButton(
+  layout: SwitchLayout,
+  label: string,
+  Icon: typeof RowsIcon,
+)}
   <button
     class={["icon_button", view.layout === layout && styles.active]}
     aria-label={label}
     aria-pressed={view.layout === layout}
-    onclick={() => (view.layout = layout)}
+    onclick={() => setLayout(layout)}
     {@attach tooltip(label)}
   >
     <Icon />
@@ -228,41 +269,59 @@
 {/snippet}
 
 <div class={styles.editor}>
-  <Textbox
-    class={styles.title}
-    label={t("switchPanels.name")}
-    value={switchPanel.name}
-    onsave={onrename}
-  />
+  {#if readonly || !onrename}
+    <h3 class={styles.heading}>{switchPanel.name}</h3>
+    {#if readonly}
+      <p class={styles.hint}>{readonly.hint}</p>
+    {/if}
+  {:else}
+    <Textbox
+      class={styles.title}
+      label={t("switchPanels.name")}
+      value={switchPanel.name}
+      onsave={onrename}
+    />
+  {/if}
   <div class={styles.toolbar}>
-    <input
-      class={styles.input}
-      type="text"
-      aria-label={t("switches.name")}
-      placeholder={t("switches.name")}
-      disabled={isPending}
-      bind:value={newSwitchName}
-      onkeydown={onnewswitchkeydown}
+    {#if !readonly}
+      <input
+        class={styles.input}
+        type="text"
+        aria-label={t("switches.name")}
+        placeholder={t("switches.name")}
+        disabled={isPending || isFull}
+        bind:value={newSwitchName}
+        onkeydown={onnewswitchkeydown}
+      >
+      <button
+        class="icon_button {styles.add}"
+        aria-label={t("switches.new")}
+        disabled={!canAdd}
+        onclick={add}
+        {@attach tooltip(t("switches.new"))}
+      >
+        <PlusIcon />
+      </button>
+    {/if}
+    <div
+      class={[styles.layout, readonly && styles.solo]}
+      role="group"
+      aria-label={t("switches.layout")}
     >
-    <button
-      class="icon_button {styles.add}"
-      aria-label={t("switches.new")}
-      disabled={!canAdd}
-      onclick={add}
-      {@attach tooltip(t("switches.new"))}
-    >
-      <PlusIcon />
-    </button>
-    <div class={styles.layout} role="group" aria-label={t("switches.layout")}>
       {@render layoutButton("rows", t("switches.rows"), RowsIcon)}
       {@render layoutButton("columns", t("switches.columns"), ColumnsIcon)}
     </div>
   </div>
-  {#if switches === undefined}
+  {#if isFull && !readonly}
+    <p class={styles.full} role="status">
+      {t("switches.full", { count: capacity })}
+    </p>
+  {/if}
+  {#if visibleSwitches === undefined}
     <div class={styles.loading} role="status" aria-label={t("common.loading")}>
       <Spinner />
     </div>
-  {:else if switches.length === 0}
+  {:else if visibleSwitches.length === 0}
     <p class={styles.message}>{t("common.noneYet")}</p>
   {:else}
     <ul
@@ -270,7 +329,7 @@
       use:dragHandleZone={{
         items,
         flipDurationMs: FLIP_DURATION_MS,
-        dragDisabled: isConfirmingMove || isPending,
+        dragDisabled: readonly !== undefined || isConfirmingMove || isPending,
         dropTargetStyle: {},
         delayTouchStart: true,
       }}
@@ -285,30 +344,41 @@
           ]}
           animate:flip={{ duration: FLIP_DURATION_MS }}
         >
-          <button
-            class={["icon_button", styles.handle]}
-            aria-label={t("switches.dragToReorder")}
-            use:dragHandle
-          >
-            <DotsSixVerticalIcon />
-          </button>
+          {#if !readonly}
+            <button
+              class={["icon_button", styles.handle]}
+              aria-label={t("switches.dragToReorder")}
+              use:dragHandle
+            >
+              <DotsSixVerticalIcon />
+            </button>
+          {/if}
           <button class={styles.open} onclick={() => oneditswitch(sw)}>
             <span class={styles.toggle} aria-hidden="true">
               <span class={styles.lever}></span>
             </span>
             <span class={styles.name}>{sw.name}</span>
           </button>
-          <button
-            class="icon_button {styles.delete}"
-            aria-label={t("common.delete")}
-            disabled={isPending}
-            onclick={() => remove(sw)}
-            {@attach tooltip(t("common.delete"))}
-          >
-            <TrashIcon />
-          </button>
+          {#if !readonly}
+            <button
+              class="icon_button {styles.delete}"
+              aria-label={t("common.delete")}
+              disabled={isPending}
+              onclick={() => remove(sw)}
+              {@attach tooltip(t("common.delete"))}
+            >
+              <TrashIcon />
+            </button>
+          {/if}
         </li>
       {/each}
     </ul>
+  {/if}
+  {#if !readonly && onsaveattributes}
+    <AttributesSection
+      fields={SWITCH_PANEL_ATTRIBUTE_FIELDS}
+      attributes={switchPanel.attributes}
+      onsave={onsaveattributes}
+    />
   {/if}
 </div>

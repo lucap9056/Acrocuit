@@ -1,18 +1,15 @@
 <script lang="ts">
   import PlusIcon from "phosphor-svelte/lib/PlusIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
-  import type { AuthSession, SwitchPanel, Position, Space } from "@/api";
+  import type { AuthSession, Position, Space, SwitchPanel } from "@/api";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
-  import {
-    addSwitchPanel,
-    removeSwitchPanel,
-  } from "@/lib/cache/switch-panels";
+  import { addSwitchPanel, removeSwitchPanel } from "@/lib/cache/switch-panels";
   import { t } from "@/lib/i18n";
   import {
-    switchPanelKey,
     type SpaceFocus,
+    switchPanelKey,
   } from "@/pages/main/dashboard/space-group-view/space-view/space-focus.svelte";
   import styles from "./switch-panel-list.module.css";
 

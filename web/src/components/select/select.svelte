@@ -116,7 +116,9 @@
   };
 
   const onlistclick = (event: MouseEvent) => {
-    const option = (event.target as Element).closest<HTMLElement>("[data-index]");
+    const option = (event.target as Element).closest<HTMLElement>(
+      "[data-index]",
+    );
     if (option) {
       choose(Number(option.dataset.index));
     }
@@ -163,7 +165,11 @@
     {onkeydown}
   >
     {#if isLoading}
-      <span class={styles.loading} role="status" aria-label={t("common.loading")}>
+      <span
+        class={styles.loading}
+        role="status"
+        aria-label={t("common.loading")}
+      >
         <Spinner />
       </span>
     {:else}

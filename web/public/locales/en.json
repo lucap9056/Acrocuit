@@ -2,6 +2,7 @@
   "common": {
     "back": "Back",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "create": "Create",
     "rename": "Rename",
     "delete": "Delete",
@@ -44,7 +45,8 @@
     "title": "Switch panels",
     "new": "New switch panel",
     "confirmDelete": "Delete \"{{name}}\"?",
-    "name": "Name"
+    "name": "Name",
+    "chainReadonly": "Read-only · only switches in this chain are shown"
   },
   "switches": {
     "new": "New switch",
@@ -54,12 +56,15 @@
     "rows": "Rows",
     "columns": "Columns",
     "dragToReorder": "Drag to reorder",
-    "confirmMove": "Move \"{{name}}\" to position {{position}}?"
+    "confirmMove": "Move \"{{name}}\" to position {{position}}?",
+    "full": "Reached the switch capacity ({{count}})"
   },
   "switchEditor": {
     "name": "Name",
-    "upstream": "Upstream switch",
-    "showDownstreamChain": "Downstream impact"
+    "upstream": "Upstream switches",
+    "addUpstream": "Add upstream",
+    "showDownstreamChain": "Downstream impact",
+    "cycleRejected": "This switch is already downstream of it; adding it would create a loop"
   },
   "devices": {
     "title": "Devices",
@@ -72,6 +77,55 @@
     "addUpstream": "Add upstream",
     "showUpstreamChain": "Upstream chain"
   },
+  "attributes": {
+    "title": "Attributes",
+    "edit": "Edit attributes",
+    "revert": "Revert",
+    "custom": "Custom fields",
+    "addCustom": "Add field",
+    "key": "Key",
+    "value": "Value",
+    "invalidNumber": "{{field}} must be a number",
+    "invalidInteger": "{{field}} must be an integer",
+    "outOfRange": "{{field}} must be {{range}}",
+    "invalidOption": "{{field}} has an unknown option",
+    "range": {
+      "between": "between {{min}} and {{max}}",
+      "atLeast": "at least {{min}}",
+      "atMost": "at most {{max}}"
+    },
+    "keyRequired": "Custom field key is required",
+    "duplicateKey": "Duplicate key: {{key}}",
+    "tooLarge": "Attributes must not exceed {{max}} bytes",
+    "fields": {
+      "wire_size": "Wire size",
+      "wire_length": "Wire length",
+      "wire_type": "Wire type",
+      "wire_cores": "Cores",
+      "rated_current": "Rated current",
+      "rated_power": "Rated power",
+      "rated_voltage": "Rated voltage",
+      "max_current": "Current limit",
+      "switch_capacity": "Switch capacity",
+      "power_factor": "Power factor",
+      "circuit_label": "Circuit label",
+      "switch_type": "Switch type",
+      "phase": "Phase",
+      "poles": "Poles",
+      "leakage_current": "Leakage sensitivity"
+    },
+    "options": {
+      "phase": {
+        "single": "Single-phase",
+        "three": "Three-phase"
+      },
+      "switch_type": {
+        "nfb": "Circuit breaker",
+        "elcb": "Residual-current breaker",
+        "switch": "Switch"
+      }
+    }
+  },
   "switchSelector": {
     "space": "Space",
     "switchPanel": "Switch panel",
@@ -81,10 +135,10 @@
     "title": "Floor plan",
     "loading": "Loading floor plan…",
     "empty": "No floor plan uploaded.",
-    "uploaded": "Uploaded",
     "upload": "Upload floor plan",
     "remove": "Remove floor plan",
-    "confirmRemove": "Remove the floor plan of \"{{name}}\"?"
+    "confirmRemove": "Remove the floor plan of \"{{name}}\"?",
+    "uploaded": "Uploaded"
   },
   "floorOverview": {
     "loading": "Loading floors…",
@@ -108,17 +162,29 @@
     "upstreamEmpty": "No upstream switches yet",
     "downstreamEmpty": "This switch could not be found",
     "unplaced": "Unplaced",
+    "enableNode": "Include in this chain",
     "nodeInfo": {
       "hint": "Hover over a node, or tap it on touch screens, to see its details.",
       "panel": "Switch panel",
       "switch": "Switch",
       "device": "Device",
       "switches": "Switches in chain",
-      "upstream": "Upstream switch",
+      "upstream": "Upstream switches",
       "feeders": "Feeding switches",
-      "placement": "Position",
-      "placed": "Placed"
-    }
+      "voltage": "Voltage",
+      "inheritedVoltage": "Inherited from upstream",
+      "power": "Total power",
+      "load": "Load",
+      "unknownDevices": "{{count}} devices missing ratings",
+      "wireFrom": "Wire from {{name}}",
+      "voltageDrop": "Cumulative voltage drop",
+      "link": "Wire",
+      "linkFrom": "From",
+      "linkTo": "To",
+      "linkCurrent": "Current",
+      "linkHint": "Click the line to edit wire attributes"
+    },
+    "linkLabel": "Wire from {{from}} to {{to}}"
   },
   "loading": {
     "connect": "Connecting…",
@@ -140,22 +206,30 @@
     "removeFloorPlan": "Removing floor plan…",
     "savePositions": "Saving positions…",
     "fetchSwitchesAndDevices": "Loading switches and devices…",
+    "fetchDevice": "Loading device…",
+    "fetchSwitchPanel": "Loading switch panel…",
+    "fetchSwitch": "Loading switch…",
     "createSwitchPanel": "Creating switch panel…",
     "renameSwitchPanel": "Renaming switch panel…",
     "removeSwitchPanel": "Removing switch panel…",
+    "updateSwitchPanelAttributes": "Updating switch panel attributes…",
     "createDevice": "Creating device…",
     "renameDevice": "Renaming device…",
     "removeDevice": "Removing device…",
     "addDeviceUpstream": "Adding device upstream…",
     "removeDeviceUpstream": "Removing device upstream…",
+    "updateDeviceUpstream": "Updating device upstream…",
     "createSwitch": "Creating switch…",
     "removeSwitch": "Removing switch…",
     "renameSwitch": "Renaming switch…",
     "moveSwitch": "Moving switch…",
-    "setSwitchUpstream": "Setting switch upstream…",
+    "addSwitchUpstream": "Adding switch upstream…",
     "removeSwitchUpstream": "Removing switch upstream…",
+    "updateSwitchUpstream": "Updating switch upstream…",
     "fetchPowerChain": "Loading power chain…",
-    "renderPowerChain": "Drawing power chain…"
+    "renderPowerChain": "Drawing power chain…",
+    "updateDeviceAttributes": "Updating device attributes…",
+    "updateSwitchAttributes": "Updating switch attributes…"
   },
   "flavor_01": "Chasing down the gremlins doodling on the blueprints",
   "flavor_02": "Combing the tangles out of the wires",

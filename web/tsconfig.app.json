@@ -9,7 +9,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@public/*": ["./public/*"]
     },
     /**
      * Typecheck JS in `.svelte` and `.js` files by default.

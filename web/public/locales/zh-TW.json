@@ -2,6 +2,7 @@
   "common": {
     "back": "返回",
     "cancel": "取消",
+    "confirm": "確定",
     "create": "建立",
     "rename": "重新命名",
     "delete": "刪除",
@@ -44,7 +45,8 @@
     "title": "開關面板",
     "new": "新增開關面板",
     "confirmDelete": "要刪除「{{name}}」嗎？",
-    "name": "名稱"
+    "name": "名稱",
+    "chainReadonly": "唯讀 · 僅顯示此供電鏈中的開關"
   },
   "switches": {
     "new": "新增開關",
@@ -54,12 +56,15 @@
     "rows": "列",
     "columns": "欄",
     "dragToReorder": "拖曳以調整順序",
-    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？"
+    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？",
+    "full": "已達可放置開關數上限（{{count}}）"
   },
   "switchEditor": {
     "name": "名稱",
     "upstream": "上游開關",
-    "showDownstreamChain": "下游影響鏈"
+    "addUpstream": "新增上游",
+    "showDownstreamChain": "下游影響鏈",
+    "cycleRejected": "該開關位於此開關的下游，加入會形成循環"
   },
   "devices": {
     "title": "設備",
@@ -72,6 +77,55 @@
     "addUpstream": "新增上游",
     "showUpstreamChain": "上游鏈"
   },
+  "attributes": {
+    "title": "屬性",
+    "edit": "編輯屬性",
+    "revert": "還原",
+    "custom": "自訂欄位",
+    "addCustom": "新增欄位",
+    "key": "名稱",
+    "value": "值",
+    "invalidNumber": "{{field}}必須是數字",
+    "invalidInteger": "{{field}}必須是整數",
+    "outOfRange": "{{field}}必須{{range}}",
+    "invalidOption": "{{field}}的選項無法辨識",
+    "range": {
+      "between": "介於 {{min}} 到 {{max}}",
+      "atLeast": "大於或等於 {{min}}",
+      "atMost": "小於或等於 {{max}}"
+    },
+    "keyRequired": "自訂欄位名稱不可為空",
+    "duplicateKey": "欄位名稱重複：{{key}}",
+    "tooLarge": "屬性不得超過 {{max}} bytes",
+    "fields": {
+      "wire_size": "線徑",
+      "wire_length": "線長",
+      "wire_type": "線材種類",
+      "wire_cores": "芯數",
+      "rated_current": "額定電流",
+      "rated_power": "額定功耗",
+      "rated_voltage": "額定電壓",
+      "max_current": "電流上限",
+      "switch_capacity": "可放置開關數",
+      "power_factor": "功率因數",
+      "circuit_label": "回路編號",
+      "switch_type": "開關類型",
+      "phase": "相數",
+      "poles": "極數",
+      "leakage_current": "漏電感度"
+    },
+    "options": {
+      "phase": {
+        "single": "單相",
+        "three": "三相"
+      },
+      "switch_type": {
+        "nfb": "無熔絲開關",
+        "elcb": "漏電斷路器",
+        "switch": "一般開關"
+      }
+    }
+  },
   "switchSelector": {
     "space": "空間",
     "switchPanel": "開關面板",
@@ -81,10 +135,10 @@
     "title": "平面圖",
     "loading": "載入平面圖中…",
     "empty": "尚未上傳平面圖",
-    "uploaded": "已上傳",
     "upload": "上傳平面圖",
     "remove": "移除平面圖",
-    "confirmRemove": "要移除「{{name}}」的平面圖嗎？"
+    "confirmRemove": "要移除「{{name}}」的平面圖嗎？",
+    "uploaded": "已上傳"
   },
   "floorOverview": {
     "loading": "載入樓層中…",
@@ -108,6 +162,7 @@
     "upstreamEmpty": "目前沒有上游開關",
     "downstreamEmpty": "找不到這個開關",
     "unplaced": "未定位",
+    "enableNode": "納入此供電鏈",
     "nodeInfo": {
       "hint": "將游標移到節點上，或在觸控螢幕上點一下，即可查看詳細資訊",
       "panel": "開關面板",
@@ -116,9 +171,20 @@
       "switches": "鏈上的開關",
       "upstream": "上游開關",
       "feeders": "供電開關",
-      "placement": "位置",
-      "placed": "已定位"
-    }
+      "voltage": "電壓",
+      "inheritedVoltage": "沿用上游設定",
+      "power": "總功率",
+      "load": "負載",
+      "unknownDevices": "{{count}} 台設備缺少額定資料",
+      "wireFrom": "來自 {{name}} 的線路",
+      "voltageDrop": "累計電壓降",
+      "link": "線路",
+      "linkFrom": "上游",
+      "linkTo": "下游",
+      "linkCurrent": "電流",
+      "linkHint": "點擊連接線可編輯線路屬性"
+    },
+    "linkLabel": "{{from}} 到 {{to}} 的線路"
   },
   "loading": {
     "connect": "連線中…",
@@ -140,22 +206,30 @@
     "removeFloorPlan": "移除平面圖中…",
     "savePositions": "儲存位置中…",
     "fetchSwitchesAndDevices": "載入開關與設備中…",
+    "fetchDevice": "載入設備中…",
+    "fetchSwitchPanel": "載入開關面板中…",
+    "fetchSwitch": "載入開關中…",
     "createSwitchPanel": "建立開關面板中…",
     "renameSwitchPanel": "重新命名開關面板中…",
     "removeSwitchPanel": "移除開關面板中…",
+    "updateSwitchPanelAttributes": "更新開關面板屬性中…",
     "createDevice": "建立設備中…",
     "renameDevice": "重新命名設備中…",
     "removeDevice": "移除設備中…",
     "addDeviceUpstream": "新增設備上游中…",
     "removeDeviceUpstream": "移除設備上游中…",
+    "updateDeviceUpstream": "更新設備上游中…",
     "createSwitch": "建立開關中…",
     "removeSwitch": "移除開關中…",
     "renameSwitch": "重新命名開關中…",
     "moveSwitch": "移動開關中…",
-    "setSwitchUpstream": "設定開關上游中…",
+    "addSwitchUpstream": "新增開關上游中…",
     "removeSwitchUpstream": "移除開關上游中…",
+    "updateSwitchUpstream": "更新開關上游中…",
     "fetchPowerChain": "載入供電鏈中…",
-    "renderPowerChain": "繪製供電鏈中…"
+    "renderPowerChain": "繪製供電鏈中…",
+    "updateDeviceAttributes": "更新設備屬性中…",
+    "updateSwitchAttributes": "更新開關屬性中…"
   },
   "flavor_01": "正在擦掉藍圖上的立可白痕跡",
   "flavor_02": "正在幫電線梳開打結的頭髮",

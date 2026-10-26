@@ -1,10 +1,10 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
+  Attributes,
+  Position,
   Switch,
   SwitchPanel,
   SwitchPanelId,
-  SwitchId,
-  Position,
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
@@ -30,6 +30,22 @@ const updateSwitchPanelName = (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ name }),
+    })
+    .then(unwrapApiResponse<SwitchPanel>);
+};
+
+const updateSwitchPanelAttributes = (
+  auth: AuthSession,
+  switchPanelId: SwitchPanelId,
+  attributes: Attributes,
+) => {
+  return auth
+    .fetch(`${base}/${switchPanelId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attributes }),
     })
     .then(unwrapApiResponse<SwitchPanel>);
 };
@@ -70,7 +86,7 @@ const addSwitch = (
   auth: AuthSession,
   switchPanelId: SwitchPanelId,
   name: string,
-  upstreamSwitchId?: SwitchId,
+  attributes?: Attributes,
 ) => {
   return auth
     .fetch(`${base}/${switchPanelId}/switches`, {
@@ -78,7 +94,7 @@ const addSwitch = (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, upstream_switch_id: upstreamSwitchId }),
+      body: JSON.stringify({ name, attributes }),
     })
     .then(unwrapApiResponse<Switch>);
 };
@@ -86,6 +102,7 @@ const addSwitch = (
 export default {
   getSwitchPanel,
   updateSwitchPanelName,
+  updateSwitchPanelAttributes,
   updateSwitchPanelPosition,
   deleteSwitchPanel,
   getSwitches,

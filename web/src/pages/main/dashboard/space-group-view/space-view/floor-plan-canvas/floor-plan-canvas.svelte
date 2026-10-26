@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AuthSession, SwitchPanel, Device, Space } from "@/api";
+  import type { AuthSession, Device, Space, SwitchPanel } from "@/api";
   import load from "@/components/loading-bar";
   import { fetchFloorPlanImage } from "@/lib/cache/space-images";
   import { t } from "@/lib/i18n";

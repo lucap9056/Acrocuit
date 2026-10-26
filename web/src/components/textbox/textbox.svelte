@@ -1,7 +1,7 @@
 <script lang="ts">
   import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon";
-  import type { ClassValue } from "svelte/elements";
   import type { Attachment } from "svelte/attachments";
+  import type { ClassValue } from "svelte/elements";
   import { tooltip } from "@/components/tooltip";
   import { t } from "@/lib/i18n";
   import styles from "./textbox.module.css";

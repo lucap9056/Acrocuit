@@ -6,7 +6,7 @@
 
 <script lang="ts">
   import { untrack } from "svelte";
-  import type { Space, SpaceId } from "@/api";
+  import type { Attributes, Space, SpaceId, SwitchId } from "@/api";
   import type { Point } from "@/components/iso-scene/camera/projection";
   import { createGestures } from "@/components/iso-scene/interaction/gestures";
   import { measureTextWidth } from "@/components/iso-scene/layout/text-metrics";
@@ -17,24 +17,45 @@
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import {
+    type ChainLink,
     type ChainNode,
     type ChainTreeNode,
+    chainLink,
     isNodePlaced,
     nodeSpaceId,
   } from "@/lib/power-chain";
+  import {
+    type ChainLoads,
+    formatSwitchLoad,
+    isLinkOverloaded,
+    isOverloaded,
+  } from "@/lib/power-chain/load";
   import styles from "./chain-tree.module.css";
-  import { layoutTree, NODE_HEIGHT, NODE_WIDTH } from "./tree-layout";
+  import {
+    layoutTree,
+    NODE_HEIGHT,
+    NODE_WIDTH,
+    type TreeEdge,
+  } from "./tree-layout";
 
   interface Props {
     chainId: string;
     label: string;
     roots: ChainTreeNode[];
     sink?: ChainNode;
+    sinkLinks?: Map<SwitchId, Attributes | null>;
+    loads?: ChainLoads;
+    attachedItems?: ReadonlySet<string>;
+    isEnabled: (node: ChainNode) => boolean;
+    canToggle: boolean;
     emptyText: string;
     spaces: Space[];
     inspectedSpaceId?: SpaceId;
     oninspectnode: (node: ChainNode) => void;
     onopennode: (node: ChainNode) => void;
+    ontogglenode: (node: ChainNode, enabled: boolean) => void;
+    oninspectlink: (link: ChainLink) => void;
+    onopenlink: (link: ChainLink) => void;
   }
 
   const {
@@ -42,17 +63,30 @@
     label,
     roots,
     sink,
+    sinkLinks,
+    loads,
+    attachedItems,
+    isEnabled,
+    canToggle,
     emptyText,
     spaces,
     inspectedSpaceId,
     oninspectnode,
     onopennode,
+    ontogglenode,
+    oninspectlink,
+    onopenlink,
   }: Props = $props();
 
   const FIT_PADDING_PX = 32;
   const MAX_FIT_ZOOM = 1;
   const TEXT_INSET_PX = 12;
   const MAX_TEXT_WIDTH_PX = NODE_WIDTH - TEXT_INSET_PX * 2;
+  const CHECKBOX_SIZE_PX = 16;
+  const CHECKBOX_RIGHT_PX = 12;
+  const CHECKBOX_OVERHANG_PX = 6;
+  const CHECKBOX_RING_PX = 2;
+  const BADGE_GAP_PX = 8;
 
   let container = $state<HTMLDivElement>();
   let width = $state(0);
@@ -61,6 +95,7 @@
     untrack(() => savedViewports.get(chainId)),
   );
   let isPanning = $state(false);
+  let activeLinkKey = $state<string>();
 
   const layout = $derived(layoutTree(roots, sink !== undefined));
   const spaceNames = $derived(
@@ -91,14 +126,18 @@
     viewportOverride = undefined;
   };
 
-  const fitText = (text: string, font: string) => {
-    if (measureTextWidth(text, font) <= MAX_TEXT_WIDTH_PX) {
+  const fitText = (
+    text: string,
+    font: string,
+    maxWidth = MAX_TEXT_WIDTH_PX,
+  ) => {
+    if (measureTextWidth(text, font) <= maxWidth) {
       return text;
     }
     let end = text.length;
     while (
       end > 0 &&
-      measureTextWidth(`${text.slice(0, end)}…`, font) > MAX_TEXT_WIDTH_PX
+      measureTextWidth(`${text.slice(0, end)}…`, font) > maxWidth
     ) {
       end--;
     }
@@ -116,14 +155,79 @@
     return [panel, floor, unplaced].filter(Boolean).join(" · ");
   };
 
+  const switchLoad = (node: ChainNode) =>
+    node.kind === "switch" ? loads?.switches.get(node.sw.id) : undefined;
+
+  const isNodeOverloaded = (item: ChainTreeNode) => {
+    const load = switchLoad(item.node);
+    return load !== undefined && isOverloaded(load);
+  };
+
+  const edgeLink = ({ parent, child }: TreeEdge) => {
+    if (child) {
+      return chainLink(parent.node, child.node, child.link);
+    }
+    if (sink && parent.node.kind === "switch") {
+      return chainLink(
+        parent.node,
+        sink,
+        sinkLinks?.get(parent.node.sw.id) ?? null,
+      );
+    }
+    return undefined;
+  };
+
+  const isLinkLoadOverloaded = (link: ChainLink | undefined) => {
+    const linkLoad = link && loads?.links.get(link.key);
+    return linkLoad !== undefined && isLinkOverloaded(linkLoad);
+  };
+
+  const inspectLink = (link: ChainLink) => {
+    activeLinkKey = link.key;
+    oninspectlink(link);
+  };
+
+  const leaveLink = () => {
+    activeLinkKey = undefined;
+  };
+
+  const onlinkkeydown = (event: KeyboardEvent, link: ChainLink) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onopenlink(link);
+    }
+  };
+
+  const isAttached = (key: string) => attachedItems?.has(key) ?? true;
+
+  const hasToggle = (item: ChainTreeNode) => canToggle && !item.isFocus;
+
+  const titleWidth = (loadText: string | undefined) =>
+    loadText === undefined
+      ? MAX_TEXT_WIDTH_PX
+      : MAX_TEXT_WIDTH_PX -
+        measureTextWidth(loadText, CAPTION_FONT) -
+        BADGE_GAP_PX;
+
+  const captionWidth = (item: ChainTreeNode) =>
+    hasToggle(item)
+      ? NODE_WIDTH -
+        CHECKBOX_RIGHT_PX -
+        CHECKBOX_SIZE_PX -
+        BADGE_GAP_PX -
+        TEXT_INSET_PX
+      : MAX_TEXT_WIDTH_PX;
+
+  const stopPropagation = (event: Event) => {
+    event.stopPropagation();
+  };
+
   const inspect = (node: ChainNode) => {
     oninspectnode(node);
   };
 
-  const open = ({ node, isFocus }: ChainTreeNode) => {
-    if (!isFocus) {
-      onopennode(node);
-    }
+  const open = ({ node }: ChainTreeNode) => {
+    onopennode(node);
   };
 
   const onnodekeydown = (event: KeyboardEvent, item: ChainTreeNode) => {
@@ -196,18 +300,50 @@
       <g
         transform={`translate(${viewport.panX} ${viewport.panY}) scale(${viewport.zoom})`}
       >
-        {#each layout.edges as path, index (index)}
-          <path class={styles.edge} d={path} />
+        {#each [...layout.edges, ...layout.sinkEdges] as edge, index (index)}
+          {@const link = edgeLink(edge)}
+          <path
+            class={[
+              styles.edge,
+              !edge.child && styles.feed,
+              edge.child && !isAttached(edge.child.key) && styles.detached,
+              isLinkLoadOverloaded(link) && styles.overloaded,
+              link !== undefined && link.key === activeLinkKey && styles.active,
+            ]}
+            d={edge.path}
+          />
         {/each}
-        {#each layout.sinkEdges as path, index (index)}
-          <path class={[styles.edge, styles.feed]} d={path} />
+        {#each [...layout.edges, ...layout.sinkEdges] as edge, index (index)}
+          {@const link = edgeLink(edge)}
+          {#if link}
+            <path
+              class={styles.hit}
+              d={edge.hitPath}
+              role="button"
+              tabindex="0"
+              aria-label={t("powerChain.linkLabel", {
+                from: link.upstream.sw.name,
+                to: nodeTitle(link.downstream),
+              })}
+              onpointerenter={() => inspectLink(link)}
+              onpointerleave={leaveLink}
+              onfocus={() => inspectLink(link)}
+              onblur={leaveLink}
+              onclick={() => onopenlink(link)}
+              onkeydown={(event) => onlinkkeydown(event, link)}
+            />
+          {/if}
         {/each}
         {#each layout.nodes as { item, x, y } (item.key)}
           {@const node = item.node}
+          {@const load = switchLoad(node)}
+          {@const loadText = load && formatSwitchLoad(load)}
           <g
             class={[
               styles.node,
               node.kind === "device" && styles.leaf,
+              !isAttached(item.key) && styles.disabled,
+              isNodeOverloaded(item) && styles.overloaded,
               item.isFocus && styles.focus,
               nodeSpaceId(node) === inspectedSpaceId && styles.inspected,
               !isNodePlaced(node) && styles.unplaced,
@@ -215,8 +351,7 @@
             transform={`translate(${x} ${y})`}
             role="treeitem"
             aria-selected="false"
-            aria-disabled={item.isFocus}
-            tabindex={item.isFocus ? -1 : 0}
+            tabindex="0"
             onpointerenter={() => inspect(node)}
             onfocus={() => inspect(node)}
             onclick={() => open(item)}
@@ -228,11 +363,47 @@
               rx={node.kind === "device" ? NODE_HEIGHT / 2 : 6}
             />
             <text class={styles.name} x={TEXT_INSET_PX} y="19">
-              {fitText(nodeTitle(node), LABEL_FONT)}
+              {fitText(nodeTitle(node), LABEL_FONT, titleWidth(loadText))}
             </text>
             <text class={styles.caption} x={TEXT_INSET_PX} y="36">
-              {fitText(nodeCaption(node), CAPTION_FONT)}
+              {fitText(nodeCaption(node), CAPTION_FONT, captionWidth(item))}
             </text>
+            {#if loadText}
+              <text
+                class={styles.load}
+                x={NODE_WIDTH - TEXT_INSET_PX}
+                y="19"
+                text-anchor="end"
+              >
+                {loadText}
+              </text>
+            {/if}
+            {#if hasToggle(item)}
+              <foreignObject
+                x={NODE_WIDTH -
+                  CHECKBOX_RIGHT_PX -
+                  CHECKBOX_SIZE_PX -
+                  CHECKBOX_RING_PX}
+                y={NODE_HEIGHT -
+                  CHECKBOX_SIZE_PX +
+                  CHECKBOX_OVERHANG_PX -
+                  CHECKBOX_RING_PX}
+                width={CHECKBOX_SIZE_PX + CHECKBOX_RING_PX * 2}
+                height={CHECKBOX_SIZE_PX + CHECKBOX_RING_PX * 2}
+              >
+                <input
+                  class={styles.toggle}
+                  type="checkbox"
+                  aria-label={t("powerChain.enableNode")}
+                  checked={isEnabled(node)}
+                  onpointerdown={stopPropagation}
+                  onclick={stopPropagation}
+                  onkeydown={stopPropagation}
+                  onchange={(event) =>
+                    ontogglenode(node, event.currentTarget.checked)}
+                >
+              </foreignObject>
+            {/if}
           </g>
         {/each}
         {#if layout.sink && sink}

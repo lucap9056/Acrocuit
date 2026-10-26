@@ -6,11 +6,11 @@ export type * from "./models";
 export { ApiError } from "./response";
 
 import auth from "./auth";
-import switchPanels from "./switch-panels";
-import switches from "./switches";
 import devices from "./devices";
 import spaceGroups from "./space-groups";
 import spaces from "./spaces";
+import switchPanels from "./switch-panels";
+import switches from "./switches";
 
 export default {
   auth,

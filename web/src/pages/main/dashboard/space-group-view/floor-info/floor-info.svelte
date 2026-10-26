@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { AuthSession, Space } from "@/api";
-  import { fetchSwitchPanels } from "@/lib/cache/switch-panels";
   import { fetchDevices } from "@/lib/cache/devices";
   import { fetchFloorPlanImage } from "@/lib/cache/space-images";
+  import { fetchSwitchPanels } from "@/lib/cache/switch-panels";
   import { t } from "@/lib/i18n";
   import type { FloorOverview } from "@/pages/main/dashboard/space-group-view/floor-overview.svelte";
   import styles from "./floor-info.module.css";

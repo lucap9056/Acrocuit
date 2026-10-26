@@ -1,4 +1,11 @@
-import type { AuthSession, Device, Position, Ref, SpaceId } from "@/api";
+import type {
+  Attributes,
+  AuthSession,
+  Device,
+  Position,
+  Ref,
+  SpaceId,
+} from "@/api";
 import api from "@/api";
 import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
 import { createListCache } from "@/lib/cache/list-cache";
@@ -10,6 +17,8 @@ const cache = createListCache<SpaceId, Device>(api.spaces.getDevices);
 export const clearCache = cache.clear;
 
 export const fetchDevices = cache.fetch;
+
+export const watchDevices = cache.watch;
 
 export const addDevice = (
   s: AuthSession,
@@ -27,6 +36,17 @@ export const renameDevice = (
     s,
     device.space.id,
     api.devices.updateDeviceName(s, device.id, name),
+  );
+
+export const setDeviceAttributes = (
+  s: AuthSession,
+  device: CompleteDevice,
+  attributes: Attributes,
+) =>
+  cache.replace(
+    s,
+    device.space.id,
+    api.devices.updateDeviceAttributes(s, device.id, attributes),
   );
 
 export const setDevicePosition = (
