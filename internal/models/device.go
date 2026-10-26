@@ -22,13 +22,13 @@ type Device struct {
 	PositionY    *int       `json:"-"`
 	PositionZ    *int       `json:"-"`
 
-	Space    *Space    `json:"space"`
+	Space    *Ref      `json:"space"`
 	Position *Position `json:"position"`
 }
 
 func (d *Device) Build() {
 	if d.Space == nil && d.SpaceId != 0 {
-		d.Space = &Space{Id: d.SpaceId, SpaceGroupId: d.SpaceGroupId}
+		d.Space = &Ref{Id: d.SpaceId}
 	}
 	if d.Position == nil && d.PositionX != nil {
 		d.Position = &Position{X: *d.PositionX, Y: *d.PositionY, Z: *d.PositionZ}

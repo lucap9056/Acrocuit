@@ -40,8 +40,8 @@ func (ls *LinkedSwitch) Values(fields []uint8) []any {
 }
 
 type PowerChain struct {
-	Switches    []Switch     `json:"switches"`
-	SwitchLinks []SwitchLink `json:"switch_links"`
-	Devices     []Device     `json:"devices"`
-	DeviceLinks []DeviceLink `json:"device_links"`
+	Switches    []ChainSwitch `json:"switches"`
+	SwitchLinks []SwitchLink  `json:"switch_links"`
+	Devices     []Device      `json:"devices"`
+	DeviceLinks []DeviceLink  `json:"device_links"`
 }

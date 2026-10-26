@@ -15,12 +15,12 @@ type Space struct {
 	BackgroundImageUpdatedAt int64  `json:"background_image_updated_at"`
 	SpaceGroupId             int    `json:"-"`
 
-	SpaceGroup *SpaceGroup `json:"space_group"`
+	SpaceGroup *Ref `json:"space_group"`
 }
 
 func (s *Space) Build() {
 	if s.SpaceGroup == nil && s.SpaceGroupId != 0 {
-		s.SpaceGroup = &SpaceGroup{Id: s.SpaceGroupId}
+		s.SpaceGroup = &Ref{Id: s.SpaceGroupId}
 	}
 }
 

@@ -22,7 +22,7 @@ type SwitchPanel struct {
 	PositionY    *int       `json:"-"`
 	PositionZ    *int       `json:"-"`
 
-	Space    *Space    `json:"space"`
+	Space    *Ref      `json:"space"`
 	Position *Position `json:"position"`
 }
 
@@ -31,7 +31,7 @@ func (panel *SwitchPanel) Build() {
 		return
 	}
 	if panel.Space == nil && panel.SpaceId != 0 {
-		panel.Space = &Space{Id: panel.SpaceId, SpaceGroupId: panel.SpaceGroupId}
+		panel.Space = &Ref{Id: panel.SpaceId}
 	}
 	if panel.Position == nil && panel.PositionX != nil {
 		panel.Position = &Position{X: *panel.PositionX, Y: *panel.PositionY, Z: *panel.PositionZ}
