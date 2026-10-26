@@ -1,6 +1,7 @@
 import type en from "@public/locales/en.json";
 import type { Attributes } from "@/api";
 import { t } from "@/lib/i18n";
+import { isIconRef } from "@/lib/icon-packs/index.svelte";
 import { solvePower } from "@/lib/power";
 
 export const ATTRIBUTES_MAX_BYTES = 2048;
@@ -16,7 +17,7 @@ type BaseField = {
 };
 
 export type AttributeField =
-  | (BaseField & { type: "text" | "integer" })
+  | (BaseField & { type: "text" | "integer" | "icon" })
   | (BaseField & { type: "number"; min?: number; max?: number })
   | (BaseField & { type: "enum"; options: readonly AttributeOption[] });
 
@@ -41,6 +42,7 @@ const estimateRatedCurrent = (fixed: AttributesForm["fixed"]) => {
 };
 
 export const DEVICE_ATTRIBUTE_FIELDS: readonly AttributeField[] = [
+  { key: "icon", type: "icon", unit: null },
   { key: "rated_power", type: "number", unit: "W", min: 0 },
   { key: "rated_voltage", type: "number", unit: "V", min: 0 },
   {
@@ -82,6 +84,7 @@ export const SWITCH_ATTRIBUTE_FIELDS: readonly AttributeField[] = [
 ];
 
 export const SWITCH_PANEL_ATTRIBUTE_FIELDS: readonly AttributeField[] = [
+  { key: "icon", type: "icon", unit: null },
   { key: "switch_capacity", type: "integer", unit: null },
 ];
 
@@ -97,6 +100,11 @@ export const attributePhase = (
 ): Phase | undefined => {
   const value = attributes?.phase;
   return value === "single" || value === "three" ? value : undefined;
+};
+
+export const attributeIcon = (attributes: Attributes | null) => {
+  const value = attributes?.icon;
+  return typeof value === "string" && isIconRef(value) ? value : undefined;
 };
 
 export type CustomAttribute = { key: string; value: string };
@@ -147,6 +155,10 @@ const parseFixedField = (
   switch (field.type) {
     case "text":
       return { value: text };
+    case "icon":
+      return isIconRef(text)
+        ? { value: text }
+        : { issue: { kind: "invalidOption", key: field.key } };
     case "enum":
       return field.options.some(({ value }) => value === text)
         ? { value: text }

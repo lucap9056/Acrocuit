@@ -50,6 +50,16 @@
   }
 }
 
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.25rem;
+  margin-right: 0.25rem;
+  color: var(--text-muted);
+}
+
 .name {
   flex: 1;
   min-width: 0;

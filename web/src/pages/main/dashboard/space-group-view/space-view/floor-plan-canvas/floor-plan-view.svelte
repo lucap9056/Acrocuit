@@ -7,7 +7,9 @@
   import { layoutGrid } from "@/components/iso-scene/layout/grid";
   import { paintGrid } from "@/components/iso-scene/paint/grid";
   import { GRAY_PALETTE } from "@/components/iso-scene/paint/palette";
+  import { attributeIcon } from "@/lib/attributes";
   import { t } from "@/lib/i18n";
+  import { iconRegistry } from "@/lib/icon-packs/index.svelte";
   import type { FloorPlanImage } from "@/lib/iso-scene/floor-plan-image";
   import { onMount } from "@/lib/lifecycle";
   import type {
@@ -154,6 +156,7 @@
       name: marker.name,
       point: toScreen(displayedPosition(marker)),
       isActive: focus.hoveredKey === marker.key || draggingKey === marker.key,
+      icon: iconRegistry.get(attributeIcon(marker.target.attributes)),
     })),
   );
 
@@ -381,6 +384,9 @@
     }
 
     ctx = canvas.getContext("2d");
+    iconRegistry.load().catch((err) => {
+      console.error(err);
+    });
     canvas.addEventListener("wheel", onwheel, {
       passive: false,
       signal,

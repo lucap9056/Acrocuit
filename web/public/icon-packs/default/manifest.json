@@ -1,0 +1,416 @@
+{
+  "schema": 1,
+  "id": "default",
+  "name": "default",
+  "version": "1.0.0",
+  "license": "MIT",
+  "viewBox": [
+    0,
+    0,
+    24,
+    24
+  ],
+  "style": {
+    "strokeWidth": 1.5,
+    "lineCap": "round",
+    "lineJoin": "round"
+  },
+  "assets": {
+    "bundle": "icons.json"
+  },
+  "categories": {
+    "distribution": {
+      "zh-TW": "配電",
+      "en": "Distribution"
+    },
+    "switch": {
+      "zh-TW": "開關",
+      "en": "Switches"
+    },
+    "outlet": {
+      "zh-TW": "插座",
+      "en": "Outlets"
+    },
+    "lighting": {
+      "zh-TW": "照明",
+      "en": "Lighting"
+    },
+    "equipment": {
+      "zh-TW": "設備",
+      "en": "Equipment"
+    }
+  },
+  "icons": [
+    {
+      "name": "distribution_board",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "分電盤",
+        "en": "Distribution board"
+      },
+      "tags": [
+        "分電盤",
+        "配電箱",
+        "配電盤",
+        "總開關箱",
+        "panel",
+        "load center"
+      ]
+    },
+    {
+      "name": "kwh_meter",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "電度表",
+        "en": "kWh meter"
+      },
+      "tags": [
+        "電度表",
+        "電表",
+        "瓦時計",
+        "台電",
+        "meter",
+        "kWh"
+      ]
+    },
+    {
+      "name": "circuit_breaker",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "無熔絲開關",
+        "en": "Circuit breaker"
+      },
+      "tags": [
+        "無熔絲開關",
+        "NFB",
+        "斷路器",
+        "MCCB",
+        "MCB",
+        "circuit breaker"
+      ]
+    },
+    {
+      "name": "earth_leakage_breaker",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "漏電斷路器",
+        "en": "Residual-current breaker"
+      },
+      "tags": [
+        "漏電斷路器",
+        "ELCB",
+        "漏電開關",
+        "RCD",
+        "RCBO",
+        "GFCI"
+      ]
+    },
+    {
+      "name": "transformer",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "變壓器",
+        "en": "Transformer"
+      },
+      "tags": [
+        "變壓器",
+        "降壓",
+        "transformer"
+      ]
+    },
+    {
+      "name": "earth",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "接地",
+        "en": "Earth"
+      },
+      "tags": [
+        "接地",
+        "地線",
+        "E",
+        "earth",
+        "ground"
+      ]
+    },
+    {
+      "name": "junction_box",
+      "category": "distribution",
+      "labels": {
+        "zh-TW": "接線盒",
+        "en": "Junction box"
+      },
+      "tags": [
+        "接線盒",
+        "出線盒",
+        "J",
+        "junction box"
+      ]
+    },
+    {
+      "name": "switch",
+      "category": "switch",
+      "labels": {
+        "zh-TW": "單切開關",
+        "en": "Single-pole switch"
+      },
+      "tags": [
+        "單切開關",
+        "開關",
+        "單切",
+        "S",
+        "switch"
+      ]
+    },
+    {
+      "name": "switch_three_way",
+      "category": "switch",
+      "labels": {
+        "zh-TW": "三路開關",
+        "en": "Three-way switch"
+      },
+      "tags": [
+        "三路開關",
+        "雙切開關",
+        "S3",
+        "樓梯開關",
+        "three-way switch"
+      ]
+    },
+    {
+      "name": "switch_four_way",
+      "category": "switch",
+      "labels": {
+        "zh-TW": "四路開關",
+        "en": "Four-way switch"
+      },
+      "tags": [
+        "四路開關",
+        "S4",
+        "four-way switch"
+      ]
+    },
+    {
+      "name": "outlet",
+      "category": "outlet",
+      "labels": {
+        "zh-TW": "單插座",
+        "en": "Outlet"
+      },
+      "tags": [
+        "插座",
+        "單插座",
+        "110V",
+        "outlet",
+        "receptacle"
+      ]
+    },
+    {
+      "name": "outlet_duplex",
+      "category": "outlet",
+      "labels": {
+        "zh-TW": "雙連插座",
+        "en": "Duplex outlet"
+      },
+      "tags": [
+        "雙連插座",
+        "雙插座",
+        "duplex outlet"
+      ]
+    },
+    {
+      "name": "outlet_grounded",
+      "category": "outlet",
+      "labels": {
+        "zh-TW": "接地型插座",
+        "en": "Grounded outlet"
+      },
+      "tags": [
+        "接地型插座",
+        "三孔插座",
+        "接地插座",
+        "grounded outlet"
+      ]
+    },
+    {
+      "name": "outlet_220v",
+      "category": "outlet",
+      "labels": {
+        "zh-TW": "220V 專用插座",
+        "en": "220 V outlet"
+      },
+      "tags": [
+        "220V",
+        "冷氣插座",
+        "專用插座",
+        "一字插座",
+        "dedicated outlet"
+      ]
+    },
+    {
+      "name": "outlet_weatherproof",
+      "category": "outlet",
+      "labels": {
+        "zh-TW": "防水插座",
+        "en": "Weatherproof outlet"
+      },
+      "tags": [
+        "防水插座",
+        "WP",
+        "戶外插座",
+        "浴室",
+        "weatherproof outlet"
+      ]
+    },
+    {
+      "name": "light",
+      "category": "lighting",
+      "labels": {
+        "zh-TW": "燈具出線口",
+        "en": "Lighting outlet"
+      },
+      "tags": [
+        "燈具",
+        "燈",
+        "吸頂燈",
+        "燈具出線口",
+        "light",
+        "lamp"
+      ]
+    },
+    {
+      "name": "light_downlight",
+      "category": "lighting",
+      "labels": {
+        "zh-TW": "嵌燈",
+        "en": "Downlight"
+      },
+      "tags": [
+        "嵌燈",
+        "崁燈",
+        "筒燈",
+        "downlight",
+        "recessed light"
+      ]
+    },
+    {
+      "name": "light_fluorescent",
+      "category": "lighting",
+      "labels": {
+        "zh-TW": "日光燈",
+        "en": "Fluorescent light"
+      },
+      "tags": [
+        "日光燈",
+        "燈管",
+        "T5",
+        "T8",
+        "LED 燈管",
+        "fluorescent"
+      ]
+    },
+    {
+      "name": "light_emergency",
+      "category": "lighting",
+      "labels": {
+        "zh-TW": "緊急照明燈",
+        "en": "Emergency light"
+      },
+      "tags": [
+        "緊急照明",
+        "緊急照明燈",
+        "消防",
+        "emergency light"
+      ]
+    },
+    {
+      "name": "exit_sign",
+      "category": "lighting",
+      "labels": {
+        "zh-TW": "出口標示燈",
+        "en": "Exit sign"
+      },
+      "tags": [
+        "出口標示燈",
+        "避難方向指示燈",
+        "消防",
+        "exit sign"
+      ]
+    },
+    {
+      "name": "motor",
+      "category": "equipment",
+      "labels": {
+        "zh-TW": "電動機",
+        "en": "Motor"
+      },
+      "tags": [
+        "電動機",
+        "馬達",
+        "抽水馬達",
+        "M",
+        "motor"
+      ]
+    },
+    {
+      "name": "exhaust_fan",
+      "category": "equipment",
+      "labels": {
+        "zh-TW": "換氣扇",
+        "en": "Exhaust fan"
+      },
+      "tags": [
+        "換氣扇",
+        "排風扇",
+        "抽風機",
+        "浴室",
+        "exhaust fan"
+      ]
+    },
+    {
+      "name": "air_conditioner",
+      "category": "equipment",
+      "labels": {
+        "zh-TW": "冷氣機",
+        "en": "Air conditioner"
+      },
+      "tags": [
+        "冷氣",
+        "冷氣機",
+        "空調",
+        "分離式",
+        "AC",
+        "air conditioner"
+      ]
+    },
+    {
+      "name": "water_heater",
+      "category": "equipment",
+      "labels": {
+        "zh-TW": "電熱水器",
+        "en": "Electric water heater"
+      },
+      "tags": [
+        "電熱水器",
+        "熱水器",
+        "儲熱式",
+        "water heater"
+      ]
+    },
+    {
+      "name": "ev_charger",
+      "category": "equipment",
+      "labels": {
+        "zh-TW": "電動車充電樁",
+        "en": "EV charger"
+      },
+      "tags": [
+        "充電樁",
+        "充電座",
+        "電動車",
+        "電動機車",
+        "EV charger"
+      ]
+    }
+  ]
+}
