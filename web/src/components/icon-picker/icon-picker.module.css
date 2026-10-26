@@ -112,7 +112,7 @@
 .search {
   padding: 0.5rem 0.75rem;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: var(--surface-muted);
   box-shadow: var(--shadow-control);
   color: var(--text);

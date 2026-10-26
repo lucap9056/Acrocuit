@@ -41,7 +41,7 @@
     right: 0;
     z-index: 2;
     padding: 0.25rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-surface);
     background: var(--surface);
     box-shadow:
       inset 0 0 0 1px var(--border),
