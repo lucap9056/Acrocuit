@@ -1,10 +1,13 @@
 import type { Point } from "@/components/iso-scene/camera/projection";
 import { LABEL_FONT } from "@/components/iso-scene/layout/typography";
 import { setScreenTransform } from "@/components/iso-scene/paint/canvas";
+import { drawPackIcon } from "@/components/iso-scene/paint/pack-icon";
 import type { ScenePalette } from "@/components/iso-scene/paint/palette";
+import type { ResolvedIcon } from "@/lib/icon-packs/index.svelte";
 
 const SYMBOL_SIZE_PX = 27;
 const SYMBOL_COLOR = "#2f6fd6";
+const ICON_STROKE_SCALE = 1.5;
 const DEVICE_RADIUS_PX = 12;
 const DEVICE_STROKE_PX = 3;
 const PANEL_HALF_WIDTH_PX = 12.4;
@@ -21,6 +24,7 @@ export interface FloorPlanMarkerShape {
   name: string;
   point: Point;
   isActive: boolean;
+  icon?: ResolvedIcon;
 }
 
 const inDrawOrder = <T extends FloorPlanMarkerShape>(markers: T[]): T[] => [
@@ -93,7 +97,18 @@ export const paintFloorPlanMarkers = (
   ctx.textBaseline = "middle";
 
   for (const marker of inDrawOrder(markers)) {
-    drawSymbol(ctx, marker);
+    if (marker.icon) {
+      drawPackIcon(
+        ctx,
+        marker.icon,
+        marker.point,
+        SYMBOL_SIZE_PX,
+        SYMBOL_COLOR,
+        ICON_STROKE_SCALE,
+      );
+    } else {
+      drawSymbol(ctx, marker);
+    }
     if (marker.isActive) {
       ctx.strokeStyle = palette.highlight.line;
       drawOutline(ctx, marker.point);

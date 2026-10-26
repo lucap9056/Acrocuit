@@ -4,7 +4,9 @@
   import type { AuthSession, Device, Position, Space } from "@/api";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
+  import PackIcon from "@/components/pack-icon/pack-icon.svelte";
   import { tooltip } from "@/components/tooltip";
+  import { attributeIcon } from "@/lib/attributes";
   import { addDevice, removeDevice } from "@/lib/cache/devices";
   import { t } from "@/lib/i18n";
   import {
@@ -139,6 +141,14 @@
   };
 </script>
 
+{#snippet deviceIcon(
+  ref: string | undefined,
+)}
+  <span class={styles.icon} aria-hidden="true">
+    <PackIcon id={ref} size="1.125rem" />
+  </span>
+{/snippet}
+
 {#snippet setDeviceName()}
   <input type="text" bind:value={deviceName}>
 {/snippet}
@@ -160,6 +170,9 @@
   {:else if devices.length === 0}
     <p class={styles.message}>{t("common.noneYet")}</p>
   {:else}
+    {@const hasIcons = devices.some(({ attributes }) =>
+      attributeIcon(attributes),
+    )}
     <ul class={styles.list}>
       {#each devices as device (device.id)}
         {@const key = deviceKey(device.id)}
@@ -174,6 +187,9 @@
             focus.cancelReveal();
           }}
         >
+          {#if hasIcons}
+            {@render deviceIcon(attributeIcon(device.attributes))}
+          {/if}
           <button
             class={styles.name}
             onclick={() => onedit(device)}

@@ -98,6 +98,7 @@
     "duplicateKey": "Duplicate key: {{key}}",
     "tooLarge": "Attributes must not exceed {{max}} bytes",
     "fields": {
+      "icon": "Icon",
       "wire_size": "Wire size",
       "wire_length": "Wire length",
       "wire_type": "Wire type",
@@ -124,6 +125,21 @@
         "elcb": "Residual-current breaker",
         "switch": "Switch"
       }
+    }
+  },
+  "iconPicker": {
+    "search": "Search icons",
+    "empty": "No matching icons",
+    "packs": "Icon packs",
+    "addSource": "Add icon source",
+    "add": "Add",
+    "sourceUrl": "Source URL",
+    "sourceHint": "URL of a manifest.json or its folder.",
+    "errors": {
+      "invalidUrl": "Enter a valid https URL",
+      "unreachable": "Could not load the source; check the URL",
+      "unsupported": "This source is not a supported icon pack",
+      "tooLarge": "This icon pack is too large"
     }
   },
   "switchSelector": {

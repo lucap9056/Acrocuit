@@ -1,6 +1,7 @@
 <script lang="ts">
   import PlusIcon from "phosphor-svelte/lib/PlusIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
+  import IconPicker from "@/components/icon-picker/icon-picker.svelte";
   import Select, { type SelectOption } from "@/components/select/select.svelte";
   import { tooltip } from "@/components/tooltip";
   import type {
@@ -63,7 +64,19 @@
   <div class={styles.fields}>
     {#each fields as field (field.key)}
       {@const label = t(`attributes.fields.${field.key}`)}
-      {#if field.type === "enum"}
+      {#if field.type === "icon"}
+        <div class={styles.field}>
+          <span class={styles.label}>{label}</span>
+          <span class={styles.control}>
+            <IconPicker
+              {label}
+              value={form.fixed[field.key] ?? ""}
+              {disabled}
+              onchange={(value) => choose(field, value)}
+            />
+          </span>
+        </div>
+      {:else if field.type === "enum"}
         <div class={styles.field}>
           <span class={styles.label}>{label}</span>
           <span class={styles.control}>

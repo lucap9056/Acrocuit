@@ -98,6 +98,7 @@
     "duplicateKey": "欄位名稱重複：{{key}}",
     "tooLarge": "屬性不得超過 {{max}} bytes",
     "fields": {
+      "icon": "圖示",
       "wire_size": "線徑",
       "wire_length": "線長",
       "wire_type": "線材種類",
@@ -124,6 +125,21 @@
         "elcb": "漏電斷路器",
         "switch": "一般開關"
       }
+    }
+  },
+  "iconPicker": {
+    "search": "搜尋圖示",
+    "empty": "沒有符合的圖示",
+    "packs": "圖示包",
+    "addSource": "新增圖示來源",
+    "add": "新增",
+    "sourceUrl": "來源網址",
+    "sourceHint": "manifest.json 或其資料夾的網址。",
+    "errors": {
+      "invalidUrl": "請輸入有效的 https 網址",
+      "unreachable": "無法讀取來源，請確認網址",
+      "unsupported": "此來源不是支援的圖示包格式",
+      "tooLarge": "此圖示包超過大小限制"
     }
   },
   "switchSelector": {
