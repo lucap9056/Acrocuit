@@ -18,7 +18,6 @@
   const { onsuccess }: Props = $props();
 
   let pending = $state<AbortController>();
-  let error = $state<string>();
 
   const awaitPopupCallback = (popup: Popup): Promise<PopupCallback> => {
     const controller = new AbortController();
@@ -29,8 +28,6 @@
 
   const signIn = () => {
     const loading = load.begin(t("loading.signIn"));
-
-    error = undefined;
 
     api.auth
       .login()

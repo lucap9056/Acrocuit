@@ -13,7 +13,6 @@
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import type { Workspace } from "@/lib/workspace";
-  import FloorInfo from "./floor-info/floor-info.svelte";
   import { FloorOverview } from "./floor-overview.svelte";
   import FloorOverviewCanvas from "./floor-overview-canvas/floor-overview-canvas.svelte";
   import FloorOverviewToolbar from "./floor-overview-toolbar/floor-overview-toolbar.svelte";
@@ -73,7 +72,6 @@
         leftpart: spaceList,
         centerpart: floorView,
         toolbarpart: viewToolbar,
-        rightpart: spaceInfo,
       },
       signal,
     );
@@ -142,12 +140,6 @@
 
 {#snippet viewToolbar()}
   <FloorOverviewToolbar {overview} />
-{/snippet}
-
-{#snippet spaceInfo()}
-  {#if spaces}
-    <FloorInfo {session} {spaces} {overview} />
-  {/if}
 {/snippet}
 
 {#snippet floorView()}

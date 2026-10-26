@@ -153,8 +153,7 @@
     "empty": "尚未上傳平面圖",
     "upload": "上傳平面圖",
     "remove": "移除平面圖",
-    "confirmRemove": "要移除「{{name}}」的平面圖嗎？",
-    "uploaded": "已上傳"
+    "confirmRemove": "要移除「{{name}}」的平面圖嗎？"
   },
   "floorOverview": {
     "loading": "載入樓層中…",
@@ -165,8 +164,7 @@
     "fitToView": "符合畫面"
   },
   "floorInfo": {
-    "floor": "樓層",
-    "hint": "將游標移到樓層上，或在觸控螢幕上點一下，即可查看詳細資訊"
+    "floor": "樓層"
   },
   "powerChain": {
     "upstreamTitle": "{{name}} 的上游鏈",
