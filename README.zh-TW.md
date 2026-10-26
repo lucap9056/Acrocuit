@@ -2,36 +2,105 @@
 
 <div align="center">
 	<h1>Acrocuit</h1>
+	<p>逐層記錄建築物的電路，並追蹤任一開關或裝置的供電鏈</p>
 </div>
+
+![建築總覽，樓層平面圖堆疊顯示](docs/screenshots/overview.png)
 
 ---
 
-以 `空間群組 → 空間 → 開關面板 → 開關` 記錄建築物的電路拓樸
+## 功能
 
-- **排序**：空間與開關皆有 `display_order`，可模擬樓層與配電箱內的排列
-- **開關鏈**：開關可指向同一空間群組內的上游開關
-  - 查詢上游鏈與下游樹，找出關閉某個開關的影響範圍
-- **裝置接線**：裝置可掛在多個開關上，例如雙切燈
-- **背景圖**：每個空間可上傳一張背景圖
+### 樓層與平面圖
+
+- 建立建築物與各樓層，依樓層順序堆疊顯示
+- 每層樓可上傳平面圖，並在圖上放置開關面板與裝置
+- 平面圖上的每個項目都會顯示 icon，插座、燈具與配電盤一眼就能分辨
+
+![平面圖上的開關面板與裝置](docs/screenshots/floor-plan.png)
+
+### 開關面板、開關與裝置
+
+- 開關面板內的開關可依列或欄排列，拖曳即可調整順序
+- 開關可由多個開關供電，裝置也可掛在多個開關上，例如雙切燈
+- 記錄額定功率、電壓、電流上限、相數、功率因數、線徑等規格
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/switch-panel-editor.png" alt="開關面板編輯"></td>
+    <td width="50%"><img src="docs/screenshots/device-editor.png" alt="裝置編輯"></td>
+  </tr>
+</table>
+
+### 供電鏈
+
+- 追蹤裝置由哪些開關供電，或開關供電給哪些對象，找出關閉某個開關的影響範圍
+- 檢視各開關的電流與上限、線路負載與累計電壓降，超載會標示出來
+- 可在樹上關閉裝置與開關，先模擬變更的結果
+- 切換到 3D 檢視，跨樓層追蹤整條供電鏈
+
+<img src="docs/screenshots/downstream-tree.png" alt="下游樹與各開關負載">
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/upstream-tree.png" alt="裝置的上游供電鏈"></td>
+    <td width="50%"><img src="docs/screenshots/chain-scene.png" alt="跨樓層供電鏈 3D 檢視"></td>
+  </tr>
+</table>
+
+<img src="docs/screenshots/wire-attributes.png" alt="線路 Attributes 與電壓降" width="75%">
+
+### 圖示包
+
+- 內建圖示包涵蓋常見電氣符號：配電、開關、插座、照明與設備
+- 可透過網址加入其他圖示包
+
+<img src="docs/screenshots/icon-picker.png" alt="Icon 選擇器" width="40%">
 
 ## 快速開始
 
-### SQLite（單人）
+### 單人使用
 
 ```bash
+(cd web && bun install && bun run build)
 go build -o bin/acrocuit ./cmd/acrocuit
 ./bin/acrocuit
 ```
 
-- 資料庫位於執行檔所在目錄的 `data/acrocuit.db`，啟動時自動建立 schema
-- `go run` 會編譯到暫存目錄，需保留資料時請設定 `DATABASE_DSN=sqlite://<path>`
+開啟 `http://localhost:8080`，資料存在執行檔所在目錄的 `data/acrocuit.db`
 
-### Docker（PostgreSQL，多人）
+### 多人使用（Docker）
 
 ```bash
 cp docker/.env.example docker/.env   # 填入 IDENTITY_JWT_SECRET 與 OAuth2.0 / OIDC provider
 docker compose -f docker/docker-compose.yml up -d --build
 ```
+
+開啟 `http://localhost:8080` 並以 provider 帳號登入，細節見[部署](#部署)
+
+---
+
+## 關於開發
+
+### 資料模型
+
+`空間群組 → 空間 → 開關面板 → 開關`，裝置則連接到開關
+
+- **排序**：空間與開關皆可排序，對應樓層與配電箱內的排列
+- **開關鏈**：開關可有多個同一空間群組內的上游開關，會拒絕形成環的連結
+- **裝置接線**：裝置可掛在多個開關上
+- **背景圖**：每個空間可上傳一張背景圖
+- **Attributes**：裝置、開關與兩者的連結都帶有自由格式的 JSON object `attributes`（上限 2048 bytes）
+  - 後端只負責結構完整性，負載與容量規則都在前端計算
+
+### 部署
+
+#### SQLite
+
+- 啟動時自動建立 schema
+- `go run` 會編譯到暫存目錄，需保留資料時請設定 `DATABASE_DSN=sqlite://<path>`
+
+#### Docker
 
 - 包含 PostgreSQL、app、[corvauth](https://github.com/lucap9056/corvauth) 與 nginx
   - `dbinit` 與 `corvauth-schema` 在啟動前建立 table
@@ -40,7 +109,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 - 經 `/auth/login` 登入後，以 `Authorization: Bearer <access_token>` 呼叫 `/api`
 - 移除內建使用者之前建立的 volume 須以 `down -v` 重置
 
-### PostgreSQL
+#### PostgreSQL
 
 ```bash
 export DATABASE_DSN="postgres://user:pass@localhost:5432/acrocuit?sslmode=disable"
@@ -50,7 +119,7 @@ go run ./cmd/acrocuit
 
 `dbinit` 可重複執行，但不會修改既有 table
 
-## 設定
+### 設定
 
 | 變數 | 預設值 |
 | :--- | :--- |
@@ -62,7 +131,7 @@ go run ./cmd/acrocuit
 | `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console（可選 `json`） |
 | `LOG_FILE_PATH` | 停用 |
 
-## 身份驗證
+### 身份驗證
 
 Acrocuit 不管理使用者，模式由資料庫決定：
 
@@ -78,7 +147,26 @@ Acrocuit 不管理使用者，模式由資料庫決定：
 - 未設定 secret 時，請確保有使用 proxy 清除 client 自帶的同名 header
 - SQLite 設定 secret 只會發出警告
 
-## 測試
+### 圖示包格式
+
+圖示包由描述圖示包與分類的 `manifest.json`，以及它指向的 icon bundle 組成。Icon 選擇器接受 manifest 或其所在資料夾的網址，格式參考內建的 [`web/public/icon-packs/default`](web/public/icon-packs/default)
+
+### 前端
+
+前端位於 `web/`（Svelte 5、TypeScript、Vite），build 時會嵌入執行檔
+
+```bash
+docker compose -f docker-dev/docker-compose.yml up -d --build
+cd web && bun run dev
+```
+
+- 開啟 `http://localhost:5173`，Vite 將 `/api`、`/auth`、`/dex` 轉給 nginx，只需這一個 port
+- `docker-dev/` 為獨立的 stack，內含本地 Dex OIDC provider，不需另設 `.env`
+- 以 `WEB=none`（`noweb` build tag）編譯，app 不提供前端頁面，頁面由 Vite 提供
+- 帳號 `testuser_A`（`testuser_a@example.com`）、`testuser_B`（`testuser_b@example.com`），密碼皆為 `password`，登入時輸入 email
+- 登入流程的網址皆指向 `http://localhost:5173`，須啟動 Vite 才能登入
+
+### 測試
 
 對執行中的 server 發送 request（`ACROCUIT_HOST`，預設 `http://localhost:8080`），連不上時 skip
 
@@ -92,29 +180,6 @@ ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
 
 多人模式以 `ACROCUIT_ACCESS_TOKEN`（經 proxy）或 `ACROCUIT_IDENTITY_TOKEN`（直連 app）帶入身份
 
-### Dex（前端開發）
+### API
 
-```bash
-docker compose -f docker-dev/docker-compose.yml up -d --build
-cd web && bun run dev
-```
-
-- 開啟 `http://localhost:5173`，Vite 將 `/api`、`/auth`、`/dex` 轉給 nginx，只需這一個 port
-- `docker-dev/` 為獨立的 stack，內含本地 Dex OIDC provider，不需另設 `.env`
-- 以 `WEB=none`（`noweb` build tag）編譯，app 不提供前端頁面，頁面由 Vite 提供
-- 帳號 `testuser_A`（`testuser_a@example.com`）、`testuser_B`（`testuser_b@example.com`），密碼皆為 `password`，登入時輸入 email
-- 登入流程的網址皆指向 `http://localhost:5173`，須啟動 Vite 才能登入
-
-## API
-
-- 路由皆在 `/api` 底下
-- 回應包成 `{ "success", "data", "error" }`，欄位採 `snake_case`
-
-| 路由 | 子路由 |
-| :--- | :--- |
-| `/api/meta` | 不需身份；`auth_required` 表示 request 是否須帶身份 |
-| `/api/space-groups` | |
-| `/api/spaces` | `/{id}/background-image`：multipart 欄位 `image`，PNG/JPEG/WebP/GIF，上限 10 MB |
-| `/api/switch-panels` | |
-| `/api/switches` | `/{id}/upstream`、`/{id}/downstream` |
-| `/api/devices` | `/{id}/switches`、`/{id}/upstream` |
+各路由的 request body 與 response 詳見 [docs/api.zh-TW.md](docs/api.zh-TW.md)
