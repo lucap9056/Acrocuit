@@ -87,6 +87,7 @@
   const CHECKBOX_OVERHANG_PX = 6;
   const CHECKBOX_RING_PX = 2;
   const BADGE_GAP_PX = 8;
+  const DEVICE_RADIUS_PX = NODE_HEIGHT / 2;
 
   let container = $state<HTMLDivElement>();
   let width = $state(0);
@@ -360,7 +361,7 @@
             <rect
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
-              rx={node.kind === "device" ? NODE_HEIGHT / 2 : 6}
+              rx={node.kind === "device" ? DEVICE_RADIUS_PX : 0}
             />
             <text class={styles.name} x={TEXT_INSET_PX} y="19">
               {fitText(nodeTitle(node), LABEL_FONT, titleWidth(loadText))}
@@ -414,7 +415,7 @@
             <rect
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
-              rx={NODE_HEIGHT / 2}
+              rx={DEVICE_RADIUS_PX}
             />
             <text
               class={styles.name}

@@ -13,8 +13,9 @@
   --danger-hover: #934a44;
   --overlay: rgb(42 48 58 / 25%);
 
-  --radius: 0.5rem;
-  --radius-sm: 0.375rem;
+  --radius-data: 0;
+  --radius-control: 0.125rem;
+  --radius-surface: 0.25rem;
   --shadow: 0 0.0625rem 0.25rem rgb(42 48 58 / 8%);
   --shadow-control:
     inset 0 0 0 1px var(--border), 0 0.0625rem 0.125rem rgb(42 48 58 / 6%);
@@ -73,7 +74,7 @@ p {
 button {
   border: none;
   padding: 0.375rem 0.875rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: var(--surface-muted);
   color: var(--text);
   font: inherit;

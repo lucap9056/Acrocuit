@@ -11,7 +11,7 @@
 
   .toast_item {
     padding: 0.625rem 1rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-surface);
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);

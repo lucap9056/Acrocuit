@@ -1,5 +1,4 @@
 <script lang="ts">
-  import BracketsCurlyIcon from "phosphor-svelte/lib/BracketsCurlyIcon";
   import PlusIcon from "phosphor-svelte/lib/PlusIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
   import { untrack } from "svelte";
@@ -23,6 +22,7 @@
   import SwitchSelector from "@/components/switch-selector/switch-selector.svelte";
   import Textbox from "@/components/textbox/textbox.svelte";
   import { tooltip } from "@/components/tooltip";
+  import WireIcon from "@/components/wire-icon/wire-icon.svelte";
   import { SWITCH_ATTRIBUTE_FIELDS } from "@/lib/attributes";
   import {
     addSwitchUpstream,
@@ -232,7 +232,7 @@
               onclick={() => editUpstreamAttributes(upstream)}
               {@attach tooltip(t("attributes.edit"))}
             >
-              <BracketsCurlyIcon />
+              <WireIcon />
             </button>
             <button
               class="icon_button {styles.delete}"

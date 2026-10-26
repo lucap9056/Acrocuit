@@ -22,7 +22,7 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      border-radius: 999px;
+      border-radius: var(--radius-control);
       background: var(--accent);
       animation: loading-bar 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
     }

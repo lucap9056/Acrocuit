@@ -163,7 +163,7 @@
   width: calc(100% - 4px);
   height: calc(100% - 4px);
   margin: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   box-shadow: 0 0 0 2px var(--surface);
   accent-color: var(--accent);
   cursor: pointer;
