@@ -17,13 +17,20 @@ export interface TreeNodeLayout extends TreeBox {
   item: ChainTreeNode;
 }
 
+export interface TreeEdge {
+  path: string;
+  hitPath: string;
+  parent: ChainTreeNode;
+  child?: ChainTreeNode;
+}
+
 export interface TreeLayout {
   width: number;
   height: number;
   nodes: TreeNodeLayout[];
   sink?: TreeBox;
-  edges: string[];
-  sinkEdges: string[];
+  edges: TreeEdge[];
+  sinkEdges: TreeEdge[];
 }
 
 interface Placement {
@@ -82,21 +89,30 @@ export const layoutTree = (
         );
 
   const nodes: TreeNodeLayout[] = [];
-  const edges: string[] = [];
-  const sinkEdges: string[] = [];
+  const edges: TreeEdge[] = [];
+  const sinkEdges: TreeEdge[] = [];
 
   const visit = (placement: Placement) => {
     const box = toBox(placement.column, placement.depth);
     nodes.push({ item: placement.item, ...box });
     for (const child of placement.children) {
-      edges.push(elbow(box, toBox(child.column, child.depth)));
+      const childBox = toBox(child.column, child.depth);
+      edges.push({
+        path: elbow(box, childBox),
+        hitPath: `M${centerX(childBox)} ${elbowY(box)}V${childBox.y}`,
+        parent: placement.item,
+        child: child.item,
+      });
       visit(child);
     }
     if (sink && placement.sinkColumn !== undefined) {
       const stub = toBox(placement.sinkColumn, sinkDepth);
-      sinkEdges.push(
-        `M${centerX(box)} ${bottomY(box)}V${elbowY(box)}H${centerX(stub)}V${sink.y - ROW_GAP / 2}H${centerX(sink)}V${sink.y}`,
-      );
+      const mergeY = sink.y - ROW_GAP / 2;
+      sinkEdges.push({
+        path: `M${centerX(box)} ${bottomY(box)}V${elbowY(box)}H${centerX(stub)}V${mergeY}H${centerX(sink)}V${sink.y}`,
+        hitPath: `M${centerX(stub)} ${elbowY(box)}V${mergeY}`,
+        parent: placement.item,
+      });
     }
   };
   placements.forEach(visit);

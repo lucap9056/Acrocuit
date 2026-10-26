@@ -1,11 +1,13 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
-  ChainSwitch,
-  Switch,
-  SwitchId,
+  Attributes,
   Device,
   DeviceId,
+  DeviceLink,
+  LinkedSwitch,
   Position,
+  PowerChainGraph,
+  SwitchId,
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
@@ -31,6 +33,22 @@ const updateDeviceName = (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ name }),
+    })
+    .then(unwrapApiResponse<Device>);
+};
+
+const updateDeviceAttributes = (
+  auth: AuthSession,
+  deviceId: DeviceId,
+  attributes: Attributes,
+) => {
+  return auth
+    .fetch(`${base}/${deviceId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attributes }),
     })
     .then(unwrapApiResponse<Device>);
 };
@@ -64,13 +82,14 @@ const getDeviceSwitches = (auth: AuthSession, deviceId: DeviceId) => {
     .fetch(`${base}/${deviceId}/switches`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<Switch[]>);
+    .then(unwrapApiResponse<LinkedSwitch[]>);
 };
 
 const addDeviceSwitch = (
   auth: AuthSession,
   deviceId: DeviceId,
   switchId: SwitchId,
+  attributes?: Attributes,
 ) => {
   return auth
     .fetch(`${base}/${deviceId}/switches`, {
@@ -78,9 +97,26 @@ const addDeviceSwitch = (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ switch_id: switchId }),
+      body: JSON.stringify({ switch_id: switchId, attributes }),
     })
-    .then(unwrapApiResponse<undefined>);
+    .then(unwrapApiResponse<DeviceLink>);
+};
+
+const updateDeviceSwitch = (
+  auth: AuthSession,
+  deviceId: DeviceId,
+  switchId: SwitchId,
+  attributes: Attributes,
+) => {
+  return auth
+    .fetch(`${base}/${deviceId}/switches/${switchId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attributes }),
+    })
+    .then(unwrapApiResponse<DeviceLink>);
 };
 
 const deleteDeviceSwitch = (
@@ -100,16 +136,18 @@ const getDeviceUpstream = (auth: AuthSession, deviceId: DeviceId) => {
     .fetch(`${base}/${deviceId}/upstream`, {
       method: "GET",
     })
-    .then(unwrapApiResponse<ChainSwitch[]>);
+    .then(unwrapApiResponse<PowerChainGraph>);
 };
 
 export default {
   getDevice,
   updateDeviceName,
+  updateDeviceAttributes,
   updateDevicePosition,
   deleteDevice,
   getDeviceSwitches,
   addDeviceSwitch,
+  updateDeviceSwitch,
   deleteDeviceSwitch,
   getDeviceUpstream,
 };

@@ -1,10 +1,11 @@
 import type { AuthSession, Ref, Space, SpaceGroupId } from "@/api";
 import api from "@/api";
-import { clearCache as clearSwitchPanelsCache } from "@/lib/cache/switch-panels";
-import { clearCache as clearSwitchesCache } from "@/lib/cache/switches";
-import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
 import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
+import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
 import { clearCache as clearSpaceImagesCache } from "@/lib/cache/space-images";
+import { clearCache as clearSwitchPanelsCache } from "@/lib/cache/switch-panels";
+import { clearCache as clearSwitchUpstreamsCache } from "@/lib/cache/switch-upstreams";
+import { clearCache as clearSwitchesCache } from "@/lib/cache/switches";
 
 type CompleteSpace = Space & { space_group: Ref<SpaceGroupId> };
 
@@ -26,6 +27,7 @@ export const clearSpaceGroupCache = (sg: SpaceGroupId) => {
   clearSwitchesCache();
   clearDevicesCache();
   clearDeviceSwitchesCache();
+  clearSwitchUpstreamsCache();
   cached
     ?.then((spaces) => {
       for (const space of spaces) {
@@ -81,6 +83,7 @@ export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
     clearSwitchPanelsCache(space.id);
     clearDevicesCache();
     clearDeviceSwitchesCache();
+    clearSwitchUpstreamsCache();
     clearSpaceImagesCache(space.id);
     clearSwitchesCache();
 

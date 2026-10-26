@@ -1,4 +1,4 @@
-import type { AuthSession, DeviceId, SwitchId } from "@/api";
+import type { Attributes, AuthSession, DeviceId, SwitchId } from "@/api";
 import api from "@/api";
 import { createListCache } from "@/lib/cache/list-cache";
 
@@ -17,6 +17,24 @@ export const addDeviceSwitch = (
     cache.clear(device);
     return cache.fetch(s, device);
   });
+
+export const setDeviceSwitchAttributes = (
+  s: AuthSession,
+  device: DeviceId,
+  sw: SwitchId,
+  attributes: Attributes,
+) =>
+  Promise.all([
+    cache.fetch(s, device),
+    api.devices.updateDeviceSwitch(s, device, sw, attributes),
+  ]).then(([items, link]) =>
+    cache.set(
+      device,
+      items.map((i) =>
+        i.id === sw ? { ...i, link: { attributes: link.attributes } } : i,
+      ),
+    ),
+  );
 
 export const removeDeviceSwitch = (
   s: AuthSession,

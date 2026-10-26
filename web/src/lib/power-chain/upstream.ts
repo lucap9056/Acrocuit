@@ -1,6 +1,5 @@
 import type { AuthSession, Device, SpaceId } from "@/api";
 import api from "@/api";
-import { fetchDeviceSwitches } from "@/lib/cache/device-switches";
 import {
   buildSwitchForest,
   collectEdges,
@@ -15,29 +14,29 @@ export const fetchUpstreamChain = async (
   device: Device,
   fallbackSpaceId: SpaceId,
 ): Promise<PowerChain> => {
-  const [switches, directSwitches] = await Promise.all([
-    api.devices.getDeviceUpstream(session, device.id),
-    fetchDeviceSwitches(session, device.id),
-  ]);
+  const { switches, switch_links, device_links } =
+    await api.devices.getDeviceUpstream(session, device.id);
   const space = device.space ?? { id: fallbackSpaceId };
   const target = { ...device, space };
-  const directIds = new Set(directSwitches.map(({ id }) => id));
+  const directIds = new Set(device_links.map(({ switch_id }) => switch_id));
 
   return {
     id: `upstream:${device.id}`,
+    direction: "upstream",
+    supply: { voltage: Number.NaN, phase: undefined },
     title: device.name,
     focusSpaceId: space.id,
-    roots: buildSwitchForest(switches, {
+    roots: buildSwitchForest(switches, switch_links, {
       feedsSink: (sw) => directIds.has(sw.id),
     }),
     sink: { kind: "device", device: target },
+    sinkLinks: new Map(
+      device_links.map(({ switch_id, attributes }) => [switch_id, attributes]),
+    ),
     places: [
       devicePlace(target, true),
       ...panelsOf(switches).map((panel) => panelPlace(panel, false)),
     ],
-    edges: collectEdges(
-      switches,
-      [...directIds].map((sw) => [device.id, sw]),
-    ),
+    edges: collectEdges(switches, switch_links, device_links),
   };
 };

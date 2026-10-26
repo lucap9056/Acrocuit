@@ -1,10 +1,10 @@
 import type { AuthSession } from "@/api/auth/auth-session";
 import type {
-  SwitchPanel,
   Device,
   Position,
   Space,
   SpaceId,
+  SwitchPanel,
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 

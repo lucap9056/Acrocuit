@@ -1,4 +1,4 @@
-import type { SwitchPanelId, DeviceId } from "@/api";
+import type { DeviceId, SwitchPanelId } from "@/api";
 
 export type FocusKey = `switch-panel-${number}` | `device-${number}`;
 

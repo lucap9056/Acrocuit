@@ -1,3 +1,4 @@
+import load from "@/components/loading-bar";
 import type { HashRouter, RouteParams } from "@/lib/hash-routers";
 import { t } from "@/lib/i18n";
 import type { DialogButton, DialogMessage } from "./index";
@@ -11,6 +12,7 @@ export interface RouteDialogOptions {
   router: HashRouter;
   path: string;
   closeTo: string;
+  loading?: string;
   open: (
     params: RouteParams,
     signal: AbortSignal,
@@ -34,6 +36,7 @@ export const routeDialog = ({
   router,
   path,
   closeTo,
+  loading,
   open,
   onopened,
   signal,
@@ -53,6 +56,7 @@ export const routeDialog = ({
 
     const controller = new AbortController();
     active = controller;
+    const opening = loading === undefined ? undefined : load.begin(loading);
     open(params, controller.signal)
       .then((message) => {
         if (controller.signal.aborted) {
@@ -85,6 +89,9 @@ export const routeDialog = ({
       })
       .catch((err) => {
         console.error(err);
+      })
+      .finally(() => {
+        opening?.release();
       });
   };
 

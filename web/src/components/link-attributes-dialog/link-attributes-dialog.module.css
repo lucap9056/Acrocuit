@@ -1,0 +1,12 @@
+.scroll {
+  max-height: 60vh;
+  margin: -3px;
+  padding: 3px;
+  overflow-y: auto;
+}
+
+.error {
+  margin: 0.75rem 0 0;
+  color: var(--danger);
+  font-size: 0.75rem;
+}

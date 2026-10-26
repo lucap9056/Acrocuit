@@ -31,6 +31,32 @@
     stroke: var(--accent);
     stroke-width: 2;
   }
+
+  &.detached {
+    stroke-dasharray: 4 3;
+    opacity: 0.45;
+  }
+
+  &.overloaded {
+    stroke: var(--danger);
+    stroke-width: 2;
+  }
+
+  &.active {
+    stroke: var(--accent);
+    stroke-width: 3;
+    opacity: 1;
+  }
+}
+
+.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+  outline: none;
 }
 
 .name {
@@ -41,6 +67,12 @@
 }
 
 .caption {
+  fill: var(--text-muted);
+  font-family: var(--font-drawing);
+  font-size: 11px;
+}
+
+.load {
   fill: var(--text-muted);
   font-family: var(--font-drawing);
   font-size: 11px;
@@ -68,6 +100,24 @@
     fill: var(--surface-muted);
   }
 
+  &.overloaded {
+    rect {
+      stroke: var(--danger);
+    }
+
+    .load {
+      fill: var(--danger);
+      font-weight: 600;
+    }
+  }
+
+  &.disabled {
+    rect,
+    text {
+      opacity: 0.45;
+    }
+  }
+
   &.inspected rect,
   &:focus-visible rect {
     stroke: var(--accent);
@@ -91,15 +141,14 @@
     }
   }
 
-  &.focus {
-    cursor: default;
-  }
-
-  &.focus rect,
-  &.focus:hover rect {
+  &.focus rect {
     fill: var(--surface);
     stroke: var(--accent);
     stroke-width: 2.5;
+  }
+
+  &.focus:hover rect {
+    fill: var(--surface-hover);
   }
 }
 
@@ -107,4 +156,15 @@
   padding: 1rem 1.5rem;
   color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+.toggle {
+  display: block;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  margin: 2px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px var(--surface);
+  accent-color: var(--accent);
+  cursor: pointer;
 }

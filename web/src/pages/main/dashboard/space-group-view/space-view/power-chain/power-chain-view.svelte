@@ -9,6 +9,7 @@
     tilt: number;
     tone: FloorPlanTone;
     sceneViewport?: ViewportState;
+    disabledNodeKeys: string[];
   }
 
   const savedViews = new Map<string, SavedView>();
@@ -19,22 +20,38 @@
   import CubeIcon from "phosphor-svelte/lib/CubeIcon";
   import TreeStructureIcon from "phosphor-svelte/lib/TreeStructureIcon";
   import type { Snippet } from "svelte";
-  import type { AuthSession, Space, SpaceGroup, SpaceId } from "@/api";
+  import { SvelteSet } from "svelte/reactivity";
+  import type {
+    Attributes,
+    AuthSession,
+    DeviceId,
+    Space,
+    SpaceGroup,
+    SpaceId,
+    Switch,
+    SwitchPanelId,
+  } from "@/api";
+  import back from "@/components/back-button";
+  import headerTitle from "@/components/header-title";
   import {
     groupColor,
     paletteForTone,
   } from "@/components/iso-scene/paint/palette";
-  import back from "@/components/back-button";
-  import headerTitle from "@/components/header-title";
+  import { editLinkAttributes } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
+  import { setDeviceSwitchAttributes } from "@/lib/cache/device-switches";
   import { fetchSpaces } from "@/lib/cache/spaces";
+  import { setSwitchUpstreamAttributes } from "@/lib/cache/switch-upstreams";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import {
+    attachChain,
     type ChainDetail,
+    type ChainLink,
     type ChainNode,
     type ChainPlace,
+    chainNodeKey,
     countPlacesBySpace,
     describeNode,
     describePlace,
@@ -44,7 +61,9 @@
     indexChain,
     type PowerChain,
     spannedSpaces,
+    withAttachment,
   } from "@/lib/power-chain";
+  import { computeChainLoads } from "@/lib/power-chain/load";
   import type { Workspace } from "@/lib/workspace";
   import FloorInfo from "@/pages/main/dashboard/space-group-view/floor-info/floor-info.svelte";
   import { FloorOverview } from "@/pages/main/dashboard/space-group-view/floor-overview.svelte";
@@ -89,6 +108,23 @@
   let sceneViewport = $state.raw<ViewportState>();
 
   const overview = new FloorOverview();
+  const disabledNodeKeys = new SvelteSet<string>();
+
+  const isNodeEnabled = (node: ChainNode) =>
+    !disabledNodeKeys.has(chainNodeKey(node));
+
+  const canToggle = $derived(chain?.direction === "downstream");
+  const attachment = $derived(
+    chain && canToggle ? attachChain(chain.roots, isNodeEnabled) : undefined,
+  );
+  const visibleChain = $derived(
+    chain && attachment ? withAttachment(chain, attachment) : chain,
+  );
+  const loads = $derived(
+    chain && canToggle
+      ? computeChainLoads(chain.roots, chain.supply, isNodeEnabled)
+      : undefined,
+  );
 
   const index = $derived(chain ? indexChain(chain) : undefined);
   const places = $derived(
@@ -119,6 +155,49 @@
     }
   };
 
+  const inspectLink = (link: ChainLink) => {
+    inspectDetail({ kind: "link", link });
+  };
+
+  const saveLink = (link: ChainLink, attributes: Attributes) => {
+    const { downstream, upstream } = link;
+    const loading = load.begin(
+      t(
+        downstream.kind === "switch"
+          ? "loading.updateSwitchUpstream"
+          : "loading.updateDeviceUpstream",
+      ),
+    );
+    const request =
+      downstream.kind === "switch"
+        ? setSwitchUpstreamAttributes(
+            session,
+            downstream.sw.id,
+            upstream.sw.id,
+            attributes,
+          )
+        : setDeviceSwitchAttributes(
+            session,
+            downstream.device.id,
+            upstream.sw.id,
+            attributes,
+          );
+    return request
+      .then(() => {
+        inspected = undefined;
+        reload();
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
+
+  const openLink = (link: ChainLink) => {
+    editLinkAttributes(link.attributes, (attributes) =>
+      saveLink(link, attributes),
+    );
+  };
+
   const inspectPlace = (key: string) => {
     const place = places.get(key);
     if (index && place) {
@@ -140,6 +219,19 @@
       overview.tilt = saved.tilt;
       overview.tone = saved.tone;
       sceneViewport = saved.sceneViewport;
+      disabledNodeKeys.clear();
+      for (const key of saved.disabledNodeKeys) {
+        disabledNodeKeys.add(key);
+      }
+    }
+  };
+
+  const toggleNode = (node: ChainNode, enabled: boolean) => {
+    const key = chainNodeKey(node);
+    if (enabled) {
+      disabledNodeKeys.delete(key);
+    } else {
+      disabledNodeKeys.add(key);
     }
   };
 
@@ -147,7 +239,9 @@
     chain && spaces ? spannedSpaces(chain, spaces) : undefined,
   );
   const placeCounts = $derived(
-    chain ? countPlacesBySpace(chain) : new Map<SpaceId, number>(),
+    visibleChain
+      ? countPlacesBySpace(visibleChain)
+      : new Map<SpaceId, number>(),
   );
   const floorColors = $derived.by(() => {
     if (mode !== "scene" || !chain || !floors) {
@@ -155,14 +249,52 @@
     }
     const palette = paletteForTone(overview.tone);
     return new Map(
-      [...floorGroups(chain, floors)].flatMap(([id, group]) => {
+      [...floorGroups(visibleChain ?? chain, floors)].flatMap(([id, group]) => {
         const color = groupColor(palette, group);
         return color ? [[id, color] as const] : [];
       }),
     );
   });
 
+  export const locate = {
+    device: (id: DeviceId) => index?.devices.get(id)?.device.space?.id,
+    switchPanel: (id: SwitchPanelId) => index?.panels.get(id)?.panel.space?.id,
+  };
+
+  export const isChainSwitch = (sw: Switch) => {
+    const entry = index?.switches.get(sw.id);
+    return (
+      entry !== undefined &&
+      (!attachment ||
+        attachment.nodes.has(chainNodeKey({ kind: "switch", ...entry })))
+    );
+  };
+
+  let lifecycle: AbortSignal | undefined;
+  let latestReload = 0;
+
+  export const reload = () => {
+    if (!chain || lifecycle?.aborted) {
+      return;
+    }
+    const request = ++latestReload;
+    const loading = load.begin(t("loading.fetchPowerChain"));
+    loadChain()
+      .then((c) => {
+        if (!lifecycle?.aborted && request === latestReload) {
+          chain = c;
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
+
   onMount((signal) => {
+    lifecycle = signal;
     workspace.push(
       {
         leftpart: floorList,
@@ -198,6 +330,7 @@
           tilt: overview.tilt,
           tone: overview.tone,
           sceneViewport,
+          disabledNodeKeys: [...disabledNodeKeys],
         });
       }
     };
@@ -270,6 +403,14 @@
       label={chain.title}
       roots={chain.roots}
       sink={chain.sink}
+      sinkLinks={chain.sinkLinks}
+      {loads}
+      attachedItems={attachment?.items}
+      isEnabled={isNodeEnabled}
+      {canToggle}
+      ontogglenode={toggleNode}
+      oninspectlink={inspectLink}
+      onopenlink={openLink}
       {emptyText}
       spaces={spaces ?? []}
       inspectedSpaceId={overview.inspectedSpaceId}
@@ -281,7 +422,7 @@
       {session}
       {spaceGroup}
       {floors}
-      {chain}
+      chain={visibleChain ?? chain}
       {overview}
       highlightMarkerId={inspectedPlaceKey}
       initialViewport={sceneViewport}
@@ -298,6 +439,6 @@
 {#snippet floorInfo()}
   {#if spaces}
     <FloorInfo {session} {spaces} {overview} />
-    <ChainNodeInfo detail={inspected} {spaces} />
+    <ChainNodeInfo detail={inspected} {spaces} {loads} />
   {/if}
 {/snippet}
