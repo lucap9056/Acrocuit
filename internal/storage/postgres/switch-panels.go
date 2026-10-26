@@ -77,7 +77,7 @@ func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail strin
 	return &group, nil
 }
 
-func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail string, spaceId int, name string, position *models.Position) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail string, spaceId int, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -92,8 +92,8 @@ func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail strin
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		inserted_group AS (
-			INSERT INTO ` + schema.SwitchPanelsTable + ` (` + schema.SwitchPanels_NAME + `, ` + schema.SwitchPanels_SPACE_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + `)
-			SELECT $3, $1, ` + schema.SwitchPanels_SPACE_GROUP_ID + ` FROM permitted
+			INSERT INTO ` + schema.SwitchPanelsTable + ` (` + schema.SwitchPanels_NAME + `, ` + schema.SwitchPanels_SPACE_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + `, ` + schema.SwitchPanels_ATTRIBUTES + `)
+			SELECT $3, $1, ` + schema.SwitchPanels_SPACE_GROUP_ID + `, $7::json FROM permitted
 			RETURNING ` + schema.SwitchPanels_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + `
 		),
 		inserted_position AS (
@@ -106,9 +106,9 @@ func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail strin
 		SELECT ` + schema.SwitchPanels_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + ` FROM inserted_group
 	`
 
-	group := &models.SwitchPanel{Name: name, SpaceId: spaceId, Position: position}
+	group := &models.SwitchPanel{Name: name, SpaceId: spaceId, Position: position, Attributes: attributes}
 
-	err := panel.pool.QueryRow(ctx, query, spaceId, userEmail, name, posX, posY, posZ).Scan(&group.Id, &group.SpaceGroupId)
+	err := panel.pool.QueryRow(ctx, query, spaceId, userEmail, name, posX, posY, posZ, attributes).Scan(&group.Id, &group.SpaceGroupId)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -121,7 +121,7 @@ func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail strin
 	return group, nil
 }
 
-func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail string, switchPanelId int, name string) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail string, switchPanelId int, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
 	query := `
 		WITH permitted AS (
 			SELECT ` + schema.FullSwitchPanels_ID + `
@@ -133,15 +133,17 @@ func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail strin
 		),
 		permitted_update AS (
 			UPDATE ` + schema.SwitchPanelsTable + `
-			SET ` + schema.SwitchPanels_NAME + ` = $3
+			SET ` + schema.SwitchPanels_NAME + ` = COALESCE($3, ` + schema.SwitchPanels_NAME + `),
+				` + schema.SwitchPanels_ATTRIBUTES + ` = COALESCE($4::json, ` + schema.SwitchPanels_ATTRIBUTES + `)
 			WHERE ` + schema.SwitchPanels_ID + ` = $1 AND EXISTS (SELECT 1 FROM permitted)
-			RETURNING ` + schema.FullSwitchPanels_ID + `, ` + schema.FullSwitchPanels_NAME + `, ` + schema.FullSwitchPanels_SPACE_ID + `, ` + schema.FullSwitchPanels_SPACE_GROUP_ID + `
+			RETURNING ` + models.SWITCH_PANEL_ALL_COLUMNS + `
 		)
 		SELECT
 			permitted_update.` + schema.SwitchPanels_ID + `,
 			permitted_update.` + schema.SwitchPanels_NAME + `,
 			permitted_update.` + schema.SwitchPanels_SPACE_ID + `,
 			permitted_update.` + schema.SwitchPanels_SPACE_GROUP_ID + `,
+			permitted_update.` + schema.SwitchPanels_ATTRIBUTES + `,
 			p.` + schema.SwitchPanelPositions_POSITION_X + `,
 			p.` + schema.SwitchPanelPositions_POSITION_Y + `,
 			p.` + schema.SwitchPanelPositions_POSITION_Z + `
@@ -151,8 +153,7 @@ func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail strin
 
 	group := &models.SwitchPanel{Id: switchPanelId}
 
-	err := panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, name).
-		Scan(&group.Id, &group.Name, &group.SpaceId, &group.SpaceGroupId, &group.PositionX, &group.PositionY, &group.PositionZ)
+	err := panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, name, attributes).Scan(group.ValuesWithPosition()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -176,7 +177,7 @@ func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEma
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		group_row AS (
-			SELECT ` + schema.FullSwitchPanels_ID + ` AS id, ` + schema.FullSwitchPanels_NAME + ` AS name, ` + schema.FullSwitchPanels_SPACE_ID + ` AS space_id, ` + schema.FullSwitchPanels_SPACE_GROUP_ID + ` AS space_group_id
+			SELECT ` + schema.FullSwitchPanels_ID + ` AS id, ` + schema.FullSwitchPanels_NAME + ` AS name, ` + schema.FullSwitchPanels_SPACE_ID + ` AS space_id, ` + schema.FullSwitchPanels_SPACE_GROUP_ID + ` AS space_group_id, ` + schema.FullSwitchPanels_ATTRIBUTES + ` AS attributes
 			FROM ` + schema.SwitchPanelsTable + `
 			WHERE ` + schema.SwitchPanels_ID + ` = $1 AND EXISTS (SELECT 1 FROM permitted)
 		),
@@ -193,6 +194,7 @@ func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEma
 			group_row.name,
 			group_row.space_id,
 			group_row.space_group_id,
+			group_row.attributes,
 			upserted_position.` + schema.SwitchPanelPositions_POSITION_X + `,
 			upserted_position.` + schema.SwitchPanelPositions_POSITION_Y + `,
 			upserted_position.` + schema.SwitchPanelPositions_POSITION_Z + `
@@ -202,8 +204,7 @@ func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEma
 
 	group := &models.SwitchPanel{Id: switchPanelId}
 
-	err := panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, position.X, position.Y, position.Z).
-		Scan(&group.Id, &group.Name, &group.SpaceId, &group.SpaceGroupId, &group.PositionX, &group.PositionY, &group.PositionZ)
+	err := panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, position.X, position.Y, position.Z).Scan(group.ValuesWithPosition()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}

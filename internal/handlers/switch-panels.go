@@ -48,7 +48,8 @@ func (ctr *switchPanelsController) GetSwitchPanel(c *gin.Context) {
 }
 
 type setSwitchPanelRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=255"`
+	Name       *string           `json:"name" binding:"omitempty,min=1,max=255"`
+	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *switchPanelsController) SetSwitchPanel(c *gin.Context) {
@@ -63,7 +64,7 @@ func (ctr *switchPanelsController) SetSwitchPanel(c *gin.Context) {
 		return
 	}
 
-	switchPanel, err := ctr.SwitchPanels.SetSwitchPanel(c.Request.Context(), userEmail, switchPanelId, req.Name)
+	switchPanel, err := ctr.SwitchPanels.SetSwitchPanel(c.Request.Context(), userEmail, switchPanelId, req.Name, req.Attributes)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -130,8 +131,8 @@ func (ctr *switchPanelsController) GetSwitches(c *gin.Context) {
 }
 
 type createSwitchRequest struct {
-	Name             string `json:"name" binding:"required,min=1,max=255"`
-	UpstreamSwitchId int    `json:"upstream_switch_id"`
+	Name       string            `json:"name" binding:"required,min=1,max=255"`
+	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *switchPanelsController) AddSwitch(c *gin.Context) {
@@ -146,13 +147,7 @@ func (ctr *switchPanelsController) AddSwitch(c *gin.Context) {
 		return
 	}
 
-	var upstreamSwitchId *int
-	if req.UpstreamSwitchId != 0 {
-		upstreamSwitchId = &req.UpstreamSwitchId
-	}
-
-	ctx := c.Request.Context()
-	sw, err := ctr.Switches.AddSwitch(ctx, userEmail, switchPanelId, req.Name, upstreamSwitchId)
+	sw, err := ctr.Switches.AddSwitch(c.Request.Context(), userEmail, switchPanelId, req.Name, req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return

@@ -77,7 +77,7 @@ func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId in
 	return &device, nil
 }
 
-func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int, name string, position *models.Position) (*models.Device, error) {
+func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -92,8 +92,8 @@ func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int
 		FOR UPDATE OF ` + schema.SpacesTable + `
 	),
 	inserted_device AS (
-		INSERT INTO ` + schema.DevicesTable + ` (` + schema.Devices_NAME + `, ` + schema.Devices_SPACE_ID + `)
-		SELECT $3, $1
+		INSERT INTO ` + schema.DevicesTable + ` (` + schema.Devices_NAME + `, ` + schema.Devices_SPACE_ID + `, ` + schema.Devices_ATTRIBUTES + `)
+		SELECT $3, $1, $7::json
 		WHERE EXISTS (SELECT 1 FROM check_space)
 		RETURNING ` + schema.Devices_ID + `
 	),
@@ -107,9 +107,9 @@ func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int
 	SELECT ` + schema.Devices_ID + ` FROM inserted_device;
 	`
 
-	device := &models.Device{Name: name, SpaceId: spaceId, Position: position}
+	device := &models.Device{Name: name, SpaceId: spaceId, Position: position, Attributes: attributes}
 
-	err := d.pool.QueryRow(ctx, query, spaceId, userEmail, name, posX, posY, posZ).Scan(&device.Id)
+	err := d.pool.QueryRow(ctx, query, spaceId, userEmail, name, posX, posY, posZ, attributes).Scan(&device.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repository.ErrNotFound
@@ -122,7 +122,7 @@ func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId int
 	return device, nil
 }
 
-func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId int, name *string, position *models.Position) (*models.Device, error) {
+func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId int, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -139,9 +139,10 @@ func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId in
 		),
 		permitted_update AS (
 			UPDATE ` + schema.DevicesTable + `
-			SET ` + schema.Devices_NAME + ` = COALESCE($3, ` + schema.Devices_NAME + `)
+			SET ` + schema.Devices_NAME + ` = COALESCE($3, ` + schema.Devices_NAME + `),
+				` + schema.Devices_ATTRIBUTES + ` = COALESCE($7::json, ` + schema.Devices_ATTRIBUTES + `)
 			WHERE ` + schema.Devices_ID + ` = $1 AND EXISTS (SELECT 1 FROM permitted)
-			RETURNING ` + schema.FullDevices_ID + `, ` + schema.FullDevices_NAME + `, ` + schema.FullDevices_SPACE_ID + `
+			RETURNING ` + models.DEVICE_ALL_COLUMNS + `
 		),
 		current_position AS (
 			SELECT p.` + schema.DevicePositions_POSITION_X + `, p.` + schema.DevicePositions_POSITION_Y + `, p.` + schema.DevicePositions_POSITION_Z + `
@@ -161,6 +162,7 @@ func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId in
 			permitted_update.` + schema.Devices_ID + `,
 			permitted_update.` + schema.Devices_NAME + `,
 			permitted_update.` + schema.Devices_SPACE_ID + `,
+			permitted_update.` + schema.Devices_ATTRIBUTES + `,
 			COALESCE(upserted_position.` + schema.DevicePositions_POSITION_X + `, current_position.` + schema.DevicePositions_POSITION_X + `),
 			COALESCE(upserted_position.` + schema.DevicePositions_POSITION_Y + `, current_position.` + schema.DevicePositions_POSITION_Y + `),
 			COALESCE(upserted_position.` + schema.DevicePositions_POSITION_Z + `, current_position.` + schema.DevicePositions_POSITION_Z + `)
@@ -171,8 +173,7 @@ func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId in
 
 	device := &models.Device{Id: deviceId}
 
-	err := d.pool.QueryRow(ctx, query, deviceId, userEmail, name, posX, posY, posZ).
-		Scan(&device.Id, &device.Name, &device.SpaceId, &device.PositionX, &device.PositionY, &device.PositionZ)
+	err := d.pool.QueryRow(ctx, query, deviceId, userEmail, name, posX, posY, posZ, attributes).Scan(device.ValuesWithPosition()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -186,7 +187,7 @@ func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId in
 }
 
 func (d *pgDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId int, position models.Position) (*models.Device, error) {
-	return d.SetDevice(ctx, userEmail, deviceId, nil, &position)
+	return d.SetDevice(ctx, userEmail, deviceId, nil, &position, nil)
 }
 
 func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId int) error {
@@ -209,7 +210,7 @@ func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId in
 	return nil
 }
 
-func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, deviceId int, include string) ([]models.Switch, error) {
+func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, deviceId int, include string) ([]models.LinkedSwitch, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
@@ -232,46 +233,52 @@ func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, dev
 		return nil, err
 	}
 
-	query := `SELECT ` + keys + `
+	query := `SELECT ` + keys + `,` + schema.FullDeviceSwitches_ATTRIBUTES + `
 		FROM ` + schema.DeviceSwitchesTable + `
 		JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
 		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1`
 
-	rows, err := d.pool.Query(ctx, query, deviceId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	switches := make([]models.Switch, 0)
-	for rows.Next() {
-		var sw models.Switch
-		if err := rows.Scan(sw.Values(fields)...); err != nil {
-			return nil, err
-		}
-		sw.Build()
-		switches = append(switches, sw)
-	}
-
-	return switches, rows.Err()
+	return queryLinkedSwitches(ctx, d.pool, fields, query, deviceId)
 }
 
-func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int) error {
+func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int, attributes models.Attributes) (*models.DeviceLink, error) {
 	var result int
-	query := `SELECT ` + schema.FnAddDeviceSwitch_O_RESULT + ` FROM ` + schema.FnAddDeviceSwitch + `($1, $2, $3)`
-	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, switchId).Scan(&result)
+	query := `SELECT ` + schema.FnAddDeviceSwitch_O_RESULT + ` FROM ` + schema.FnAddDeviceSwitch + `($1, $2, $3, $4)`
+	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, switchId, attributes).Scan(&result)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch result {
 	case 0:
-		return nil
+		return &models.DeviceLink{DeviceId: deviceId, SwitchId: switchId, Attributes: attributes}, nil
 	case 3:
-		return repository.ErrConflict
+		return nil, repository.ErrConflict
 	default:
-		return repository.ErrNotFound
+		return nil, repository.ErrNotFound
 	}
+}
+
+func (d *pgDevices) SetDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int, attributes models.Attributes) (*models.DeviceLink, error) {
+	query := `
+		UPDATE ` + schema.DeviceSwitchesTable + `
+		SET ` + schema.DeviceSwitches_ATTRIBUTES + ` = $1
+		FROM ` + schema.SwitchesTable + `
+		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Switches + `
+		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $2 AND ` + schema.FullDeviceSwitches_SWITCH_ID + ` = $3
+			AND ` + schema.JoinDeviceSwitches_Switches + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $4
+		RETURNING ` + models.DEVICE_LINK_COLUMNS
+
+	var link models.DeviceLink
+	err := d.pool.QueryRow(ctx, query, attributes, deviceId, switchId, userEmail).Scan(link.Values()...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &link, nil
 }
 
 func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId int) error {
@@ -294,55 +301,61 @@ func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, devic
 	return nil
 }
 
-func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId int) ([]models.Switch, error) {
-	existsQuery := `
-		SELECT EXISTS (
-			SELECT 1 FROM ` + schema.DevicesTable + `
-			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinDevices_Spaces + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullDevices_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
-		)
-	`
-	var exists bool
-	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userEmail).Scan(&exists)
+func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId int) (*models.PowerChain, error) {
+	devices, err := queryDevicesWithPosition(ctx, d.pool, `
+		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
+		FROM `+schema.DevicesTable+`
+		JOIN `+schema.SpacesTable+` ON `+schema.JoinDevices_Spaces+`
+		JOIN `+schema.SpaceGroupOwnersTable+` ON `+schema.JoinSpaceGroupOwners_Spaces+`
+		LEFT JOIN `+schema.DevicePositionsTable+` ON `+schema.JoinDevicePositions_Devices+`
+		WHERE `+schema.FullDevices_ID+` = $1 AND `+schema.FullSpaceGroupOwners_USER_EMAIL+` = $2
+	`, deviceId, userEmail)
 	if err != nil {
 		return nil, err
 	}
-	if !exists {
+	if len(devices) == 0 {
 		return nil, repository.ErrNotFound
 	}
 
+	chain := &models.PowerChain{Devices: devices}
+
 	query := `
-		WITH RECURSIVE switch_chain AS (
-			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `
+		WITH RECURSIVE switch_chain(id) AS (
+			SELECT ` + schema.FullDeviceSwitches_SWITCH_ID + `
 			FROM ` + schema.DeviceSwitchesTable + `
-			JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
 			WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1
 
-			UNION ALL
+			UNION
 
-			SELECT ` + schema.FullSwitches_ID + `, ` + schema.FullSwitches_NAME + `, ` + schema.FullSwitches_SWITCH_PANEL_ID + `, ` + schema.FullSwitches_SPACE_GROUP_ID + `, ` + schema.FullSwitches_DISPLAY_ORDER + `, ` + schema.FullSwitches_UPSTREAM_SWITCH_ID + `
-			FROM ` + schema.SwitchesTable + `
-			JOIN switch_chain ON ` + schema.FullSwitches_ID + ` = switch_chain.` + schema.Switches_UPSTREAM_SWITCH_ID + `
+			SELECT ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + `
+			FROM ` + schema.SwitchLinksTable + `
+			JOIN switch_chain ON ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = switch_chain.id
 		)
-		SELECT DISTINCT ` + switchChainWithPanelColumns + switchChainJoinPanel + `
-		ORDER BY switch_chain.` + schema.Switches_ID + `
-	`
-	rows, err := d.pool.Query(ctx, query, deviceId)
+	` + selectSwitchChainWithPanel
+	chain.Switches, err = querySwitchesWithPanel(ctx, d.pool, query, deviceId)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	switches := make([]models.Switch, 0)
-	for rows.Next() {
-		var sw models.Switch
-		if err := rows.Scan(sw.ValuesWithPanel()...); err != nil {
-			return nil, err
-		}
-		sw.Build()
-		switches = append(switches, sw)
+	chain.SwitchLinks, err = querySwitchLinks(ctx, d.pool, `
+		SELECT `+models.SWITCH_LINK_COLUMNS+`
+		FROM `+schema.SwitchLinksTable+`
+		WHERE `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+` = ANY($1)
+		ORDER BY `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+`, `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
+	`, switchIdsOf(chain.Switches))
+	if err != nil {
+		return nil, err
 	}
 
-	return switches, rows.Err()
+	chain.DeviceLinks, err = queryDeviceLinks(ctx, d.pool, `
+		SELECT `+models.DEVICE_LINK_COLUMNS+`
+		FROM `+schema.DeviceSwitchesTable+`
+		WHERE `+schema.FullDeviceSwitches_DEVICE_ID+` = $1
+		ORDER BY `+schema.FullDeviceSwitches_SWITCH_ID+`
+	`, deviceId)
+	if err != nil {
+		return nil, err
+	}
+
+	return chain, nil
 }

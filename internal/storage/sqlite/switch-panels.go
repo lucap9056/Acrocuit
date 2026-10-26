@@ -63,8 +63,8 @@ func (panel *sqliteSwitchPanels) GetSwitchPanel(ctx context.Context, _ string, s
 	return &group, nil
 }
 
-func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, spaceId int, name string, position *models.Position) (*models.SwitchPanel, error) {
-	group := &models.SwitchPanel{Name: name, SpaceId: spaceId, Position: position}
+func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, spaceId int, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
+	group := &models.SwitchPanel{Name: name, SpaceId: spaceId, Position: position, Attributes: attributes}
 
 	err := withTx(ctx, panel.db, func(tx *sql.Tx) error {
 		spaceGroup := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
@@ -73,10 +73,10 @@ func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, s
 		}
 
 		insertGroup := `
-			INSERT INTO ` + schema.SwitchPanelsTable + ` (` + schema.SwitchPanels_NAME + `, ` + schema.SwitchPanels_SPACE_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + `)
-			VALUES ($1, $2, $3)
+			INSERT INTO ` + schema.SwitchPanelsTable + ` (` + schema.SwitchPanels_NAME + `, ` + schema.SwitchPanels_SPACE_ID + `, ` + schema.SwitchPanels_SPACE_GROUP_ID + `, ` + schema.SwitchPanels_ATTRIBUTES + `)
+			VALUES ($1, $2, $3, $4)
 			RETURNING ` + schema.SwitchPanels_ID
-		if err := tx.QueryRowContext(ctx, insertGroup, name, spaceId, group.SpaceGroupId).Scan(&group.Id); err != nil {
+		if err := tx.QueryRowContext(ctx, insertGroup, name, spaceId, group.SpaceGroupId, attributes).Scan(&group.Id); err != nil {
 			return err
 		}
 
@@ -94,12 +94,17 @@ func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, s
 	return group, nil
 }
 
-func (panel *sqliteSwitchPanels) SetSwitchPanel(ctx context.Context, _ string, switchPanelId int, name string) (*models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) SetSwitchPanel(ctx context.Context, _ string, switchPanelId int, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
 	var group *models.SwitchPanel
 
 	err := withTx(ctx, panel.db, func(tx *sql.Tx) error {
-		rename := `UPDATE ` + schema.SwitchPanelsTable + ` SET ` + schema.SwitchPanels_NAME + ` = $1 WHERE ` + schema.SwitchPanels_ID + ` = $2`
-		if err := notFoundIfNoneAffected(tx.ExecContext(ctx, rename, name, switchPanelId)); err != nil {
+		update := `
+			UPDATE ` + schema.SwitchPanelsTable + `
+			SET ` + schema.SwitchPanels_NAME + ` = COALESCE($1, ` + schema.SwitchPanels_NAME + `),
+				` + schema.SwitchPanels_ATTRIBUTES + ` = COALESCE($2, ` + schema.SwitchPanels_ATTRIBUTES + `)
+			WHERE ` + schema.SwitchPanels_ID + ` = $3
+		`
+		if err := notFoundIfNoneAffected(tx.ExecContext(ctx, update, name, attributes, switchPanelId)); err != nil {
 			return err
 		}
 
@@ -154,16 +159,14 @@ func upsertSwitchPanelPosition(ctx context.Context, q querier, switchPanelId int
 
 func selectSwitchPanelWithPosition(ctx context.Context, q querier, switchPanelId int) (*models.SwitchPanel, error) {
 	query := `
-		SELECT ` + schema.FullSwitchPanels_ID + `, ` + schema.FullSwitchPanels_NAME + `, ` + schema.FullSwitchPanels_SPACE_ID + `, ` + schema.FullSwitchPanels_SPACE_GROUP_ID + `,
-			` + schema.FullSwitchPanelPositions_POSITION_X + `, ` + schema.FullSwitchPanelPositions_POSITION_Y + `, ` + schema.FullSwitchPanelPositions_POSITION_Z + `
+		SELECT ` + models.SWITCH_PANEL_WITH_POSITION_COLUMNS + `
 		FROM ` + schema.SwitchPanelsTable + `
 		LEFT JOIN ` + schema.SwitchPanelPositionsTable + ` ON ` + schema.JoinSwitchPanelPositions_SwitchPanels + `
 		WHERE ` + schema.FullSwitchPanels_ID + ` = $1
 	`
 
 	group := &models.SwitchPanel{}
-	err := q.QueryRowContext(ctx, query, switchPanelId).
-		Scan(&group.Id, &group.Name, &group.SpaceId, &group.SpaceGroupId, &group.PositionX, &group.PositionY, &group.PositionZ)
+	err := q.QueryRowContext(ctx, query, switchPanelId).Scan(group.ValuesWithPosition()...)
 	if err != nil {
 		return nil, notFoundIfNoRows(err)
 	}

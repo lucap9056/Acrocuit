@@ -9,16 +9,16 @@ import (
 var rawFunctions string
 
 const (
-	baseFunc                = "func"
-	baseOutResult           = "o_result"
-	baseOutID               = "o_id"
-	baseOutName             = "o_name"
-	baseOutSpaceGroupID     = "o_space_group_id"
-	baseOutSwitchPanelID    = "o_switch_panel_id"
-	baseOutDisplayOrder     = "o_display_order"
-	baseOutUpstreamSwitchID = "o_upstream_switch_id"
-	baseErrSelfReference    = "err_self_reference"
-	baseErrCycleDetected    = "err_cycle_detected"
+	baseFunc             = "func"
+	baseOutResult        = "o_result"
+	baseOutID            = "o_id"
+	baseOutName          = "o_name"
+	baseOutSpaceGroupID  = "o_space_group_id"
+	baseOutSwitchPanelID = "o_switch_panel_id"
+	baseOutDisplayOrder  = "o_display_order"
+	baseOutAttributes    = "o_attributes"
+	baseErrSelfReference = "err_self_reference"
+	baseErrCycleDetected = "err_cycle_detected"
 
 	FnSetSpace                               = "fn_set_space"
 	FnSetSpace_O_ID                          = baseOutID
@@ -34,31 +34,28 @@ const (
 	FnMoveSpace_O_DISPLAY_ORDER               = baseOutDisplayOrder
 	FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT = FnSetSpace_O_BACKGROUND_IMAGE_UPDATED_AT
 
-	FnSetSwitch                      = "fn_set_switch"
-	FnSetSwitch_O_ID                 = baseOutID
-	FnSetSwitch_O_NAME               = baseOutName
-	FnSetSwitch_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
-	FnSetSwitch_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
-	FnSetSwitch_O_DISPLAY_ORDER      = baseOutDisplayOrder
-	FnSetSwitch_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
+	FnSetSwitch                   = "fn_set_switch"
+	FnSetSwitch_O_ID              = baseOutID
+	FnSetSwitch_O_NAME            = baseOutName
+	FnSetSwitch_O_SWITCH_PANEL_ID = baseOutSwitchPanelID
+	FnSetSwitch_O_SPACE_GROUP_ID  = baseOutSpaceGroupID
+	FnSetSwitch_O_DISPLAY_ORDER   = baseOutDisplayOrder
+	FnSetSwitch_O_ATTRIBUTES      = baseOutAttributes
 
-	FnMoveSwitch                      = "fn_move_switch"
-	FnMoveSwitch_O_ID                 = baseOutID
-	FnMoveSwitch_O_NAME               = baseOutName
-	FnMoveSwitch_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
-	FnMoveSwitch_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
-	FnMoveSwitch_O_DISPLAY_ORDER      = baseOutDisplayOrder
-	FnMoveSwitch_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
+	FnMoveSwitch                   = "fn_move_switch"
+	FnMoveSwitch_O_ID              = baseOutID
+	FnMoveSwitch_O_NAME            = baseOutName
+	FnMoveSwitch_O_SWITCH_PANEL_ID = baseOutSwitchPanelID
+	FnMoveSwitch_O_SPACE_GROUP_ID  = baseOutSpaceGroupID
+	FnMoveSwitch_O_DISPLAY_ORDER   = baseOutDisplayOrder
+	FnMoveSwitch_O_ATTRIBUTES      = baseOutAttributes
 
-	FnSetSwitchUpstream                      = "fn_set_switch_upstream"
-	FnSetSwitchUpstream_O_ID                 = baseOutID
-	FnSetSwitchUpstream_O_NAME               = baseOutName
-	FnSetSwitchUpstream_O_SWITCH_PANEL_ID    = baseOutSwitchPanelID
-	FnSetSwitchUpstream_O_SPACE_GROUP_ID     = baseOutSpaceGroupID
-	FnSetSwitchUpstream_O_DISPLAY_ORDER      = baseOutDisplayOrder
-	FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID = baseOutUpstreamSwitchID
-	FnSetSwitchUpstream_ERR_SELF_REFERENCE   = "AC001"
-	FnSetSwitchUpstream_ERR_CYCLE_DETECTED   = "AC002"
+	FnAddSwitchUpstream                        = "fn_add_switch_upstream"
+	FnAddSwitchUpstream_O_UPSTREAM_SWITCH_ID   = "o_upstream_switch_id"
+	FnAddSwitchUpstream_O_DOWNSTREAM_SWITCH_ID = "o_downstream_switch_id"
+	FnAddSwitchUpstream_O_ATTRIBUTES           = baseOutAttributes
+	FnAddSwitchUpstream_ERR_SELF_REFERENCE     = "AC001"
+	FnAddSwitchUpstream_ERR_CYCLE_DETECTED     = "AC002"
 
 	FnAddDeviceSwitch          = "fn_add_device_switch"
 	FnAddDeviceSwitch_O_RESULT = baseOutResult
@@ -72,13 +69,12 @@ const (
 		FnMoveSpace_O_DISPLAY_ORDER + "," + FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT
 
 	FnSetSwitch_OUTPUTS = FnSetSwitch_O_ID + "," + FnSetSwitch_O_NAME + "," + FnSetSwitch_O_SWITCH_PANEL_ID + "," +
-		FnSetSwitch_O_SPACE_GROUP_ID + "," + FnSetSwitch_O_DISPLAY_ORDER + "," + FnSetSwitch_O_UPSTREAM_SWITCH_ID
+		FnSetSwitch_O_SPACE_GROUP_ID + "," + FnSetSwitch_O_DISPLAY_ORDER + "," + FnSetSwitch_O_ATTRIBUTES
 
 	FnMoveSwitch_OUTPUTS = FnMoveSwitch_O_ID + "," + FnMoveSwitch_O_NAME + "," + FnMoveSwitch_O_SWITCH_PANEL_ID + "," +
-		FnMoveSwitch_O_SPACE_GROUP_ID + "," + FnMoveSwitch_O_DISPLAY_ORDER + "," + FnMoveSwitch_O_UPSTREAM_SWITCH_ID
+		FnMoveSwitch_O_SPACE_GROUP_ID + "," + FnMoveSwitch_O_DISPLAY_ORDER + "," + FnMoveSwitch_O_ATTRIBUTES
 
-	FnSetSwitchUpstream_OUTPUTS = FnSetSwitchUpstream_O_ID + "," + FnSetSwitchUpstream_O_NAME + "," + FnSetSwitchUpstream_O_SWITCH_PANEL_ID + "," +
-		FnSetSwitchUpstream_O_SPACE_GROUP_ID + "," + FnSetSwitchUpstream_O_DISPLAY_ORDER + "," + FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID
+	FnAddSwitchUpstream_OUTPUTS = FnAddSwitchUpstream_O_UPSTREAM_SWITCH_ID + "," + FnAddSwitchUpstream_O_DOWNSTREAM_SWITCH_ID + "," + FnAddSwitchUpstream_O_ATTRIBUTES
 )
 
 func init() {
@@ -104,37 +100,34 @@ func init() {
 	}
 	funcMap[FnSetSwitch] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                         FnSetSwitch,
-			FnSetSwitch_O_ID:                 FnSetSwitch_O_ID,
-			FnSetSwitch_O_NAME:               FnSetSwitch_O_NAME,
-			FnSetSwitch_O_SWITCH_PANEL_ID:    FnSetSwitch_O_SWITCH_PANEL_ID,
-			FnSetSwitch_O_SPACE_GROUP_ID:     FnSetSwitch_O_SPACE_GROUP_ID,
-			FnSetSwitch_O_DISPLAY_ORDER:      FnSetSwitch_O_DISPLAY_ORDER,
-			FnSetSwitch_O_UPSTREAM_SWITCH_ID: FnSetSwitch_O_UPSTREAM_SWITCH_ID,
+			baseFunc:                      FnSetSwitch,
+			FnSetSwitch_O_ID:              FnSetSwitch_O_ID,
+			FnSetSwitch_O_NAME:            FnSetSwitch_O_NAME,
+			FnSetSwitch_O_SWITCH_PANEL_ID: FnSetSwitch_O_SWITCH_PANEL_ID,
+			FnSetSwitch_O_SPACE_GROUP_ID:  FnSetSwitch_O_SPACE_GROUP_ID,
+			FnSetSwitch_O_DISPLAY_ORDER:   FnSetSwitch_O_DISPLAY_ORDER,
+			FnSetSwitch_O_ATTRIBUTES:      FnSetSwitch_O_ATTRIBUTES,
 		}
 	}
 	funcMap[FnMoveSwitch] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                          FnMoveSwitch,
-			FnMoveSwitch_O_ID:                 FnMoveSwitch_O_ID,
-			FnMoveSwitch_O_NAME:               FnMoveSwitch_O_NAME,
-			FnMoveSwitch_O_SWITCH_PANEL_ID:    FnMoveSwitch_O_SWITCH_PANEL_ID,
-			FnMoveSwitch_O_SPACE_GROUP_ID:     FnMoveSwitch_O_SPACE_GROUP_ID,
-			FnMoveSwitch_O_DISPLAY_ORDER:      FnMoveSwitch_O_DISPLAY_ORDER,
-			FnMoveSwitch_O_UPSTREAM_SWITCH_ID: FnMoveSwitch_O_UPSTREAM_SWITCH_ID,
+			baseFunc:                       FnMoveSwitch,
+			FnMoveSwitch_O_ID:              FnMoveSwitch_O_ID,
+			FnMoveSwitch_O_NAME:            FnMoveSwitch_O_NAME,
+			FnMoveSwitch_O_SWITCH_PANEL_ID: FnMoveSwitch_O_SWITCH_PANEL_ID,
+			FnMoveSwitch_O_SPACE_GROUP_ID:  FnMoveSwitch_O_SPACE_GROUP_ID,
+			FnMoveSwitch_O_DISPLAY_ORDER:   FnMoveSwitch_O_DISPLAY_ORDER,
+			FnMoveSwitch_O_ATTRIBUTES:      FnMoveSwitch_O_ATTRIBUTES,
 		}
 	}
-	funcMap[FnSetSwitchUpstream] = func() map[string]string {
+	funcMap[FnAddSwitchUpstream] = func() map[string]string {
 		return map[string]string{
-			baseFunc:                                 FnSetSwitchUpstream,
-			FnSetSwitchUpstream_O_ID:                 FnSetSwitchUpstream_O_ID,
-			FnSetSwitchUpstream_O_NAME:               FnSetSwitchUpstream_O_NAME,
-			FnSetSwitchUpstream_O_SWITCH_PANEL_ID:    FnSetSwitchUpstream_O_SWITCH_PANEL_ID,
-			FnSetSwitchUpstream_O_SPACE_GROUP_ID:     FnSetSwitchUpstream_O_SPACE_GROUP_ID,
-			FnSetSwitchUpstream_O_DISPLAY_ORDER:      FnSetSwitchUpstream_O_DISPLAY_ORDER,
-			FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID: FnSetSwitchUpstream_O_UPSTREAM_SWITCH_ID,
-			baseErrSelfReference:                     FnSetSwitchUpstream_ERR_SELF_REFERENCE,
-			baseErrCycleDetected:                     FnSetSwitchUpstream_ERR_CYCLE_DETECTED,
+			baseFunc:                                   FnAddSwitchUpstream,
+			FnAddSwitchUpstream_O_UPSTREAM_SWITCH_ID:   FnAddSwitchUpstream_O_UPSTREAM_SWITCH_ID,
+			FnAddSwitchUpstream_O_DOWNSTREAM_SWITCH_ID: FnAddSwitchUpstream_O_DOWNSTREAM_SWITCH_ID,
+			FnAddSwitchUpstream_O_ATTRIBUTES:           FnAddSwitchUpstream_O_ATTRIBUTES,
+			baseErrSelfReference:                       FnAddSwitchUpstream_ERR_SELF_REFERENCE,
+			baseErrCycleDetected:                       FnAddSwitchUpstream_ERR_CYCLE_DETECTED,
 		}
 	}
 	funcMap[FnAddDeviceSwitch] = func() map[string]string {
