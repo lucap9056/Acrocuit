@@ -24,6 +24,10 @@ const (
 	basePositionY     = "position_y"
 	basePositionZ     = "position_z"
 	baseDeviceID      = "device_id"
+	baseSwitchID      = "switch_id"
+	baseAttributes    = "attributes"
+
+	AttributesMaxBytes = 2048
 
 	SpaceGroupsTable = "space_groups"
 	SpaceGroups_ID   = baseId
@@ -41,6 +45,7 @@ const (
 	SwitchPanels_NAME           = baseName
 	SwitchPanels_SPACE_ID       = baseSpaceID
 	SwitchPanels_SPACE_GROUP_ID = baseSpaceGroupID
+	SwitchPanels_ATTRIBUTES     = baseAttributes
 
 	SwitchPanelPositionsTable            = "switch_panel_positions"
 	SwitchPanelPositions_SWITCH_PANEL_ID = baseSwitchPanelID
@@ -48,23 +53,30 @@ const (
 	SwitchPanelPositions_POSITION_Y      = basePositionY
 	SwitchPanelPositions_POSITION_Z      = basePositionZ
 
-	SwitchesTable               = "switches"
-	Switches_ID                 = baseId
-	Switches_NAME               = baseName
-	Switches_SWITCH_PANEL_ID    = baseSwitchPanelID
-	Switches_SPACE_GROUP_ID     = baseSpaceGroupID
-	Switches_DISPLAY_ORDER      = baseDisplayOrder
-	Switches_UPSTREAM_SWITCH_ID = "upstream_switch_id"
+	SwitchesTable            = "switches"
+	Switches_ID              = baseId
+	Switches_NAME            = baseName
+	Switches_SWITCH_PANEL_ID = baseSwitchPanelID
+	Switches_SPACE_GROUP_ID  = baseSpaceGroupID
+	Switches_DISPLAY_ORDER   = baseDisplayOrder
+	Switches_ATTRIBUTES      = baseAttributes
+
+	SwitchLinksTable                 = "switch_links"
+	SwitchLinks_UPSTREAM_SWITCH_ID   = "upstream_switch_id"
+	SwitchLinks_DOWNSTREAM_SWITCH_ID = "downstream_switch_id"
+	SwitchLinks_SPACE_GROUP_ID       = baseSpaceGroupID
+	SwitchLinks_ATTRIBUTES           = baseAttributes
 
 	SpaceBackgroundImagesTable         = "space_background_images"
 	SpaceBackgroundImages_SPACE_ID     = baseSpaceID
 	SpaceBackgroundImages_CONTENT_TYPE = "content_type"
 	SpaceBackgroundImages_DATA         = "data"
 
-	DevicesTable     = "devices"
-	Devices_ID       = baseId
-	Devices_NAME     = baseName
-	Devices_SPACE_ID = baseSpaceID
+	DevicesTable       = "devices"
+	Devices_ID         = baseId
+	Devices_NAME       = baseName
+	Devices_SPACE_ID   = baseSpaceID
+	Devices_ATTRIBUTES = baseAttributes
 
 	DevicePositionsTable       = "device_positions"
 	DevicePositions_DEVICE_ID  = baseDeviceID
@@ -72,9 +84,10 @@ const (
 	DevicePositions_POSITION_Y = basePositionY
 	DevicePositions_POSITION_Z = basePositionZ
 
-	DeviceSwitchesTable      = "device_switches"
-	DeviceSwitches_DEVICE_ID = baseDeviceID
-	DeviceSwitches_SWITCH_ID = "switch_id"
+	DeviceSwitchesTable       = "device_switches"
+	DeviceSwitches_DEVICE_ID  = baseDeviceID
+	DeviceSwitches_SWITCH_ID  = baseSwitchID
+	DeviceSwitches_ATTRIBUTES = baseAttributes
 
 	SpaceGroupOwnersTable           = "space_group_owners"
 	SpaceGroupOwners_USER_EMAIL     = "user_email"
@@ -95,34 +108,42 @@ const (
 	FullSwitchPanels_NAME           = SwitchPanelsTable + "." + SwitchPanels_NAME
 	FullSwitchPanels_SPACE_ID       = SwitchPanelsTable + "." + SwitchPanels_SPACE_ID
 	FullSwitchPanels_SPACE_GROUP_ID = SwitchPanelsTable + "." + SwitchPanels_SPACE_GROUP_ID
+	FullSwitchPanels_ATTRIBUTES     = SwitchPanelsTable + "." + SwitchPanels_ATTRIBUTES
 
 	FullSwitchPanelPositions_SWITCH_PANEL_ID = SwitchPanelPositionsTable + "." + SwitchPanelPositions_SWITCH_PANEL_ID
 	FullSwitchPanelPositions_POSITION_X      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_X
 	FullSwitchPanelPositions_POSITION_Y      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_Y
 	FullSwitchPanelPositions_POSITION_Z      = SwitchPanelPositionsTable + "." + SwitchPanelPositions_POSITION_Z
 
-	FullSwitches_ID                 = SwitchesTable + "." + Switches_ID
-	FullSwitches_NAME               = SwitchesTable + "." + Switches_NAME
-	FullSwitches_SWITCH_PANEL_ID    = SwitchesTable + "." + Switches_SWITCH_PANEL_ID
-	FullSwitches_SPACE_GROUP_ID     = SwitchesTable + "." + Switches_SPACE_GROUP_ID
-	FullSwitches_DISPLAY_ORDER      = SwitchesTable + "." + Switches_DISPLAY_ORDER
-	FullSwitches_UPSTREAM_SWITCH_ID = SwitchesTable + "." + Switches_UPSTREAM_SWITCH_ID
+	FullSwitches_ID              = SwitchesTable + "." + Switches_ID
+	FullSwitches_NAME            = SwitchesTable + "." + Switches_NAME
+	FullSwitches_SWITCH_PANEL_ID = SwitchesTable + "." + Switches_SWITCH_PANEL_ID
+	FullSwitches_SPACE_GROUP_ID  = SwitchesTable + "." + Switches_SPACE_GROUP_ID
+	FullSwitches_DISPLAY_ORDER   = SwitchesTable + "." + Switches_DISPLAY_ORDER
+	FullSwitches_ATTRIBUTES      = SwitchesTable + "." + Switches_ATTRIBUTES
+
+	FullSwitchLinks_UPSTREAM_SWITCH_ID   = SwitchLinksTable + "." + SwitchLinks_UPSTREAM_SWITCH_ID
+	FullSwitchLinks_DOWNSTREAM_SWITCH_ID = SwitchLinksTable + "." + SwitchLinks_DOWNSTREAM_SWITCH_ID
+	FullSwitchLinks_SPACE_GROUP_ID       = SwitchLinksTable + "." + SwitchLinks_SPACE_GROUP_ID
+	FullSwitchLinks_ATTRIBUTES           = SwitchLinksTable + "." + SwitchLinks_ATTRIBUTES
 
 	FullSpaceBackgroundImages_SPACE_ID     = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_SPACE_ID
 	FullSpaceBackgroundImages_CONTENT_TYPE = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_CONTENT_TYPE
 	FullSpaceBackgroundImages_DATA         = SpaceBackgroundImagesTable + "." + SpaceBackgroundImages_DATA
 
-	FullDevices_ID       = DevicesTable + "." + Devices_ID
-	FullDevices_NAME     = DevicesTable + "." + Devices_NAME
-	FullDevices_SPACE_ID = DevicesTable + "." + Devices_SPACE_ID
+	FullDevices_ID         = DevicesTable + "." + Devices_ID
+	FullDevices_NAME       = DevicesTable + "." + Devices_NAME
+	FullDevices_SPACE_ID   = DevicesTable + "." + Devices_SPACE_ID
+	FullDevices_ATTRIBUTES = DevicesTable + "." + Devices_ATTRIBUTES
 
 	FullDevicePositions_DEVICE_ID  = DevicePositionsTable + "." + DevicePositions_DEVICE_ID
 	FullDevicePositions_POSITION_X = DevicePositionsTable + "." + DevicePositions_POSITION_X
 	FullDevicePositions_POSITION_Y = DevicePositionsTable + "." + DevicePositions_POSITION_Y
 	FullDevicePositions_POSITION_Z = DevicePositionsTable + "." + DevicePositions_POSITION_Z
 
-	FullDeviceSwitches_DEVICE_ID = DeviceSwitchesTable + "." + DeviceSwitches_DEVICE_ID
-	FullDeviceSwitches_SWITCH_ID = DeviceSwitchesTable + "." + DeviceSwitches_SWITCH_ID
+	FullDeviceSwitches_DEVICE_ID  = DeviceSwitchesTable + "." + DeviceSwitches_DEVICE_ID
+	FullDeviceSwitches_SWITCH_ID  = DeviceSwitchesTable + "." + DeviceSwitches_SWITCH_ID
+	FullDeviceSwitches_ATTRIBUTES = DeviceSwitchesTable + "." + DeviceSwitches_ATTRIBUTES
 
 	FullSpaceGroupOwners_USER_EMAIL     = SpaceGroupOwnersTable + "." + SpaceGroupOwners_USER_EMAIL
 	FullSpaceGroupOwners_SPACE_GROUP_ID = SpaceGroupOwnersTable + "." + SpaceGroupOwners_SPACE_GROUP_ID
@@ -140,10 +161,14 @@ const (
 	JoinDevicePositions_Devices           = FullDevicePositions_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceSwitches_Devices            = FullDeviceSwitches_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceSwitches_Switches           = FullDeviceSwitches_SWITCH_ID + " = " + FullSwitches_ID
+	JoinSpaceGroupOwners_SwitchLinks      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitchLinks_SPACE_GROUP_ID
 	JoinSpaceGroupOwners_SpaceGroups      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
 )
 
 var funcMap = template.FuncMap{
+	"attributes_max_bytes": func() int {
+		return AttributesMaxBytes
+	},
 	SpaceGroupsTable: func() map[string]string {
 		return map[string]string{
 			baseTable:        SpaceGroupsTable,
@@ -168,6 +193,7 @@ var funcMap = template.FuncMap{
 			SwitchPanels_NAME:           SwitchPanels_NAME,
 			SwitchPanels_SPACE_ID:       SwitchPanels_SPACE_ID,
 			SwitchPanels_SPACE_GROUP_ID: SwitchPanels_SPACE_GROUP_ID,
+			SwitchPanels_ATTRIBUTES:     SwitchPanels_ATTRIBUTES,
 		}
 	},
 	SwitchPanelPositionsTable: func() map[string]string {
@@ -181,13 +207,22 @@ var funcMap = template.FuncMap{
 	},
 	SwitchesTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                   SwitchesTable,
-			Switches_ID:                 Switches_ID,
-			Switches_NAME:               Switches_NAME,
-			Switches_SWITCH_PANEL_ID:    Switches_SWITCH_PANEL_ID,
-			Switches_SPACE_GROUP_ID:     Switches_SPACE_GROUP_ID,
-			Switches_DISPLAY_ORDER:      Switches_DISPLAY_ORDER,
-			Switches_UPSTREAM_SWITCH_ID: Switches_UPSTREAM_SWITCH_ID,
+			baseTable:                SwitchesTable,
+			Switches_ID:              Switches_ID,
+			Switches_NAME:            Switches_NAME,
+			Switches_SWITCH_PANEL_ID: Switches_SWITCH_PANEL_ID,
+			Switches_SPACE_GROUP_ID:  Switches_SPACE_GROUP_ID,
+			Switches_DISPLAY_ORDER:   Switches_DISPLAY_ORDER,
+			Switches_ATTRIBUTES:      Switches_ATTRIBUTES,
+		}
+	},
+	SwitchLinksTable: func() map[string]string {
+		return map[string]string{
+			baseTable:                        SwitchLinksTable,
+			SwitchLinks_UPSTREAM_SWITCH_ID:   SwitchLinks_UPSTREAM_SWITCH_ID,
+			SwitchLinks_DOWNSTREAM_SWITCH_ID: SwitchLinks_DOWNSTREAM_SWITCH_ID,
+			SwitchLinks_SPACE_GROUP_ID:       SwitchLinks_SPACE_GROUP_ID,
+			SwitchLinks_ATTRIBUTES:           SwitchLinks_ATTRIBUTES,
 		}
 	},
 	SpaceBackgroundImagesTable: func() map[string]string {
@@ -200,10 +235,11 @@ var funcMap = template.FuncMap{
 	},
 	DevicesTable: func() map[string]string {
 		return map[string]string{
-			baseTable:        DevicesTable,
-			Devices_ID:       Devices_ID,
-			Devices_NAME:     Devices_NAME,
-			Devices_SPACE_ID: Devices_SPACE_ID,
+			baseTable:          DevicesTable,
+			Devices_ID:         Devices_ID,
+			Devices_NAME:       Devices_NAME,
+			Devices_SPACE_ID:   Devices_SPACE_ID,
+			Devices_ATTRIBUTES: Devices_ATTRIBUTES,
 		}
 	},
 	DevicePositionsTable: func() map[string]string {
@@ -217,9 +253,10 @@ var funcMap = template.FuncMap{
 	},
 	DeviceSwitchesTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                DeviceSwitchesTable,
-			DeviceSwitches_DEVICE_ID: DeviceSwitches_DEVICE_ID,
-			DeviceSwitches_SWITCH_ID: DeviceSwitches_SWITCH_ID,
+			baseTable:                 DeviceSwitchesTable,
+			DeviceSwitches_DEVICE_ID:  DeviceSwitches_DEVICE_ID,
+			DeviceSwitches_SWITCH_ID:  DeviceSwitches_SWITCH_ID,
+			DeviceSwitches_ATTRIBUTES: DeviceSwitches_ATTRIBUTES,
 		}
 	},
 	SpaceGroupOwnersTable: func() map[string]string {

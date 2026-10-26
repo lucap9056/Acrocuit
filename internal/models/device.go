@@ -6,29 +6,29 @@ import (
 	"strings"
 )
 
-const DEVICE_ALL_COLUMNS = schema.FullDevices_ID + "," + schema.FullDevices_NAME + "," + schema.FullDevices_SPACE_ID
+const DEVICE_ALL_COLUMNS = schema.FullDevices_ID + "," + schema.FullDevices_NAME + "," + schema.FullDevices_SPACE_ID + "," + schema.FullDevices_ATTRIBUTES
+
+const DEVICE_WITH_POSITION_COLUMNS = DEVICE_ALL_COLUMNS + "," + schema.FullDevicePositions_POSITION_X + "," + schema.FullDevicePositions_POSITION_Y + "," + schema.FullDevicePositions_POSITION_Z
+
+var deviceWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6}
 
 type Device struct {
-	Id           int    `json:"id"`
-	Name         string `json:"name"`
-	SpaceId      int    `json:"-"`
-	SpaceGroupId int    `json:"-"`
-	SwitchId     int    `json:"-"`
-	PositionX    *int   `json:"-"`
-	PositionY    *int   `json:"-"`
-	PositionZ    *int   `json:"-"`
+	Id           int        `json:"id"`
+	Name         string     `json:"name"`
+	Attributes   Attributes `json:"attributes"`
+	SpaceId      int        `json:"-"`
+	SpaceGroupId int        `json:"-"`
+	PositionX    *int       `json:"-"`
+	PositionY    *int       `json:"-"`
+	PositionZ    *int       `json:"-"`
 
 	Space    *Space    `json:"space"`
-	Switch   *Switch   `json:"switch"`
 	Position *Position `json:"position"`
 }
 
 func (d *Device) Build() {
 	if d.Space == nil && d.SpaceId != 0 {
 		d.Space = &Space{Id: d.SpaceId, SpaceGroupId: d.SpaceGroupId}
-	}
-	if d.Switch == nil && d.SwitchId != 0 {
-		d.Switch = &Switch{Id: d.SwitchId}
 	}
 	if d.Position == nil && d.PositionX != nil {
 		d.Position = &Position{X: *d.PositionX, Y: *d.PositionY, Z: *d.PositionZ}
@@ -38,10 +38,9 @@ func (d *Device) Build() {
 func ParseDeviceColumns(columnsStr string, allowPosition bool) (string, []uint8, bool, error) {
 	if strings.TrimSpace(columnsStr) == "" {
 		if allowPosition {
-			return DEVICE_ALL_COLUMNS + "," + schema.FullDevicePositions_POSITION_X + "," + schema.FullDevicePositions_POSITION_Y + "," + schema.FullDevicePositions_POSITION_Z,
-				[]uint8{0, 1, 2, 3, 4, 5}, true, nil
+			return DEVICE_WITH_POSITION_COLUMNS, deviceWithPositionFields, true, nil
 		}
-		return DEVICE_ALL_COLUMNS, []uint8{0, 1, 2}, false, nil
+		return DEVICE_ALL_COLUMNS, []uint8{0, 1, 2, 3}, false, nil
 	}
 
 	collector := newColumnCollector(columnsStr)
@@ -60,13 +59,15 @@ func ParseDeviceColumns(columnsStr string, allowPosition bool) (string, []uint8,
 			collector.Append(1, schema.FullDevices_NAME)
 		case schema.Devices_SPACE_ID, schema.FullDevices_SPACE_ID:
 			collector.Append(2, schema.FullDevices_SPACE_ID)
+		case schema.Devices_ATTRIBUTES, schema.FullDevices_ATTRIBUTES:
+			collector.Append(3, schema.FullDevices_ATTRIBUTES)
 		case BASE_POSITION:
 			if !allowPosition {
 				return "", nil, false, fmt.Errorf("invalid column: %s", col)
 			}
-			collector.Append(3, schema.FullDevicePositions_POSITION_X)
-			collector.Append(4, schema.FullDevicePositions_POSITION_Y)
-			collector.Append(5, schema.FullDevicePositions_POSITION_Z)
+			collector.Append(4, schema.FullDevicePositions_POSITION_X)
+			collector.Append(5, schema.FullDevicePositions_POSITION_Y)
+			collector.Append(6, schema.FullDevicePositions_POSITION_Z)
 			includePosition = true
 		default:
 			return "", nil, false, fmt.Errorf("invalid column: %s", col)
@@ -88,12 +89,18 @@ func (d *Device) Values(fields []uint8) []any {
 		case 2:
 			values[i] = &d.SpaceId
 		case 3:
-			values[i] = &d.PositionX
+			values[i] = &d.Attributes
 		case 4:
-			values[i] = &d.PositionY
+			values[i] = &d.PositionX
 		case 5:
+			values[i] = &d.PositionY
+		case 6:
 			values[i] = &d.PositionZ
 		}
 	}
 	return values
+}
+
+func (d *Device) ValuesWithPosition() []any {
+	return d.Values(deviceWithPositionFields)
 }

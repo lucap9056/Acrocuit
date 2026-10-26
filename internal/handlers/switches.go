@@ -14,8 +14,10 @@ type switchesController struct {
 }
 
 const (
-	paramSwitchID = "switchId"
-	routeSwitchID = ":" + paramSwitchID
+	paramSwitchID         = "switchId"
+	routeSwitchID         = ":" + paramSwitchID
+	paramUpstreamSwitchID = "upstreamSwitchId"
+	routeUpstreamSwitchID = ":" + paramUpstreamSwitchID
 )
 
 func switchesHandlers(r *gin.RouterGroup, base controller) {
@@ -26,12 +28,15 @@ func switchesHandlers(r *gin.RouterGroup, base controller) {
 	r.PUT(routeSwitchID, ctr.SetSwitch)
 	r.DELETE(routeSwitchID, ctr.DelSwitch)
 	r.PATCH(routeSwitchID+"/order", ctr.SetSwitchOrder)
-	r.PATCH(routeSwitchID+"/upstream", ctr.SetSwitchUpstream)
+
+	r.GET(routeSwitchID+"/upstreams", ctr.GetSwitchUpstreams)
+	r.POST(routeSwitchID+"/upstreams", ctr.AddSwitchUpstream)
+	r.PUT(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, ctr.SetSwitchUpstream)
+	r.DELETE(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, ctr.DelSwitchUpstream)
 }
 
-type switchDownstreamResponse struct {
-	Switches []models.Switch `json:"switches"`
-	Devices  []models.Device `json:"devices"`
+type setAttributesRequest struct {
+	Attributes models.Attributes `json:"attributes" binding:"required"`
 }
 
 func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
@@ -41,13 +46,13 @@ func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
 		return
 	}
 
-	switches, devices, err := ctr.Switches.GetSwitchDownstream(c.Request.Context(), userEmail, switchId)
+	chain, err := ctr.Switches.GetSwitchDownstream(c.Request.Context(), userEmail, switchId)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, switchDownstreamResponse{Switches: switches, Devices: devices})
+	response.OK(c, chain)
 }
 
 func (ctr *switchesController) GetSwitch(c *gin.Context) {
@@ -68,7 +73,8 @@ func (ctr *switchesController) GetSwitch(c *gin.Context) {
 }
 
 type setSwitchRequest struct {
-	Name *string `json:"name" binding:"omitempty,min=1,max=255"`
+	Name       *string           `json:"name" binding:"omitempty,min=1,max=255"`
+	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *switchesController) SetSwitch(c *gin.Context) {
@@ -83,7 +89,7 @@ func (ctr *switchesController) SetSwitch(c *gin.Context) {
 		return
 	}
 
-	sw, err := ctr.Switches.SetSwitch(c.Request.Context(), userEmail, switchId, req.Name)
+	sw, err := ctr.Switches.SetSwitch(c.Request.Context(), userEmail, switchId, req.Name, req.Attributes)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -128,8 +134,47 @@ func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 	response.OK(c, switches)
 }
 
-type setSwitchUpstreamRequest struct {
-	UpstreamSwitchId *int `json:"upstream_switch_id"`
+func (ctr *switchesController) GetSwitchUpstreams(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+	include := c.Query("include")
+
+	switches, err := ctr.Switches.GetSwitchUpstreams(c.Request.Context(), userEmail, switchId, include)
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, switches)
+}
+
+type addSwitchUpstreamRequest struct {
+	UpstreamSwitchId int               `json:"upstream_switch_id" binding:"required"`
+	Attributes       models.Attributes `json:"attributes"`
+}
+
+func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+
+	var req addSwitchUpstreamRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+
+	link, err := ctr.Switches.AddSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId, req.Attributes.OrEmpty())
+	if err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.OK(c, link)
 }
 
 func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
@@ -138,17 +183,40 @@ func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
 	if !ok {
 		return
 	}
+	upstreamSwitchId, ok := intParam(c, paramUpstreamSwitchID)
+	if !ok {
+		return
+	}
 
-	var req setSwitchUpstreamRequest
+	var req setAttributesRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	sw, err := ctr.Switches.SetSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId)
+	link, err := ctr.Switches.SetSwitchUpstream(c.Request.Context(), userEmail, switchId, upstreamSwitchId, req.Attributes)
 	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, sw)
+	response.OK(c, link)
+}
+
+func (ctr *switchesController) DelSwitchUpstream(c *gin.Context) {
+	userEmail := auth.UserEmail(c)
+	switchId, ok := intParam(c, paramSwitchID)
+	if !ok {
+		return
+	}
+	upstreamSwitchId, ok := intParam(c, paramUpstreamSwitchID)
+	if !ok {
+		return
+	}
+
+	if err := ctr.Switches.DelSwitchUpstream(c.Request.Context(), userEmail, switchId, upstreamSwitchId); err != nil {
+		handleStorageErr(c, err)
+		return
+	}
+
+	response.Empty(c, http.StatusOK)
 }

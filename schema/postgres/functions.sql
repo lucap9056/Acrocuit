@@ -91,18 +91,20 @@ $$;
 
 DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR, INT);
 DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR);
+DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR, JSON);
 
 CREATE OR REPLACE FUNCTION {{fn_set_switch.func}}(
     p_user_email TEXT,
     p_switch_id INT,
-    p_name VARCHAR(255) DEFAULT NULL
+    p_name VARCHAR(255) DEFAULT NULL,
+    p_attributes JSON DEFAULT NULL
 ) RETURNS TABLE (
     {{fn_set_switch.o_id}} INT,
     {{fn_set_switch.o_name}} VARCHAR(255),
     {{fn_set_switch.o_switch_panel_id}} INT,
     {{fn_set_switch.o_space_group_id}} INT,
     {{fn_set_switch.o_display_order}} INT,
-    {{fn_set_switch.o_upstream_switch_id}} INT
+    {{fn_set_switch.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
 BEGIN
     IF NOT EXISTS (
@@ -114,12 +116,13 @@ BEGIN
         RETURN;
     END IF;
 
-    IF p_name IS NOT NULL THEN
-        UPDATE {{switches.table}} SET {{switches.name}} = p_name WHERE {{switches.id}} = p_switch_id;
-    END IF;
+    UPDATE {{switches.table}}
+    SET {{switches.name}} = COALESCE(p_name, {{switches.name}}),
+        {{switches.attributes}} = COALESCE(p_attributes, {{switches.attributes}})
+    WHERE {{switches.id}} = p_switch_id;
 
     RETURN QUERY
-    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.upstream_switch_id}}
+    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.attributes}}
     FROM {{switches.table}} b
     WHERE b.{{switches.id}} = p_switch_id;
 END;
@@ -137,7 +140,7 @@ CREATE OR REPLACE FUNCTION {{fn_move_switch.func}}(
     {{fn_move_switch.o_switch_panel_id}} INT,
     {{fn_move_switch.o_space_group_id}} INT,
     {{fn_move_switch.o_display_order}} INT,
-    {{fn_move_switch.o_upstream_switch_id}} INT
+    {{fn_move_switch.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
 DECLARE
     v_switch_panel_id INT;
@@ -175,26 +178,24 @@ BEGIN
     END IF;
 
     RETURN QUERY
-    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.upstream_switch_id}}
+    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.attributes}}
     FROM {{switches.table}} b
     WHERE b.{{switches.switch_panel_id}} = v_switch_panel_id
     ORDER BY b.{{switches.display_order}};
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_set_switch_upstream.func}}(TEXT, INT, INT);
+DROP FUNCTION IF EXISTS {{fn_add_switch_upstream.func}}(TEXT, INT, INT, JSON);
 
-CREATE OR REPLACE FUNCTION {{fn_set_switch_upstream.func}}(
+CREATE OR REPLACE FUNCTION {{fn_add_switch_upstream.func}}(
     p_user_email TEXT,
     p_switch_id INT,
-    p_upstream_switch_id INT DEFAULT NULL
+    p_upstream_switch_id INT,
+    p_attributes JSON
 ) RETURNS TABLE (
-    {{fn_set_switch_upstream.o_id}} INT,
-    {{fn_set_switch_upstream.o_name}} VARCHAR(255),
-    {{fn_set_switch_upstream.o_switch_panel_id}} INT,
-    {{fn_set_switch_upstream.o_space_group_id}} INT,
-    {{fn_set_switch_upstream.o_display_order}} INT,
-    {{fn_set_switch_upstream.o_upstream_switch_id}} INT
+    {{fn_add_switch_upstream.o_upstream_switch_id}} INT,
+    {{fn_add_switch_upstream.o_downstream_switch_id}} INT,
+    {{fn_add_switch_upstream.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
 DECLARE
     v_space_group_id INT;
@@ -203,8 +204,7 @@ BEGIN
     SELECT b.{{switches.space_group_id}}
     INTO v_space_group_id
     FROM {{switches.table}} b
-    JOIN {{switch_panels.table}} bg ON bg.{{switch_panels.id}} = b.{{switches.switch_panel_id}}
-    JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = bg.{{switch_panels.space_group_id}}
+    JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = b.{{switches.space_group_id}}
     JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = sg.{{space_groups.id}}
     WHERE b.{{switches.id}} = p_switch_id AND so.{{space_group_owners.user_email}} = p_user_email
     FOR UPDATE OF sg;
@@ -213,51 +213,51 @@ BEGIN
         RETURN;
     END IF;
 
-    IF p_upstream_switch_id IS NOT NULL THEN
-        IF p_upstream_switch_id = p_switch_id THEN
-            RAISE EXCEPTION 'switch % cannot reference itself as upstream', p_switch_id
-                USING ERRCODE = '{{fn_set_switch_upstream.err_self_reference}}';
-        END IF;
-
-        IF NOT EXISTS (
-            SELECT 1 FROM {{switches.table}}
-            WHERE {{switches.id}} = p_upstream_switch_id AND {{switches.space_group_id}} = v_space_group_id
-        ) THEN
-            RETURN;
-        END IF;
-
-        WITH RECURSIVE upstream_chain AS (
-            SELECT b.{{switches.id}}, b.{{switches.upstream_switch_id}}
-            FROM {{switches.table}} b
-            WHERE b.{{switches.id}} = p_upstream_switch_id
-
-            UNION ALL
-
-            SELECT p.{{switches.id}}, p.{{switches.upstream_switch_id}}
-            FROM {{switches.table}} p
-            JOIN upstream_chain c ON p.{{switches.id}} = c.{{switches.upstream_switch_id}}
-        )
-        SELECT EXISTS (SELECT 1 FROM upstream_chain WHERE {{switches.id}} = p_switch_id) INTO v_has_cycle;
-
-        IF v_has_cycle THEN
-            RAISE EXCEPTION 'upstream switch % would create a cycle for switch %', p_upstream_switch_id, p_switch_id
-                USING ERRCODE = '{{fn_set_switch_upstream.err_cycle_detected}}';
-        END IF;
+    IF p_upstream_switch_id = p_switch_id THEN
+        RAISE EXCEPTION 'switch % cannot reference itself as upstream', p_switch_id
+            USING ERRCODE = '{{fn_add_switch_upstream.err_self_reference}}';
     END IF;
 
-    UPDATE {{switches.table}} SET {{switches.upstream_switch_id}} = p_upstream_switch_id WHERE {{switches.id}} = p_switch_id;
+    IF NOT EXISTS (
+        SELECT 1 FROM {{switches.table}}
+        WHERE {{switches.id}} = p_upstream_switch_id AND {{switches.space_group_id}} = v_space_group_id
+    ) THEN
+        RETURN;
+    END IF;
+
+    WITH RECURSIVE upstream_chain(id) AS (
+        SELECT p_upstream_switch_id
+
+        UNION
+
+        SELECT l.{{switch_links.upstream_switch_id}}
+        FROM {{switch_links.table}} l
+        JOIN upstream_chain c ON l.{{switch_links.downstream_switch_id}} = c.id
+    )
+    SELECT EXISTS (SELECT 1 FROM upstream_chain WHERE id = p_switch_id) INTO v_has_cycle;
+
+    IF v_has_cycle THEN
+        RAISE EXCEPTION 'upstream switch % would create a cycle for switch %', p_upstream_switch_id, p_switch_id
+            USING ERRCODE = '{{fn_add_switch_upstream.err_cycle_detected}}';
+    END IF;
 
     RETURN QUERY
-    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.upstream_switch_id}}
-    FROM {{switches.table}} b
-    WHERE b.{{switches.id}} = p_switch_id;
+    WITH inserted AS (
+        INSERT INTO {{switch_links.table}} ({{switch_links.upstream_switch_id}}, {{switch_links.downstream_switch_id}}, {{switch_links.space_group_id}}, {{switch_links.attributes}})
+        VALUES (p_upstream_switch_id, p_switch_id, v_space_group_id, p_attributes)
+        RETURNING {{switch_links.upstream_switch_id}}, {{switch_links.downstream_switch_id}}, {{switch_links.attributes}}
+    )
+    SELECT * FROM inserted;
 END;
 $$;
+
+DROP FUNCTION IF EXISTS {{fn_add_device_switch.func}}(TEXT, INT, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_add_device_switch.func}}(
     p_user_email TEXT,
     p_device_id INT,
-    p_switch_id INT
+    p_switch_id INT,
+    p_attributes JSON
 ) RETURNS TABLE (
     {{fn_add_device_switch.o_result}} INT
 ) LANGUAGE plpgsql AS $$
@@ -292,8 +292,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO {{device_switches.table}} ({{device_switches.device_id}}, {{device_switches.switch_id}})
-    VALUES (p_device_id, p_switch_id);
+    INSERT INTO {{device_switches.table}} ({{device_switches.device_id}}, {{device_switches.switch_id}}, {{device_switches.attributes}})
+    VALUES (p_device_id, p_switch_id, p_attributes);
 
     RETURN QUERY SELECT 0;
 END;

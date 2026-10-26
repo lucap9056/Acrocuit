@@ -132,7 +132,7 @@ func TestGetSwitchPanels(t *testing.T) {
 }
 
 func TestAddSwitchPanel(t *testing.T) {
-	call(t, http.MethodPost, "/spaces/"+spaceId+"/switch-panels", map[string]any{"name": "switch panel", "position": position{}})
+	call(t, http.MethodPost, "/spaces/"+spaceId+"/switch-panels", map[string]any{"name": "switch panel", "position": position{}, "attributes": map[string]any{}})
 }
 
 func TestGetDevices(t *testing.T) {
@@ -140,7 +140,7 @@ func TestGetDevices(t *testing.T) {
 }
 
 func TestAddDevice(t *testing.T) {
-	call(t, http.MethodPost, "/spaces/"+spaceId+"/devices", map[string]any{"name": "device", "position": position{}})
+	call(t, http.MethodPost, "/spaces/"+spaceId+"/devices", map[string]any{"name": "device", "position": position{}, "attributes": map[string]any{}})
 }
 
 func TestGetSwitchPanel(t *testing.T) {
@@ -148,7 +148,7 @@ func TestGetSwitchPanel(t *testing.T) {
 }
 
 func TestSetSwitchPanel(t *testing.T) {
-	call(t, http.MethodPut, "/switch-panels/"+switchPanelId, map[string]any{"name": "switch panel"})
+	call(t, http.MethodPut, "/switch-panels/"+switchPanelId, map[string]any{"name": "switch panel", "attributes": map[string]any{}})
 }
 
 func TestDelSwitchPanel(t *testing.T) {
@@ -164,7 +164,7 @@ func TestGetSwitches(t *testing.T) {
 }
 
 func TestAddSwitch(t *testing.T) {
-	call(t, http.MethodPost, "/switch-panels/"+switchPanelId+"/switches", map[string]any{"name": "switch", "upstream_switch_id": json.RawMessage(upstreamSwitchId)})
+	call(t, http.MethodPost, "/switch-panels/"+switchPanelId+"/switches", map[string]any{"name": "switch", "attributes": map[string]any{}})
 }
 
 func TestGetSwitch(t *testing.T) {
@@ -176,7 +176,7 @@ func TestGetSwitchDownstream(t *testing.T) {
 }
 
 func TestSetSwitch(t *testing.T) {
-	call(t, http.MethodPut, "/switches/"+switchId, map[string]any{"name": "switch"})
+	call(t, http.MethodPut, "/switches/"+switchId, map[string]any{"name": "switch", "attributes": map[string]any{}})
 }
 
 func TestDelSwitch(t *testing.T) {
@@ -187,8 +187,20 @@ func TestSetSwitchOrder(t *testing.T) {
 	call(t, http.MethodPatch, "/switches/"+switchId+"/order", map[string]any{"display_order": 1})
 }
 
+func TestGetSwitchUpstreams(t *testing.T) {
+	call(t, http.MethodGet, "/switches/"+switchId+"/upstreams", nil)
+}
+
+func TestAddSwitchUpstream(t *testing.T) {
+	call(t, http.MethodPost, "/switches/"+switchId+"/upstreams", map[string]any{"upstream_switch_id": json.RawMessage(upstreamSwitchId), "attributes": map[string]any{}})
+}
+
 func TestSetSwitchUpstream(t *testing.T) {
-	call(t, http.MethodPatch, "/switches/"+switchId+"/upstream", map[string]any{"upstream_switch_id": json.RawMessage(upstreamSwitchId)})
+	call(t, http.MethodPut, "/switches/"+switchId+"/upstreams/"+upstreamSwitchId, map[string]any{"attributes": map[string]any{}})
+}
+
+func TestDelSwitchUpstream(t *testing.T) {
+	call(t, http.MethodDelete, "/switches/"+switchId+"/upstreams/"+upstreamSwitchId, nil)
 }
 
 func TestGetDevice(t *testing.T) {
@@ -216,7 +228,11 @@ func TestGetDeviceSwitches(t *testing.T) {
 }
 
 func TestAddDeviceSwitch(t *testing.T) {
-	call(t, http.MethodPost, "/devices/"+deviceId+"/switches", map[string]any{"switch_id": json.RawMessage(switchId)})
+	call(t, http.MethodPost, "/devices/"+deviceId+"/switches", map[string]any{"switch_id": json.RawMessage(switchId), "attributes": map[string]any{}})
+}
+
+func TestSetDeviceSwitch(t *testing.T) {
+	call(t, http.MethodPut, "/devices/"+deviceId+"/switches/"+switchId, map[string]any{"attributes": map[string]any{}})
 }
 
 func TestDelDeviceSwitch(t *testing.T) {

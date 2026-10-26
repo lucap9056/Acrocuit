@@ -137,8 +137,9 @@ func (ctr *spacesController) GetSwitchPanels(c *gin.Context) {
 }
 
 type createSwitchPanelRequest struct {
-	Name     string           `json:"name" binding:"required,min=1,max=255"`
-	Position *models.Position `json:"position"`
+	Name       string            `json:"name" binding:"required,min=1,max=255"`
+	Position   *models.Position  `json:"position"`
+	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *spacesController) AddSwitchPanel(c *gin.Context) {
@@ -153,7 +154,7 @@ func (ctr *spacesController) AddSwitchPanel(c *gin.Context) {
 		return
 	}
 
-	switchPanel, err := ctr.SwitchPanels.AddSwitchPanel(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
+	switchPanel, err := ctr.SwitchPanels.AddSwitchPanel(c.Request.Context(), userEmail, spaceId, req.Name, req.Position, req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -180,8 +181,9 @@ func (ctr *spacesController) GetDevices(c *gin.Context) {
 }
 
 type createDeviceRequest struct {
-	Name     string           `json:"name" binding:"required,min=1,max=255"`
-	Position *models.Position `json:"position"`
+	Name       string            `json:"name" binding:"required,min=1,max=255"`
+	Position   *models.Position  `json:"position"`
+	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *spacesController) AddDevice(c *gin.Context) {
@@ -196,7 +198,7 @@ func (ctr *spacesController) AddDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := ctr.Devices.AddDevice(c.Request.Context(), userEmail, spaceId, req.Name, req.Position)
+	device, err := ctr.Devices.AddDevice(c.Request.Context(), userEmail, spaceId, req.Name, req.Position, req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return
