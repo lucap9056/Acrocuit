@@ -63,14 +63,14 @@ func ParseDeviceColumns(columnsStr string, allowPosition bool) (string, []uint8,
 			collector.Append(3, schema.FullDevices_ATTRIBUTES)
 		case BASE_POSITION:
 			if !allowPosition {
-				return "", nil, false, fmt.Errorf("invalid column: %s", col)
+				return "", nil, false, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 			}
 			collector.Append(4, schema.FullDevicePositions_POSITION_X)
 			collector.Append(5, schema.FullDevicePositions_POSITION_Y)
 			collector.Append(6, schema.FullDevicePositions_POSITION_Z)
 			includePosition = true
 		default:
-			return "", nil, false, fmt.Errorf("invalid column: %s", col)
+			return "", nil, false, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
 	}
 

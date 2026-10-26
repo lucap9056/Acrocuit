@@ -48,7 +48,7 @@ func ParseSpaceColumns(columnsStr string) (string, []uint8, error) {
 		case schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT, schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT:
 			collector.Append(4, schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT)
 		default:
-			return "", nil, fmt.Errorf("invalid column: %s", col)
+			return "", nil, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
 	}
 

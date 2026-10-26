@@ -62,7 +62,9 @@ func (c *client) with(t *testing.T) *client {
 func (c *client) do(req *http.Request) (int, http.Header, []byte) {
 	c.t.Helper()
 
-	req.URL = c.base.JoinPath(req.URL.Path)
+	target := c.base.JoinPath(req.URL.Path)
+	target.RawQuery = req.URL.RawQuery
+	req.URL = target
 	if c.identityToken != "" {
 		req.Header.Set("X-Forwarded-Identity", c.identityToken)
 	}
@@ -339,6 +341,20 @@ func TestE2E(t *testing.T) {
 			req := newRequest(t, http.MethodPost, path, body)
 			status := c.Send(req, nil)
 			assert.Equal(t, http.StatusBadRequest, status, "add upstream %s to %s", tc.upstream, tc.sw)
+		}
+	})
+
+	t.Run("IncludeRejectsUnknownColumn", func(t *testing.T) {
+		c := c.with(t)
+		for _, path := range []string{
+			spaceGroupPath,
+			fmt.Sprintf("/spaces/%d", spaces["space1"]),
+			fmt.Sprintf("/spaces/%d/switch-panels", spaces["space1"]),
+			fmt.Sprintf("/spaces/%d/devices", spaces["space1"]),
+			fmt.Sprintf("/switches/%d", root),
+		} {
+			req := newRequest(t, http.MethodGet, path+"?include=id,unknown", nil)
+			assert.Equal(t, http.StatusBadRequest, c.Send(req, nil), "GET %s", path)
 		}
 	})
 

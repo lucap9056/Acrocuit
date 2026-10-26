@@ -1,8 +1,11 @@
 package models
 
 import (
+	"errors"
 	"strings"
 )
+
+var ErrInvalidColumn = errors.New("invalid column")
 
 type columnScanner struct {
 	str     string

@@ -31,7 +31,7 @@ func ParseSpaceGroupColumns(columnsStr string) (string, []uint8, error) {
 		case schema.SpaceGroups_NAME, schema.FullSpaceGroups_NAME:
 			collector.Append(1, schema.FullSpaceGroups_NAME)
 		default:
-			return "", nil, fmt.Errorf("invalid column: %s", col)
+			return "", nil, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
 	}
 

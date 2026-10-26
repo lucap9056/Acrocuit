@@ -63,7 +63,7 @@ func ParseSwitchColumns(columnsStr string) (string, []uint8, error) {
 		case schema.Switches_ATTRIBUTES, schema.FullSwitches_ATTRIBUTES:
 			collector.Append(5, schema.FullSwitches_ATTRIBUTES)
 		default:
-			return "", nil, fmt.Errorf("invalid column: %s", col)
+			return "", nil, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
 	}
 
