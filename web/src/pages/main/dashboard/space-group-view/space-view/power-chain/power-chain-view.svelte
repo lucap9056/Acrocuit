@@ -65,7 +65,6 @@
   } from "@/lib/power-chain";
   import { computeChainLoads } from "@/lib/power-chain/load";
   import type { Workspace } from "@/lib/workspace";
-  import FloorInfo from "@/pages/main/dashboard/space-group-view/floor-info/floor-info.svelte";
   import { FloorOverview } from "@/pages/main/dashboard/space-group-view/floor-overview.svelte";
   import FloorOverviewToolbar from "@/pages/main/dashboard/space-group-view/floor-overview-toolbar/floor-overview-toolbar.svelte";
   import ChainFloorList from "./chain-floor-list/chain-floor-list.svelte";
@@ -300,7 +299,7 @@
         leftpart: floorList,
         centerpart: content,
         toolbarpart: toolbar,
-        rightpart: floorInfo,
+        rightpart: nodeInfo,
       },
       signal,
     );
@@ -436,9 +435,8 @@
   {/if}
 {/snippet}
 
-{#snippet floorInfo()}
+{#snippet nodeInfo()}
   {#if spaces}
-    <FloorInfo {session} {spaces} {overview} />
     <ChainNodeInfo detail={inspected} {spaces} {loads} />
   {/if}
 {/snippet}
