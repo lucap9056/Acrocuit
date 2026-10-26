@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"acrocuit/internal/models"
 	"acrocuit/internal/response"
 	"acrocuit/internal/storage/repository"
 	"errors"
@@ -34,7 +35,7 @@ func handleStorageErr(c *gin.Context, err error) {
 		response.Error(c, http.StatusNotFound, "not found")
 	case errors.Is(err, repository.ErrConflict):
 		response.Error(c, http.StatusConflict, "conflict")
-	case errors.Is(err, repository.ErrSelfReference), errors.Is(err, repository.ErrCycleDetected):
+	case errors.Is(err, repository.ErrSelfReference), errors.Is(err, repository.ErrCycleDetected), errors.Is(err, models.ErrInvalidColumn):
 		response.Error(c, http.StatusBadRequest, err.Error())
 	default:
 		internalError(c, err)

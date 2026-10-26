@@ -68,14 +68,14 @@ func ParseSwitchPanelColumns(columnsStr string, allowPosition bool) (string, []u
 			collector.Append(4, schema.FullSwitchPanels_ATTRIBUTES)
 		case BASE_POSITION:
 			if !allowPosition {
-				return "", nil, false, fmt.Errorf("invalid column: %s", col)
+				return "", nil, false, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 			}
 			collector.Append(5, schema.FullSwitchPanelPositions_POSITION_X)
 			collector.Append(6, schema.FullSwitchPanelPositions_POSITION_Y)
 			collector.Append(7, schema.FullSwitchPanelPositions_POSITION_Z)
 			includePosition = true
 		default:
-			return "", nil, false, fmt.Errorf("invalid column: %s", col)
+			return "", nil, false, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
 	}
 
