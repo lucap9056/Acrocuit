@@ -18,23 +18,31 @@ type Switch struct {
 	SwitchPanelId int        `json:"-"`
 	SpaceGroupId  int        `json:"-"`
 
-	SwitchPanel *SwitchPanel `json:"switch_panel"`
+	SwitchPanel *Ref `json:"switch_panel"`
 }
 
 func (s *Switch) Build() {
 	if s.SwitchPanel == nil && s.SwitchPanelId != 0 {
-		s.SwitchPanel = &SwitchPanel{Id: s.SwitchPanelId, SpaceGroupId: s.SpaceGroupId}
+		s.SwitchPanel = &Ref{Id: s.SwitchPanelId}
 	}
-	s.SwitchPanel.Build()
 }
 
 func (s *Switch) AllValues() []any {
 	return s.Values(switchAllFields)
 }
 
-func (s *Switch) ValuesWithPanel() []any {
+type ChainSwitch struct {
+	Switch
+	SwitchPanel *SwitchPanel `json:"switch_panel"`
+}
+
+func (s *ChainSwitch) Build() {
+	s.SwitchPanel.Build()
+}
+
+func (s *ChainSwitch) ValuesWithPanel() []any {
 	s.SwitchPanel = &SwitchPanel{}
-	return append(s.Values(switchAllFields), s.SwitchPanel.Values(switchPanelWithPositionFields)...)
+	return append(s.AllValues(), s.SwitchPanel.ValuesWithPosition()...)
 }
 
 func ParseSwitchColumns(columnsStr string) (string, []uint8, error) {

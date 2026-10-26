@@ -16,7 +16,7 @@ const selectSwitchChainWithPanel = `
 	LEFT JOIN ` + schema.SwitchPanelPositionsTable + ` ON ` + schema.JoinSwitchPanelPositions_SwitchPanels + `
 	ORDER BY ` + schema.FullSwitches_ID
 
-func switchIdsJSON(switches []models.Switch) (string, error) {
+func switchIdsJSON(switches []models.ChainSwitch) (string, error) {
 	ids := make([]int, len(switches))
 	for i, sw := range switches {
 		ids[i] = sw.Id
@@ -43,9 +43,9 @@ func scanAll[T any](rows *sql.Rows, err error, values func(*T) []any) ([]T, erro
 	return items, rows.Err()
 }
 
-func querySwitchesWithPanel(ctx context.Context, q querier, query string, args ...any) ([]models.Switch, error) {
+func querySwitchesWithPanel(ctx context.Context, q querier, query string, args ...any) ([]models.ChainSwitch, error) {
 	rows, err := q.QueryContext(ctx, query, args...)
-	switches, err := scanAll(rows, err, (*models.Switch).ValuesWithPanel)
+	switches, err := scanAll(rows, err, (*models.ChainSwitch).ValuesWithPanel)
 	for i := range switches {
 		switches[i].Build()
 	}
