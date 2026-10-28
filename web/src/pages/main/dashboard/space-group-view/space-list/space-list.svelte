@@ -22,6 +22,7 @@
   } from "@/lib/cache/spaces";
   import type { HashRouter } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
+  import { canEdit } from "@/lib/permissions";
   import styles from "./space-list.module.css";
 
   interface Props {
@@ -43,6 +44,8 @@
   type DndSpace = Space & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
 
   const FLIP_DURATION_MS = 150;
+
+  const editable = $derived(canEdit(spaceGroup));
 
   let spaceName = $state("");
   let draftItems = $state<DndSpace[]>();
@@ -227,14 +230,16 @@
 <div class={styles.space_list}>
   <div class={styles.list_heading}>
     <h2 class={styles.list_title}>{t("spaces.title")}</h2>
-    <button
-      class="icon_button"
-      aria-label={t("spaces.new")}
-      onclick={create}
-      {@attach tooltip(t("spaces.new"))}
-    >
-      <PlusIcon />
-    </button>
+    {#if editable}
+      <button
+        class="icon_button"
+        aria-label={t("spaces.new")}
+        onclick={create}
+        {@attach tooltip(t("spaces.new"))}
+      >
+        <PlusIcon />
+      </button>
+    {/if}
   </div>
 
   {#if spaces === undefined}
@@ -247,7 +252,7 @@
       use:dragHandleZone={{
         items: reversedItems,
         flipDurationMs: FLIP_DURATION_MS,
-        dragDisabled: isConfirmingMove,
+        dragDisabled: !editable || isConfirmingMove,
         dropTargetStyle: {},
         delayTouchStart: true,
       }}
@@ -264,37 +269,41 @@
           onpointerenter={() => hover(space)}
           onfocusin={() => hover(space)}
         >
-          <button
-            class={["icon_button", styles.handle]}
-            aria-label={t("spaces.dragToReorder")}
-            use:dragHandle
-          >
-            <DotsSixVerticalIcon />
-          </button>
+          {#if editable}
+            <button
+              class={["icon_button", styles.handle]}
+              aria-label={t("spaces.dragToReorder")}
+              use:dragHandle
+            >
+              <DotsSixVerticalIcon />
+            </button>
+          {/if}
           <button
             class={styles.select}
             onclick={() => router.to(`spaces/${space.id}`)}
           >
             <span class={styles.name}>{space.name}</span>
           </button>
-          <div class={styles.actions}>
-            <button
-              class="icon_button"
-              aria-label={t("common.rename")}
-              onclick={() => rename(space)}
-              {@attach tooltip(t("common.rename"))}
-            >
-              <PencilSimpleIcon />
-            </button>
-            <button
-              class="icon_button {styles.delete}"
-              aria-label={t("common.delete")}
-              onclick={() => remove(space)}
-              {@attach tooltip(t("common.delete"))}
-            >
-              <TrashIcon />
-            </button>
-          </div>
+          {#if editable}
+            <div class={styles.actions}>
+              <button
+                class="icon_button"
+                aria-label={t("common.rename")}
+                onclick={() => rename(space)}
+                {@attach tooltip(t("common.rename"))}
+              >
+                <PencilSimpleIcon />
+              </button>
+              <button
+                class="icon_button {styles.delete}"
+                aria-label={t("common.delete")}
+                onclick={() => remove(space)}
+                {@attach tooltip(t("common.delete"))}
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>

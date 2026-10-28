@@ -28,6 +28,7 @@
   import { field, type HashRouter, type RouteParams } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { canEdit } from "@/lib/permissions";
   import DeviceEditor from "../device-editor/device-editor.svelte";
   import SwitchEditor from "../switch-editor/switch-editor.svelte";
   import SwitchPanelEditor, {
@@ -62,6 +63,8 @@
     onshowdownstream,
     onclose,
   }: Props = $props();
+
+  const editable = $derived(canEdit(spaceGroup));
 
   let editingDevice = $state<Placed<Device>>();
   let editingSwitchPanel = $state<Placed<SwitchPanel>>();
@@ -324,6 +327,7 @@
     <SwitchPanelEditor
       {session}
       {switchPanel}
+      {editable}
       onrename={(name) => onrenameswitchpanel(switchPanel, name)}
       onsaveattributes={(attributes) =>
         onsaveswitchpanelattributes(switchPanel, attributes)}

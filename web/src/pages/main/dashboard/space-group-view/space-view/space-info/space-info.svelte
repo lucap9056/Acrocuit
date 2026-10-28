@@ -12,6 +12,7 @@
     isUpdatingFloorPlan: boolean;
     onuploadfloorplan: (image: File) => void;
     onremovefloorplan: () => void;
+    editable: boolean;
   }
 
   const {
@@ -21,6 +22,7 @@
     isUpdatingFloorPlan,
     onuploadfloorplan,
     onremovefloorplan,
+    editable,
   }: Props = $props();
 
   const FLOOR_PLAN_TYPES = "image/png,image/jpeg,image/webp,image/gif";
@@ -52,32 +54,34 @@
     <dt>{t("floorPlan.title")}</dt>
     <dd>{floorPlanUpdatedAt ?? t("common.none")}</dd>
   </dl>
-  <div class={styles.actions}>
-    {#if floorPlanUpdatedAt === undefined}
-      <button
-        class={styles.action}
-        disabled={isUpdatingFloorPlan}
-        onclick={() => fileInput?.click()}
+  {#if editable}
+    <div class={styles.actions}>
+      {#if floorPlanUpdatedAt === undefined}
+        <button
+          class={styles.action}
+          disabled={isUpdatingFloorPlan}
+          onclick={() => fileInput?.click()}
+        >
+          <UploadSimpleIcon />
+          {t("floorPlan.upload")}
+        </button>
+      {:else}
+        <button
+          class={styles.action}
+          disabled={isUpdatingFloorPlan}
+          onclick={onremovefloorplan}
+        >
+          <TrashIcon />
+          {t("floorPlan.remove")}
+        </button>
+      {/if}
+      <input
+        class={styles.file_input}
+        type="file"
+        accept={FLOOR_PLAN_TYPES}
+        bind:this={fileInput}
+        onchange={onfilechange}
       >
-        <UploadSimpleIcon />
-        {t("floorPlan.upload")}
-      </button>
-    {:else}
-      <button
-        class={styles.action}
-        disabled={isUpdatingFloorPlan}
-        onclick={onremovefloorplan}
-      >
-        <TrashIcon />
-        {t("floorPlan.remove")}
-      </button>
-    {/if}
-    <input
-      class={styles.file_input}
-      type="file"
-      accept={FLOOR_PLAN_TYPES}
-      bind:this={fileInput}
-      onchange={onfilechange}
-    >
-  </div>
+    </div>
+  {/if}
 </div>

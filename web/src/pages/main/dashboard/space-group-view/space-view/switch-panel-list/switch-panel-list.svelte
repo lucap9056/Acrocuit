@@ -19,6 +19,7 @@
     switchPanels?: SwitchPanel[];
     focus: SpaceFocus;
     onedit: (switchPanel: SwitchPanel) => void;
+    editable: boolean;
   }
 
   let {
@@ -27,6 +28,7 @@
     switchPanels = $bindable(),
     focus,
     onedit,
+    editable,
   }: Props = $props();
 
   const INITIAL_POSITION: Position = { x: 0, y: 0, z: 0 };
@@ -146,14 +148,16 @@
 <section class={styles.section}>
   <div class={styles.heading}>
     <h2 class={styles.title}>{t("switchPanels.title")}</h2>
-    <button
-      class="icon_button"
-      aria-label={t("switchPanels.new")}
-      onclick={create}
-      {@attach tooltip(t("switchPanels.new"))}
-    >
-      <PlusIcon />
-    </button>
+    {#if editable}
+      <button
+        class="icon_button"
+        aria-label={t("switchPanels.new")}
+        onclick={create}
+        {@attach tooltip(t("switchPanels.new"))}
+      >
+        <PlusIcon />
+      </button>
+    {/if}
   </div>
   {#if switchPanels === undefined}
     <p class={styles.message} role="status">{t("common.loading")}</p>
@@ -182,16 +186,18 @@
           >
             {switchPanel.name}
           </button>
-          <div class={styles.actions}>
-            <button
-              class="icon_button {styles.delete}"
-              aria-label={t("common.delete")}
-              onclick={() => remove(switchPanel)}
-              {@attach tooltip(t("common.delete"))}
-            >
-              <TrashIcon />
-            </button>
-          </div>
+          {#if editable}
+            <div class={styles.actions}>
+              <button
+                class="icon_button {styles.delete}"
+                aria-label={t("common.delete")}
+                onclick={() => remove(switchPanel)}
+                {@attach tooltip(t("common.delete"))}
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>

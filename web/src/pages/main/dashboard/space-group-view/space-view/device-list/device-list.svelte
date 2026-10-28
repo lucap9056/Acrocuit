@@ -21,6 +21,7 @@
     devices?: Device[];
     focus: SpaceFocus;
     onedit: (device: Device) => void;
+    editable: boolean;
   }
 
   let {
@@ -29,6 +30,7 @@
     devices = $bindable(),
     focus,
     onedit,
+    editable,
   }: Props = $props();
 
   const INITIAL_POSITION: Position = { x: 0, y: 0, z: 0 };
@@ -156,14 +158,16 @@
 <section class={styles.section}>
   <div class={styles.heading}>
     <h2 class={styles.title}>{t("devices.title")}</h2>
-    <button
-      class="icon_button"
-      aria-label={t("devices.new")}
-      onclick={create}
-      {@attach tooltip(t("devices.new"))}
-    >
-      <PlusIcon />
-    </button>
+    {#if editable}
+      <button
+        class="icon_button"
+        aria-label={t("devices.new")}
+        onclick={create}
+        {@attach tooltip(t("devices.new"))}
+      >
+        <PlusIcon />
+      </button>
+    {/if}
   </div>
   {#if devices === undefined}
     <p class={styles.message} role="status">{t("common.loading")}</p>
@@ -198,16 +202,18 @@
           >
             {device.name}
           </button>
-          <div class={styles.actions}>
-            <button
-              class="icon_button {styles.delete}"
-              aria-label={t("common.delete")}
-              onclick={() => remove(device)}
-              {@attach tooltip(t("common.delete"))}
-            >
-              <TrashIcon />
-            </button>
-          </div>
+          {#if editable}
+            <div class={styles.actions}>
+              <button
+                class="icon_button {styles.delete}"
+                aria-label={t("common.delete")}
+                onclick={() => remove(device)}
+                {@attach tooltip(t("common.delete"))}
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>

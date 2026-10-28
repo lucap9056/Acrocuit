@@ -31,6 +31,7 @@
   import { field, type HashRouter, type RouteParams } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { canEdit } from "@/lib/permissions";
   import type { ChainNode, ChainPlace, PowerChain } from "@/lib/power-chain";
   import { fetchDownstreamChain } from "@/lib/power-chain/downstream";
   import { fetchUpstreamChain } from "@/lib/power-chain/upstream";
@@ -79,6 +80,8 @@
   let isUpdatingFloorPlan = $state(false);
   let chainRoute = $state.raw<ChainRoute>();
   let chainView = $state<ReturnType<typeof PowerChainView>>();
+
+  const editable = $derived(canEdit(spaceGroup));
 
   const spaceRouter = untrack(() => router.child(`spaces/${space.id}`));
 
@@ -397,9 +400,17 @@
       {space}
       {focus}
       bind:switchPanels
+      {editable}
       onedit={oneditswitchpanel}
     />
-    <DeviceList {session} {space} {focus} bind:devices onedit={oneditdevice} />
+    <DeviceList
+      {session}
+      {space}
+      {focus}
+      bind:devices
+      {editable}
+      onedit={oneditdevice}
+    />
   </div>
 {/snippet}
 
@@ -411,6 +422,7 @@
     {devices}
     {focus}
     {drafts}
+    {editable}
     {onsavepositions}
     {oneditswitchpanel}
     {oneditdevice}
@@ -423,6 +435,7 @@
     {switchPanels}
     {devices}
     {isUpdatingFloorPlan}
+    {editable}
     {onuploadfloorplan}
     {onremovefloorplan}
   />

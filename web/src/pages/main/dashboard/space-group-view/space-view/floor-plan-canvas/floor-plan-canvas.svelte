@@ -19,6 +19,7 @@
     onsavepositions: () => void;
     oneditswitchpanel: (switchPanel: SwitchPanel) => void;
     oneditdevice: (device: Device) => void;
+    editable: boolean;
   }
 
   interface LoadedFloorPlan {
@@ -36,6 +37,7 @@
     onsavepositions,
     oneditswitchpanel,
     oneditdevice,
+    editable,
   }: Props = $props();
 
   let floorPlan = $state.raw<LoadedFloorPlan>();
@@ -87,6 +89,7 @@
       {devices}
       {focus}
       {drafts}
+      {editable}
       {onsavepositions}
       {oneditswitchpanel}
       {oneditdevice}

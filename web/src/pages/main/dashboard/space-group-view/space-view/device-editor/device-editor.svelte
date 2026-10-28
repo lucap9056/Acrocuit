@@ -15,7 +15,10 @@
   } from "@/api";
   import AttributesSection from "@/components/attributes-section/attributes-section.svelte";
   import CollapsibleSection from "@/components/collapsible-section/collapsible-section.svelte";
-  import { editLinkAttributes } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
+  import {
+    editLinkAttributes,
+    viewLinkAttributes,
+  } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
   import load from "@/components/loading-bar";
   import Spinner from "@/components/spinner/spinner.svelte";
   import SwitchSelector from "@/components/switch-selector/switch-selector.svelte";
@@ -31,6 +34,7 @@
   } from "@/lib/cache/device-switches";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { canEdit } from "@/lib/permissions";
   import styles from "./device-editor.module.css";
 
   interface Props {
@@ -50,6 +54,11 @@
     onrename,
     onsaveattributes,
   }: Props = $props();
+
+  const editable = $derived(canEdit(spaceGroup));
+  const linkAttributesLabel = $derived(
+    editable ? t("attributes.edit") : t("attributes.view"),
+  );
 
   let upstreams = $state<LinkedSwitch[]>();
   let isPending = $state(false);
@@ -127,31 +136,34 @@
     class={styles.title}
     label={t("deviceEditor.name")}
     value={device.name}
+    disabled={!editable}
     onsave={onrename}
   />
   <CollapsibleSection title={t("deviceEditor.upstream")} open>
     <ul class={styles.rows}>
-      <li class={styles.row}>
-        <div class={styles.selector}>
-          <SwitchSelector
-            {session}
-            {spaceGroup}
-            bind:spaceId
-            bind:switchPanelId
-            bind:switchId
-            excludedSwitchIds={upstreamIds}
-          />
-        </div>
-        <button
-          class="icon_button {styles.add}"
-          aria-label={t("deviceEditor.addUpstream")}
-          disabled={switchId === null || isPending}
-          onclick={add}
-          {@attach tooltip(t("deviceEditor.addUpstream"))}
-        >
-          <PlusIcon />
-        </button>
-      </li>
+      {#if editable}
+        <li class={styles.row}>
+          <div class={styles.selector}>
+            <SwitchSelector
+              {session}
+              {spaceGroup}
+              bind:spaceId
+              bind:switchPanelId
+              bind:switchId
+              excludedSwitchIds={upstreamIds}
+            />
+          </div>
+          <button
+            class="icon_button {styles.add}"
+            aria-label={t("deviceEditor.addUpstream")}
+            disabled={switchId === null || isPending}
+            onclick={add}
+            {@attach tooltip(t("deviceEditor.addUpstream"))}
+          >
+            <PlusIcon />
+          </button>
+        </li>
+      {/if}
       {#if upstreams === undefined}
         <li
           class={styles.loading}
@@ -168,22 +180,27 @@
             <span class={styles.name}>{sw.name}</span>
             <button
               class="icon_button {styles.edit}"
-              aria-label={t("attributes.edit")}
+              aria-label={linkAttributesLabel}
               disabled={isPending}
-              onclick={() => editUpstreamAttributes(sw)}
-              {@attach tooltip(t("attributes.edit"))}
+              onclick={() =>
+                editable
+                  ? editUpstreamAttributes(sw)
+                  : viewLinkAttributes(sw.link.attributes)}
+              {@attach tooltip(linkAttributesLabel)}
             >
               <WireIcon />
             </button>
-            <button
-              class="icon_button {styles.delete}"
-              aria-label={t("common.remove")}
-              disabled={isPending}
-              onclick={() => remove(sw)}
-              {@attach tooltip(t("common.remove"))}
-            >
-              <TrashIcon />
-            </button>
+            {#if editable}
+              <button
+                class="icon_button {styles.delete}"
+                aria-label={t("common.remove")}
+                disabled={isPending}
+                onclick={() => remove(sw)}
+                {@attach tooltip(t("common.remove"))}
+              >
+                <TrashIcon />
+              </button>
+            {/if}
           </li>
         {/each}
       {/if}
@@ -191,6 +208,7 @@
   </CollapsibleSection>
   <AttributesSection
     fields={DEVICE_ATTRIBUTE_FIELDS}
+    readonly={!editable}
     attributes={device.attributes}
     onsave={onsaveattributes}
   />

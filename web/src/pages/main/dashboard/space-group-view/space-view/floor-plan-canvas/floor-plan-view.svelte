@@ -38,6 +38,7 @@
     onsavepositions: () => void;
     oneditswitchpanel: (switchPanel: SwitchPanel) => void;
     oneditdevice: (device: Device) => void;
+    editable: boolean;
   }
 
   type Marker = PositionDraft & {
@@ -64,6 +65,7 @@
     onsavepositions,
     oneditswitchpanel,
     oneditdevice,
+    editable,
   }: Props = $props();
 
   const FIT_PADDING_PX = 48;
@@ -313,7 +315,7 @@
       return;
     }
     const marker = markerAt(toLocal(event));
-    if (!marker) {
+    if (!marker || !editable) {
       gestures.onpointerdown(event);
     } else if (!drafts.isSaving) {
       startMarkerDrag(event, marker);

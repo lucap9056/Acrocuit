@@ -106,6 +106,7 @@
   "attributes": {
     "title": "Attributes",
     "edit": "Edit attributes",
+    "view": "View attributes",
     "revert": "Revert",
     "custom": "Custom fields",
     "addCustom": "Add field",

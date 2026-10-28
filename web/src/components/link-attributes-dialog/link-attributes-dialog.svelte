@@ -14,6 +14,7 @@
 
   let form = $state<Form>(toAttributesForm(LINK_ATTRIBUTE_FIELDS, null));
   let error = $state<string>();
+  let isReadonly = $state(false);
 
   const clearError = () => {
     error = undefined;
@@ -25,6 +26,7 @@
   ) => {
     form = toAttributesForm(LINK_ATTRIBUTE_FIELDS, attributes);
     error = undefined;
+    isReadonly = false;
 
     dialog.push({
       text: t("attributes.edit"),
@@ -57,6 +59,24 @@
       ],
     });
   };
+
+  export const viewLinkAttributes = (attributes: Attributes | null) => {
+    form = toAttributesForm(LINK_ATTRIBUTE_FIELDS, attributes);
+    error = undefined;
+    isReadonly = true;
+
+    dialog.push({
+      text: t("attributes.view"),
+      content: editor,
+      buttons: [
+        {
+          text: t("common.close"),
+          type: "",
+          onclick: () => true,
+        },
+      ],
+    });
+  };
 </script>
 
 {#snippet editor()}
@@ -64,6 +84,7 @@
     <AttributesForm
       fields={LINK_ATTRIBUTE_FIELDS}
       bind:form
+      readonly={isReadonly}
       oninput={clearError}
     />
   </div>

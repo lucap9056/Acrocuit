@@ -15,10 +15,11 @@
   interface Props {
     fields: readonly AttributeField[];
     attributes: Attributes | null;
+    readonly?: boolean;
     onsave: (attributes: Attributes) => Promise<unknown>;
   }
 
-  const { fields, attributes, onsave }: Props = $props();
+  const { fields, attributes, readonly = false, onsave }: Props = $props();
 
   let form = $state(untrack(() => toAttributesForm(fields, attributes)));
   let saved = $state(untrack(() => JSON.stringify(form)));
@@ -65,6 +66,7 @@
       {fields}
       bind:form
       disabled={isPending}
+      {readonly}
       oninput={clearError}
     />
     {#if error}

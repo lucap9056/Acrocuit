@@ -16,7 +16,10 @@
   import { ApiError } from "@/api";
   import AttributesSection from "@/components/attributes-section/attributes-section.svelte";
   import CollapsibleSection from "@/components/collapsible-section/collapsible-section.svelte";
-  import { editLinkAttributes } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
+  import {
+    editLinkAttributes,
+    viewLinkAttributes,
+  } from "@/components/link-attributes-dialog/link-attributes-dialog.svelte";
   import load from "@/components/loading-bar";
   import Spinner from "@/components/spinner/spinner.svelte";
   import SwitchSelector from "@/components/switch-selector/switch-selector.svelte";
@@ -33,6 +36,7 @@
   import { renameSwitch, setSwitchAttributes } from "@/lib/cache/switches";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { canEdit } from "@/lib/permissions";
   import styles from "./switch-editor.module.css";
 
   interface Props {
@@ -50,6 +54,11 @@
     switchPanel,
     sw,
   }: Props = $props();
+
+  const editable = $derived(canEdit(spaceGroup));
+  const linkAttributesLabel = $derived(
+    editable ? t("attributes.edit") : t("attributes.view"),
+  );
 
   let current = $state(untrack(() => sw));
   let upstreams = $state<LinkedSwitch[]>();
@@ -183,32 +192,35 @@
     class={styles.title}
     label={t("switchEditor.name")}
     value={current.name}
+    disabled={!editable}
     onsave={rename}
   />
   <CollapsibleSection title={t("switchEditor.upstream")} open>
     <ul class={styles.rows}>
-      <li class={styles.row}>
-        <div class={styles.selector}>
-          <SwitchSelector
-            {session}
-            {spaceGroup}
-            bind:spaceId
-            bind:switchPanelId
-            bind:switchId
-            excludedSwitchIds={excludedIds}
-          />
-        </div>
-        <button
-          class="icon_button {styles.add}"
-          aria-label={t("switchEditor.addUpstream")}
-          disabled={switchId === null || isPending}
-          onclick={add}
-          {@attach tooltip(t("switchEditor.addUpstream"))}
-        >
-          <PlusIcon />
-        </button>
-      </li>
-      {#if addError && addError.switchId === switchId}
+      {#if editable}
+        <li class={styles.row}>
+          <div class={styles.selector}>
+            <SwitchSelector
+              {session}
+              {spaceGroup}
+              bind:spaceId
+              bind:switchPanelId
+              bind:switchId
+              excludedSwitchIds={excludedIds}
+            />
+          </div>
+          <button
+            class="icon_button {styles.add}"
+            aria-label={t("switchEditor.addUpstream")}
+            disabled={switchId === null || isPending}
+            onclick={add}
+            {@attach tooltip(t("switchEditor.addUpstream"))}
+          >
+            <PlusIcon />
+          </button>
+        </li>
+      {/if}
+      {#if editable && addError && addError.switchId === switchId}
         <li class={styles.error} role="alert">{addError.message}</li>
       {/if}
       {#if upstreams === undefined}
@@ -227,22 +239,27 @@
             <span class={styles.name}>{upstream.name}</span>
             <button
               class="icon_button {styles.edit}"
-              aria-label={t("attributes.edit")}
+              aria-label={linkAttributesLabel}
               disabled={isPending}
-              onclick={() => editUpstreamAttributes(upstream)}
-              {@attach tooltip(t("attributes.edit"))}
+              onclick={() =>
+                editable
+                  ? editUpstreamAttributes(upstream)
+                  : viewLinkAttributes(upstream.link.attributes)}
+              {@attach tooltip(linkAttributesLabel)}
             >
               <WireIcon />
             </button>
-            <button
-              class="icon_button {styles.delete}"
-              aria-label={t("common.remove")}
-              disabled={isPending}
-              onclick={() => remove(upstream)}
-              {@attach tooltip(t("common.remove"))}
-            >
-              <TrashIcon />
-            </button>
+            {#if editable}
+              <button
+                class="icon_button {styles.delete}"
+                aria-label={t("common.remove")}
+                disabled={isPending}
+                onclick={() => remove(upstream)}
+                {@attach tooltip(t("common.remove"))}
+              >
+                <TrashIcon />
+              </button>
+            {/if}
           </li>
         {/each}
       {/if}
@@ -250,6 +267,7 @@
   </CollapsibleSection>
   <AttributesSection
     fields={SWITCH_ATTRIBUTE_FIELDS}
+    readonly={!editable}
     attributes={current.attributes}
     onsave={saveAttributes}
   />

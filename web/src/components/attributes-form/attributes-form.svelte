@@ -16,6 +16,7 @@
     fields: readonly AttributeField[];
     form: AttributesForm;
     disabled?: boolean;
+    readonly?: boolean;
     oninput?: () => void;
   }
 
@@ -23,6 +24,7 @@
     fields,
     form = $bindable(),
     disabled = false,
+    readonly = false,
     oninput,
   }: Props = $props();
 
@@ -71,7 +73,7 @@
             <IconPicker
               {label}
               value={form.fixed[field.key] ?? ""}
-              {disabled}
+              disabled={disabled || readonly}
               onchange={(value) => choose(field, value)}
             />
           </span>
@@ -85,7 +87,7 @@
                 {label}
                 options={enumOptions(field)}
                 value={form.fixed[field.key] ?? ""}
-                {disabled}
+                disabled={disabled || readonly}
                 onchange={(value) => choose(field, value)}
               />
             </span>
@@ -101,6 +103,7 @@
               inputmode={inputMode(field)}
               placeholder={field.estimate?.(form.fixed)}
               {disabled}
+              {readonly}
               bind:value={form.fixed[field.key]}
               {oninput}
             >
@@ -112,42 +115,50 @@
       {/if}
     {/each}
   </div>
-  <div class={styles.custom}>
-    <h4 class={styles.heading}>{t("attributes.custom")}</h4>
-    {#each form.custom as row (row)}
-      <div class={styles.custom_row}>
-        <input
-          class={styles.input}
-          type="text"
-          aria-label={t("attributes.key")}
-          placeholder={t("attributes.key")}
-          {disabled}
-          bind:value={row.key}
-          {oninput}
-        >
-        <input
-          class={styles.input}
-          type="text"
-          aria-label={t("attributes.value")}
-          placeholder={t("attributes.value")}
-          {disabled}
-          bind:value={row.value}
-          {oninput}
-        >
-        <button
-          class="icon_button {styles.remove}"
-          aria-label={t("common.remove")}
-          {disabled}
-          onclick={() => removeCustom(row)}
-          {@attach tooltip(t("common.remove"))}
-        >
-          <TrashIcon />
+  {#if !readonly || form.custom.length > 0}
+    <div class={styles.custom}>
+      <h4 class={styles.heading}>{t("attributes.custom")}</h4>
+      {#each form.custom as row (row)}
+        <div class={styles.custom_row}>
+          <input
+            class={styles.input}
+            type="text"
+            aria-label={t("attributes.key")}
+            placeholder={t("attributes.key")}
+            {disabled}
+            {readonly}
+            bind:value={row.key}
+            {oninput}
+          >
+          <input
+            class={styles.input}
+            type="text"
+            aria-label={t("attributes.value")}
+            placeholder={t("attributes.value")}
+            {disabled}
+            {readonly}
+            bind:value={row.value}
+            {oninput}
+          >
+          {#if !readonly}
+            <button
+              class="icon_button {styles.remove}"
+              aria-label={t("common.remove")}
+              {disabled}
+              onclick={() => removeCustom(row)}
+              {@attach tooltip(t("common.remove"))}
+            >
+              <TrashIcon />
+            </button>
+          {/if}
+        </div>
+      {/each}
+      {#if !readonly}
+        <button class={styles.add} {disabled} onclick={addCustom}>
+          <PlusIcon />
+          {t("attributes.addCustom")}
         </button>
-      </div>
-    {/each}
-    <button class={styles.add} {disabled} onclick={addCustom}>
-      <PlusIcon />
-      {t("attributes.addCustom")}
-    </button>
-  </div>
+      {/if}
+    </div>
+  {/if}
 </div>

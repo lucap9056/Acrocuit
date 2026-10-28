@@ -59,6 +59,7 @@
     session: AuthSession;
     switchPanel: SwitchPanel;
     readonly?: ReadonlyView;
+    editable?: boolean;
     onrename?: (name: string) => Promise<unknown>;
     onsaveattributes?: (attributes: Attributes) => Promise<unknown>;
     oneditswitch: (sw: Switch) => void;
@@ -68,6 +69,7 @@
     session,
     switchPanel,
     readonly,
+    editable = true,
     onrename,
     onsaveattributes,
     oneditswitch,
@@ -76,6 +78,8 @@
   type DndSwitch = Switch & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
 
   const FLIP_DURATION_MS = 150;
+
+  const canModify = $derived(editable && !readonly);
 
   let switches = $state<Switch[]>();
   let isPending = $state(false);
@@ -279,11 +283,12 @@
       class={styles.title}
       label={t("switchPanels.name")}
       value={switchPanel.name}
+      disabled={!editable}
       onsave={onrename}
     />
   {/if}
   <div class={styles.toolbar}>
-    {#if !readonly}
+    {#if canModify}
       <input
         class={styles.input}
         type="text"
@@ -304,7 +309,7 @@
       </button>
     {/if}
     <div
-      class={[styles.layout, readonly && styles.solo]}
+      class={[styles.layout, !canModify && styles.solo]}
       role="group"
       aria-label={t("switches.layout")}
     >
@@ -312,7 +317,7 @@
       {@render layoutButton("columns", t("switches.columns"), ColumnsIcon)}
     </div>
   </div>
-  {#if isFull && !readonly}
+  {#if isFull && canModify}
     <p class={styles.full} role="status">
       {t("switches.full", { count: capacity })}
     </p>
@@ -329,7 +334,7 @@
       use:dragHandleZone={{
         items,
         flipDurationMs: FLIP_DURATION_MS,
-        dragDisabled: readonly !== undefined || isConfirmingMove || isPending,
+        dragDisabled: !canModify || isConfirmingMove || isPending,
         dropTargetStyle: {},
         delayTouchStart: true,
       }}
@@ -344,7 +349,7 @@
           ]}
           animate:flip={{ duration: FLIP_DURATION_MS }}
         >
-          {#if !readonly}
+          {#if canModify}
             <button
               class={["icon_button", styles.handle]}
               aria-label={t("switches.dragToReorder")}
@@ -359,7 +364,7 @@
             </span>
             <span class={styles.name}>{sw.name}</span>
           </button>
-          {#if !readonly}
+          {#if canModify}
             <button
               class="icon_button {styles.delete}"
               aria-label={t("common.delete")}
@@ -378,6 +383,7 @@
     <AttributesSection
       fields={SWITCH_PANEL_ATTRIBUTE_FIELDS}
       attributes={switchPanel.attributes}
+      readonly={!editable}
       onsave={onsaveattributes}
     />
   {/if}
