@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DoorOpenIcon from "phosphor-svelte/lib/DoorOpenIcon";
   import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
   import type { AuthSession, SpaceGroup } from "@/api";
@@ -8,13 +9,17 @@
   import {
     addSpaceGroup,
     fetchSpaceGroups,
+    leaveSpaceGroup,
     removeSpaceGroup,
+    transferSpaceGroupOwner,
     updateSpaceGroup,
   } from "@/lib/cache/space-groups";
   import type { HashRouter } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { canEdit, canManage } from "@/lib/permissions";
 
+  import SpaceGroupEditor from "./space-group-editor/space-group-editor.svelte";
   import styles from "./space-group-selector.module.css";
 
   interface Props {
@@ -28,6 +33,7 @@
   let isLoaded = $state(false);
 
   let spaceGroupName = $state("");
+  let editingSpaceGroup = $state<SpaceGroup>();
 
   const showSpaceGroups = (sgs: SpaceGroup[]) => {
     spaceGroups = sgs;
@@ -104,60 +110,99 @@
     });
   };
 
-  const rename = async (sg: SpaceGroup) => {
-    showDialog(t("common.rename"), sg.name).then((name) => {
-      const loading = load.begin(t("loading.renameSpaceGroup"));
+  const rename = (sg: SpaceGroup, name: string) => {
+    const loading = load.begin(t("loading.renameSpaceGroup"));
+    return updateSpaceGroup(session, { ...sg, name })
+      .then((sgs) => {
+        spaceGroups = sgs;
+        editingSpaceGroup = sgs.find(({ id }) => id === sg.id);
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
 
-      updateSpaceGroup(session, { ...sg, name })
-        .then((sgs) => {
-          spaceGroups = sgs;
-        })
-        .catch((err) => {
-          console.error(err);
-        })
-        .finally(() => {
-          loading.release();
-        });
+  const transfer = (sg: SpaceGroup, email: string) => {
+    const loading = load.begin(t("loading.transferSpaceGroupOwner"));
+    return transferSpaceGroupOwner(session, sg, email)
+      .then((sgs) => {
+        spaceGroups = sgs;
+        editingSpaceGroup = sgs.find(({ id }) => id === sg.id);
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
+
+  const edit = (sg: SpaceGroup) => {
+    editingSpaceGroup = sg;
+    dialog.push({
+      content: spaceGroupEditor,
+      buttons: [
+        {
+          text: t("common.close"),
+          type: "",
+          onclick: () => {
+            editingSpaceGroup = undefined;
+            return true;
+          },
+        },
+      ],
     });
   };
 
-  const remove = async (sg: SpaceGroup) => {
-    new Promise((resolve, reject) => {
-      dialog.push({
-        text: "",
-        buttons: [
-          {
-            text: t("common.cancel"),
-            type: "",
-            onclick: () => {
-              reject();
-              return true;
-            },
+  const confirmDrop = (
+    text: string,
+    action: string,
+    loadingText: string,
+    request: () => Promise<SpaceGroup[]>,
+  ) => {
+    dialog.push({
+      text,
+      buttons: [
+        {
+          text: t("common.cancel"),
+          type: "",
+          onclick: () => true,
+        },
+        {
+          text: action,
+          type: "danger",
+          onclick: () => {
+            const loading = load.begin(loadingText);
+            request()
+              .then((sgs) => {
+                spaceGroups = sgs;
+              })
+              .catch((err) => {
+                console.error(err);
+              })
+              .finally(() => {
+                loading.release();
+              });
+            return true;
           },
-          {
-            text: t("common.remove"),
-            type: "",
-            onclick: () => {
-              resolve(true);
-              return true;
-            },
-          },
-        ],
-      });
-    }).then(() => {
-      const loading = load.begin(t("loading.removeSpaceGroup"));
-
-      removeSpaceGroup(session, sg)
-        .then((sgs) => {
-          spaceGroups = sgs;
-        })
-        .catch((err) => {
-          console.error(err);
-        })
-        .finally(() => {
-          loading.release();
-        });
+        },
+      ],
     });
+  };
+
+  const remove = (sg: SpaceGroup) => {
+    confirmDrop(
+      t("spaceGroups.confirmRemove", { name: sg.name }),
+      t("common.delete"),
+      t("loading.removeSpaceGroup"),
+      () => removeSpaceGroup(session, sg),
+    );
+  };
+
+  const leave = (sg: SpaceGroup) => {
+    confirmDrop(
+      t("spaceGroups.confirmLeave", { name: sg.name }),
+      t("spaceGroups.leave"),
+      t("loading.leaveSpaceGroup"),
+      () => leaveSpaceGroup(session, sg),
+    );
   };
 
   const onselected = (spaceGroupId: number) => {
@@ -169,6 +214,18 @@
 
 {#snippet setSpaceGroupName()}
   <input type="text" bind:value={spaceGroupName}>
+{/snippet}
+
+{#snippet spaceGroupEditor()}
+  {#if editingSpaceGroup}
+    {@const sg = editingSpaceGroup}
+    <SpaceGroupEditor
+      {session}
+      spaceGroup={sg}
+      onrename={(name) => rename(sg, name)}
+      ontransfer={(email) => transfer(sg, email)}
+    />
+  {/if}
 {/snippet}
 
 <div class="space_groups {styles.space_groups}">
@@ -193,22 +250,37 @@
         <li class={styles.item}>
           <button class={styles.select} onclick={() => onselected(sg.id)}>
             <span class={styles.name}>{sg.name}</span>
+            <span class={styles.role} data-role={sg.role}>
+              {t(`spaceGroups.role.${sg.role}`)}
+            </span>
           </button>
           <div class={styles.actions}>
-            <button
-              class="icon_button"
-              onclick={() => rename(sg)}
-              {@attach tooltip(t("common.rename"))}
-            >
-              <PencilSimpleIcon />
-            </button>
-            <button
-              class="icon_button {styles.delete}"
-              onclick={() => remove(sg)}
-              {@attach tooltip(t("common.delete"))}
-            >
-              <TrashIcon />
-            </button>
+            {#if canEdit(sg)}
+              <button
+                class="icon_button"
+                onclick={() => edit(sg)}
+                {@attach tooltip(t("spaceGroups.edit"))}
+              >
+                <PencilSimpleIcon />
+              </button>
+            {/if}
+            {#if canManage(sg)}
+              <button
+                class="icon_button {styles.delete}"
+                onclick={() => remove(sg)}
+                {@attach tooltip(t("common.delete"))}
+              >
+                <TrashIcon />
+              </button>
+            {:else}
+              <button
+                class="icon_button {styles.delete}"
+                onclick={() => leave(sg)}
+                {@attach tooltip(t("spaceGroups.leave"))}
+              >
+                <DoorOpenIcon />
+              </button>
+            {/if}
           </div>
         </li>
       {/each}

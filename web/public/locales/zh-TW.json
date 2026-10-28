@@ -31,7 +31,16 @@
   "spaceGroups": {
     "title": "空間群組",
     "new": "新增空間群組",
-    "empty": "目前還沒有空間群組，一個空間群組通常代表一棟建築或一個場域"
+    "edit": "編輯空間群組",
+    "leave": "離開空間群組",
+    "confirmRemove": "確定要刪除「{{name}}」嗎？刪除後無法復原。",
+    "confirmLeave": "確定要離開「{{name}}」嗎？離開後需要擁有者重新邀請才能再次存取。",
+    "empty": "目前還沒有空間群組，一個空間群組通常代表一棟建築或一個場域",
+    "role": {
+      "owner": "擁有者",
+      "editor": "編輯者",
+      "viewer": "檢視者"
+    }
   },
   "spaces": {
     "title": "空間",
@@ -70,6 +79,23 @@
     "title": "設備",
     "new": "新增設備",
     "confirmDelete": "要刪除「{{name}}」嗎？"
+  },
+  "spaceGroupEditor": {
+    "name": "名稱",
+    "members": "成員",
+    "email": "電子郵件",
+    "role": "角色",
+    "addMember": "新增成員",
+    "public": "公開：任何人都能透過連結檢視",
+    "private": "私人：僅成員可檢視",
+    "makePublic": "設為公開",
+    "makePrivate": "設為私人",
+    "confirmPublic": "設為公開後，任何取得連結的人都能檢視這個空間群組，確定要公開嗎？",
+    "confirmPrivate": "設為私人後，只有成員能檢視這個空間群組，確定要設為私人嗎？",
+    "publish": "公開",
+    "unpublish": "取消公開",
+    "transfer": "轉移擁有者",
+    "confirmTransfer": "確定要將擁有者轉移給「{{email}}」嗎？轉移後你會成為編輯者，無法再管理成員與公開設定。"
   },
   "deviceEditor": {
     "name": "名稱",
@@ -208,6 +234,12 @@
     "createSpaceGroup": "建立空間群組中…",
     "renameSpaceGroup": "重新命名空間群組中…",
     "removeSpaceGroup": "移除空間群組中…",
+    "leaveSpaceGroup": "離開空間群組中…",
+    "transferSpaceGroupOwner": "轉移擁有者中…",
+    "addSpaceGroupMember": "新增成員中…",
+    "updateSpaceGroupMember": "更新成員角色中…",
+    "removeSpaceGroupMember": "移除成員中…",
+    "updateSpaceGroupPublic": "更新公開設定中…",
     "fetchSpace": "載入空間中…",
     "fetchSpaces": "載入空間列表中…",
     "createSpace": "建立空間中…",

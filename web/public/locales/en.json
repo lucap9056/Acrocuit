@@ -31,7 +31,16 @@
   "spaceGroups": {
     "title": "Space groups",
     "new": "New space group",
-    "empty": "No space groups yet. A space group is usually one building or site."
+    "edit": "Edit space group",
+    "leave": "Leave space group",
+    "confirmRemove": "Delete “{{name}}”? This cannot be undone.",
+    "confirmLeave": "Leave “{{name}}”? You will need the owner to invite you again to regain access.",
+    "empty": "No space groups yet. A space group is usually one building or site.",
+    "role": {
+      "owner": "Owner",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    }
   },
   "spaces": {
     "title": "Spaces",
@@ -70,6 +79,23 @@
     "title": "Devices",
     "new": "New device",
     "confirmDelete": "Delete \"{{name}}\"?"
+  },
+  "spaceGroupEditor": {
+    "name": "Name",
+    "members": "Members",
+    "email": "Email",
+    "role": "Role",
+    "addMember": "Add member",
+    "public": "Public: anyone with the link can view",
+    "private": "Private: only members can view",
+    "makePublic": "Make public",
+    "makePrivate": "Make private",
+    "confirmPublic": "Anyone with the link will be able to view this space group. Make it public?",
+    "confirmPrivate": "Only members will be able to view this space group. Make it private?",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "transfer": "Transfer ownership",
+    "confirmTransfer": "Transfer ownership to “{{email}}”? You will become an editor and can no longer manage members or public access."
   },
   "deviceEditor": {
     "name": "Name",
@@ -208,6 +234,12 @@
     "createSpaceGroup": "Creating space group…",
     "renameSpaceGroup": "Renaming space group…",
     "removeSpaceGroup": "Removing space group…",
+    "leaveSpaceGroup": "Leaving space group…",
+    "transferSpaceGroupOwner": "Transferring ownership…",
+    "addSpaceGroupMember": "Adding member…",
+    "updateSpaceGroupMember": "Updating member role…",
+    "removeSpaceGroupMember": "Removing member…",
+    "updateSpaceGroupPublic": "Updating public access…",
     "fetchSpace": "Loading space…",
     "fetchSpaces": "Loading spaces…",
     "createSpace": "Creating space…",
