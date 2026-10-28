@@ -52,7 +52,7 @@ services:
       IDENTITY_JWT_SECRET: *identity-jwt-secret
 
   corvauth-schema:
-    image: ghcr.io/lucap9056/corvauth:0.2.0
+    image: ghcr.io/lucap9056/corvauth:0.3.0
     container_name: acrocuit-dev-corvauth-schema
     command: ["schema", "apply"]
     depends_on:
@@ -63,7 +63,7 @@ services:
     restart: "no"
 
   corvauth:
-    image: ghcr.io/lucap9056/corvauth:0.2.0
+    image: ghcr.io/lucap9056/corvauth:0.3.0
     container_name: acrocuit-dev-corvauth
     depends_on:
       corvauth-schema:
