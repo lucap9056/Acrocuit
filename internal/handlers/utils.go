@@ -35,8 +35,11 @@ func handleStorageErr(c *gin.Context, err error) {
 		response.Error(c, http.StatusNotFound, "not found")
 	case errors.Is(err, repository.ErrConflict):
 		response.Error(c, http.StatusConflict, "conflict")
-	case errors.Is(err, repository.ErrSelfReference), errors.Is(err, repository.ErrCycleDetected), errors.Is(err, models.ErrInvalidColumn):
+	case errors.Is(err, repository.ErrSelfReference), errors.Is(err, repository.ErrCycleDetected), errors.Is(err, models.ErrInvalidColumn),
+		errors.Is(err, repository.ErrInvalidRole), errors.Is(err, repository.ErrInvalidMember):
 		response.Error(c, http.StatusBadRequest, err.Error())
+	case errors.Is(err, repository.ErrNotSupported):
+		response.Error(c, http.StatusNotImplemented, err.Error())
 	default:
 		internalError(c, err)
 	}

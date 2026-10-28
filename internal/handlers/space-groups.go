@@ -29,6 +29,8 @@ func spaceGroupsHandlers(r *gin.RouterGroup, base controller) {
 
 	r.GET(routeSpaceGroupID+"/spaces", ctr.GetSpaces)
 	r.POST(routeSpaceGroupID+"/spaces", ctr.AddSpace)
+
+	spaceGroupACLsHandlers(r, ctr)
 }
 
 type spaceGroupNameRequest struct {
