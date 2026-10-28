@@ -9,7 +9,7 @@ export type PlaneRect = readonly [
 ];
 
 export interface IsoPlane {
-  id: number;
+  id: string;
   rect: PlaneRect;
   image?: ImageBitmap;
   text?: string;

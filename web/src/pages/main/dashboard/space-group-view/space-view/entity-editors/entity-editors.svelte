@@ -8,6 +8,7 @@
     SpaceGroup,
     SpaceId,
     Switch,
+    SwitchId,
     SwitchPanel,
     SwitchPanelId,
   } from "@/api";
@@ -75,8 +76,8 @@
   ): Placed<T> | undefined =>
     target?.space ? { ...target, space: target.space } : undefined;
 
-  const idParam = (params: RouteParams, name: string) =>
-    parseInt(field(params, name, ""), 10);
+  const idParam = <Id extends string>(params: RouteParams, name: string) =>
+    field(params, name, "") as Id;
 
   const fromSpace = <T extends { id: unknown; space: Ref<SpaceId> | null }>(
     items: T[],
@@ -199,7 +200,7 @@
         closeTo: "",
         loading: t("loading.fetchSwitch"),
         open: async (switchParams, switchOpened) => {
-          const switchId = idParam(switchParams, "switchId");
+          const switchId = idParam<SwitchId>(switchParams, "switchId");
           const sw = (await fetchSwitches(session, switchPanelId)).find(
             ({ id }) => id === switchId,
           );
@@ -236,7 +237,7 @@
       loading: t("loading.fetchDevice"),
       open: async (params, opened) => {
         const device = await resolveDevice(
-          idParam(params, "deviceId") as DeviceId,
+          idParam<DeviceId>(params, "deviceId"),
         );
         if (!device) {
           return undefined;
@@ -270,7 +271,7 @@
       loading: t("loading.fetchSwitchPanel"),
       open: async (params, opened) => {
         const switchPanel = await resolveSwitchPanel(
-          idParam(params, "switchPanelId") as SwitchPanelId,
+          idParam<SwitchPanelId>(params, "switchPanelId"),
         );
         if (!switchPanel) {
           return undefined;
@@ -298,7 +299,7 @@
         loading: t("loading.fetchSwitchPanel"),
         open: async (params, opened) => {
           const switchPanel = await resolveSwitchPanel(
-            idParam(params, "switchPanelId") as SwitchPanelId,
+            idParam<SwitchPanelId>(params, "switchPanelId"),
           );
           if (!switchPanel) {
             return undefined;

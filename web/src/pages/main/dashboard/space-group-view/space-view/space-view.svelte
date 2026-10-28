@@ -6,6 +6,7 @@
   import type {
     AuthSession,
     Device,
+    DeviceId,
     Space,
     SpaceGroup,
     Switch,
@@ -221,8 +222,8 @@
     }
   };
 
-  const idParam = (params: RouteParams, name: string) =>
-    parseInt(field(params, name, ""), 10);
+  const idParam = <Id extends string>(params: RouteParams, name: string) =>
+    field(params, name, "") as Id;
 
   const routeChain = (
     signal: AbortSignal,
@@ -267,7 +268,7 @@
       "upstream",
       "devices/:deviceId/upstream/*",
       async (params) => {
-        const deviceId = idParam(params, "deviceId");
+        const deviceId = idParam<DeviceId>(params, "deviceId");
         const device = (await fetchDevices(session, space.id)).find(
           ({ id }) => id === deviceId,
         );
@@ -292,7 +293,7 @@
       async (params) => {
         const sw = await api.switches.getSwitch(
           session,
-          idParam(params, "switchId") as SwitchId,
+          idParam<SwitchId>(params, "switchId"),
         );
         const panelId = sw.switch_panel?.id;
         return {

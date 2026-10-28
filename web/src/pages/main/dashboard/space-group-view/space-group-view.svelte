@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AuthSession, Space, SpaceGroup } from "@/api";
+  import type { AuthSession, Space, SpaceGroup, SpaceId } from "@/api";
   import back from "@/components/back-button";
   import headerTitle from "@/components/header-title";
   import load from "@/components/loading-bar";
@@ -45,11 +45,7 @@
     scopedRouter: HashRouter,
     spaceIdStr: string,
   ) => {
-    const spaceId = parseInt(spaceIdStr, 10);
-    if (Number.isNaN(spaceId)) {
-      scopedRouter.back();
-      return;
-    }
+    const spaceId = spaceIdStr as SpaceId;
 
     const loading = load.begin(t("loading.fetchSpace"));
     fetchSpaces(session, spaceGroup.id)

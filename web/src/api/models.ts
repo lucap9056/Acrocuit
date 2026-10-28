@@ -1,8 +1,8 @@
-export type SpaceGroupId = Brand<number, "SpaceGroupId">;
-export type SpaceId = Brand<number, "SpaceId">;
-export type SwitchPanelId = Brand<number, "SwitchPanelId">;
-export type SwitchId = Brand<number, "SwitchId">;
-export type DeviceId = Brand<number, "DeviceId">;
+export type SpaceGroupId = Brand<string, "SpaceGroupId">;
+export type SpaceId = Brand<string, "SpaceId">;
+export type SwitchPanelId = Brand<string, "SwitchPanelId">;
+export type SwitchId = Brand<string, "SwitchId">;
+export type DeviceId = Brand<string, "DeviceId">;
 
 export type Ref<Id> = {
   id: Id;

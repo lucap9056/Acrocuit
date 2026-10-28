@@ -52,14 +52,8 @@
     signal: AbortSignal,
     spaceGroupIdStr: string,
   ) => {
-    const spaceGroupId = parseInt(spaceGroupIdStr, 10);
-    if (Number.isNaN(spaceGroupId)) {
-      router.back("");
-      return;
-    }
-
     const loading = load.begin(t("loading.fetchSpaceGroups"));
-    loadSpaceGroup(spaceGroupId as SpaceGroupId)
+    loadSpaceGroup(spaceGroupIdStr as SpaceGroupId)
       .then((sg) => {
         if (!signal.aborted) {
           spaceGroup = sg;

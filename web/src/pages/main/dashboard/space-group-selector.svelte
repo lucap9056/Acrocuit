@@ -2,7 +2,7 @@
   import DoorOpenIcon from "phosphor-svelte/lib/DoorOpenIcon";
   import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon";
   import TrashIcon from "phosphor-svelte/lib/TrashIcon";
-  import type { AuthSession, SpaceGroup } from "@/api";
+  import type { AuthSession, SpaceGroup, SpaceGroupId } from "@/api";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
@@ -205,10 +205,8 @@
     );
   };
 
-  const onselected = (spaceGroupId: number) => {
-    const spaceGroupIdStr = spaceGroupId.toString();
-    const routePath = `space-groups/${spaceGroupIdStr}`;
-    router.to(routePath);
+  const onselected = (spaceGroupId: SpaceGroupId) => {
+    router.to(`space-groups/${spaceGroupId}`);
   };
 </script>
 

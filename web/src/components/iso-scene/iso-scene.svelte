@@ -21,7 +21,7 @@
     snapshot: IsoSnapshot;
     tilt: number;
     palette?: ScenePalette;
-    highlightId?: number;
+    highlightId?: string;
     highlightMarkerId?: string;
     initialViewport?: ViewportState;
     oninspect?: (plane: IsoPlane) => void;
@@ -168,7 +168,7 @@
   export const zoomOut = () => zoomFromCenter(1 / BUTTON_ZOOM_FACTOR);
   export const fit = () => setViewport(undefined);
 
-  export const reveal = (id: number) => {
+  export const reveal = (id: string) => {
     const target = layout.planes.find(({ plane }) => plane.id === id);
     if (!target) {
       return;

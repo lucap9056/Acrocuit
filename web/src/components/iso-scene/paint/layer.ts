@@ -3,7 +3,7 @@ import type { ScenePalette } from "./palette";
 
 export interface PaintContext {
   dpr: number;
-  highlightId?: number;
+  highlightId?: string;
   highlightMarkerId?: string;
   palette: ScenePalette;
 }

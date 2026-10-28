@@ -1,6 +1,6 @@
 import type { DeviceId, SwitchPanelId } from "@/api";
 
-export type FocusKey = `switch-panel-${number}` | `device-${number}`;
+export type FocusKey = `switch-panel-${string}` | `device-${string}`;
 
 export const switchPanelKey = (id: SwitchPanelId): FocusKey =>
   `switch-panel-${id}`;

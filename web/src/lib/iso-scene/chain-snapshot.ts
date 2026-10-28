@@ -25,7 +25,7 @@ export interface ChainSnapshotInput {
 }
 
 const locate = (
-  rects: Map<number, PlaneRect>,
+  rects: Map<string, PlaneRect>,
   space: Ref<SpaceId> | null,
   position: Position | null,
 ): WorldPoint | undefined => {
