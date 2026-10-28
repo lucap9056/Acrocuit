@@ -21,6 +21,8 @@ export interface DialogMessage {
   text?: string;
   content?: Snippet<[DialogContentProps]>;
   buttons: DialogButton[];
+  maxWidth?: string;
+  maxHeight?: string;
 }
 
 export type DialogEvent = QueueEvent<DialogMessage>;

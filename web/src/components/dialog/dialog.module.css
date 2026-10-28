@@ -4,15 +4,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1rem 0;
   background: var(--overlay);
   z-index: 800;
 
   .dialog_message {
-    width: 24rem;
-    max-width: 100%;
+    --dialog-width: 24rem;
+    --dialog-gutter: 2rem;
+
+    width: max(
+      min(var(--dialog-width), 100%),
+      min(100%, (var(--dialog-width) + var(--dialog-gutter) - 100vw) * 9999)
+    );
     padding: 1.5rem;
-    border-radius: var(--radius-surface);
+    border-radius: clamp(
+      0px,
+      (100vw - var(--dialog-width) - var(--dialog-gutter)) * 9999,
+      var(--radius-surface)
+    );
     background: var(--surface);
     box-shadow: var(--shadow-lg);
 

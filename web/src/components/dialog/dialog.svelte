@@ -41,7 +41,14 @@
   <div class={styles.dialog}>
     {#each messages as message (message.token)}
       {@const isTop = message.token === lastMessage.token}
-      <div class={styles.dialog_message} hidden={!isTop} inert={!isTop}>
+      <div
+        class={styles.dialog_message}
+        style:--dialog-width={message.payload.maxWidth}
+        style:max-height={message.payload.maxHeight}
+        style:overflow={message.payload.maxHeight && "auto"}
+        hidden={!isTop}
+        inert={!isTop}
+      >
         {#if message.payload.text}
           <div class={styles.dialog_text}>{message.payload.text}</div>
         {/if}
