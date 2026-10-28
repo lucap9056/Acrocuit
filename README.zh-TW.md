@@ -50,6 +50,12 @@
 
 <img src="docs/screenshots/wire-attributes.png" alt="線路 Attributes 與電壓降" width="75%">
 
+### 共享
+
+- 邀請他人以編輯者或檢視者身份加入空間群組，檢視者能看到所有內容但無法修改
+- 將空間群組設為公開，任何人拿到連結都能檢視，不需登入
+- 可轉移擁有者，或離開不再需要的空間群組
+
 ### 圖示包
 
 - 內建圖示包涵蓋常見電氣符號：配電、開關、插座、照明與設備
@@ -90,6 +96,8 @@ docker compose -f docker/docker-compose.yml up -d --build
 - **開關鏈**：開關可有多個同一空間群組內的上游開關，會拒絕形成環的連結
 - **裝置接線**：裝置可掛在多個開關上
 - **背景圖**：每個空間可上傳一張背景圖
+- **ID**：所有資源皆以 UUIDv7 識別
+- **存取權限**：每個空間群組的成員具有 `owner`、`editor` 或 `viewer` 角色，且可設為公開，見[角色](docs/api.zh-TW.md#角色)
 - **Attributes**：裝置、開關與兩者的連結都帶有自由格式的 JSON object `attributes`（上限 2048 bytes）
   - 後端只負責結構完整性，負載與容量規則都在前端計算
 
@@ -107,7 +115,6 @@ docker compose -f docker/docker-compose.yml up -d --build
   - 只有 nginx 對外（`http://localhost:8080`）
 - 在 provider 註冊 `<PUBLIC_URL>/auth/callback` 為 redirect URL
 - 經 `/auth/login` 登入後，以 `Authorization: Bearer <access_token>` 呼叫 `/api`
-- 移除內建使用者之前建立的 volume 須以 `down -v` 重置
 
 #### PostgreSQL
 
@@ -141,8 +148,10 @@ Acrocuit 不管理使用者，模式由資料庫決定：
 | `postgres://` | 有設定 | 多人，驗證簽章過的 `X-Forwarded-Identity` |
 | `postgres://` | 未設定 | 多人，信任明文的 `X-Forwarded-User-Email` |
 
-- 多人模式須在 reverse proxy 後方搭配 [corvauth](https://github.com/lucap9056/corvauth) 的 `/verify`
-  - Email 即為擁有者，缺少或無效時回傳 `401`
+- 多人模式須在 reverse proxy 後方搭配 [corvauth](https://github.com/lucap9056/corvauth) 的 `/verify-optional`
+  - 未帶身份的請求會以匿名身份通過，只能讀取公開的空間群組，其他操作回傳 `401`
+  - 身份無效時回傳 `401`
+  - 每個 email 在空間群組中能做的事依其角色而定，見[角色](docs/api.zh-TW.md#角色)
 - Secret 至少 32 bytes，與 corvauth 使用同一個
 - 未設定 secret 時，請確保有使用 proxy 清除 client 自帶的同名 header
 - SQLite 設定 secret 只會發出警告
@@ -175,7 +184,7 @@ cd web && bun run dev
 
 ```bash
 go test ./tests -run TestE2E -v
-ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
+ACROCUIT_SPACE_ID=019a2b3c-6bef-7778-9ef0-728ee35bfd93 go test ./tests -v -run 'TestGetSpace$'
 ```
 
 多人模式以 `ACROCUIT_ACCESS_TOKEN`（經 proxy）或 `ACROCUIT_IDENTITY_TOKEN`（直連 app）帶入身份

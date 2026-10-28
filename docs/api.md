@@ -5,9 +5,10 @@ English | [繁體中文](api.zh-TW.md)
 ## Conventions
 
 - All routes are under `/api`; request and response bodies are JSON with `snake_case` fields
-- Every route except `/api/meta` needs an identity; see [Authentication](../README.md#authentication)
+- Routes need an identity, except `/api/meta` and the `GET` routes of a public space group; see [Authentication](../README.md#authentication)
   - Through the proxy, send `Authorization: Bearer <access_token>`
-- IDs in the path are integers
+  - Listing and creating space groups, member management and every write always need an identity
+- IDs are UUIDv7 strings
 
 ### Responses
 
@@ -32,26 +33,27 @@ Failure:
 
 | Status | When |
 | :--- | :--- |
-| `400` | Invalid path ID, invalid body, an unknown `include` column, a switch fed by itself, or a link that would form a cycle |
-| `401` | Missing or invalid identity |
-| `404` | The resource does not exist or belongs to someone else |
-| `409` | The link already exists |
+| `400` | A path ID that is not a UUID, invalid body, an unknown `include` column, a switch fed by itself, a link that would form a cycle, or an invalid member role or email |
+| `401` | Missing or invalid identity, or an anonymous request to a route that needs one |
+| `404` | The resource does not exist, or the caller's role does not allow the action |
+| `409` | The link or member already exists, or the owner leaves with no editor to take over |
 | `413` | Background image over 10 MB |
 | `415` | Background image is not PNG, JPEG, WebP or GIF |
+| `501` | Member management on the SQLite backend |
 
 ### Partial fields
 
 `GET` routes that return space groups, spaces, switch panels, switches or devices accept `include`, a comma-separated list of columns. Columns left out come back as zero values.
 
 ```
-GET /api/spaces/20?include=id,name
+GET /api/spaces/019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3?include=id,name
 ```
 
 ```json
 {
   "success": true,
   "data": {
-    "id": 20,
+    "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3",
     "name": "5F",
     "display_order": 0,
     "background_image_updated_at": 0,
@@ -62,7 +64,7 @@ GET /api/spaces/20?include=id,name
 
 | Resource | Columns |
 | :--- | :--- |
-| Space group | `id`, `name` |
+| Space group | `id`, `name`, `role` |
 | Space | `id`, `name`, `space_group_id`, `display_order`, `background_image_updated_at` |
 | Switch panel | `id`, `name`, `space_id`, `space_group_id`, `attributes`, `position` |
 | Switch | `id`, `name`, `switch_panel_id`, `space_group_id`, `display_order`, `attributes` |
@@ -74,6 +76,21 @@ Switch panels, switches, devices and links carry `attributes`, a JSON object of 
 
 - On create, an omitted `attributes` becomes `{}`
 - On update, an omitted `attributes` keeps the current value; a given one replaces it entirely
+
+### Roles
+
+Each space group grants every member one role:
+
+| Role | Can |
+| :--- | :--- |
+| `viewer` | Read the space group and everything in it |
+| `editor` | Also rename the space group, and create, change and delete its spaces, switch panels, switches, devices, links and background images |
+| `owner` | Also delete the space group, manage members, transfer ownership and set public access |
+
+- Each space group has exactly one owner, its creator until ownership is transferred
+- A public space group can be read by anyone, including anonymous requests; non-members read it as `viewer`
+- Space groups carry `role`, the caller's role
+- In single-user mode the caller is always `owner`
 
 ### Nested references
 
@@ -94,19 +111,22 @@ No identity needed.
 }
 ```
 
-`auth_required` tells whether other routes need an identity.
+`auth_required` tells whether the server runs in multi-user mode, where routes need an identity and member management is available.
 
 ## Space Groups
 
 ### `GET /api/space-groups`
+
+Lists the space groups the caller is a member of. Needs an identity.
 
 ```json
 {
   "success": true,
   "data": [
     {
-      "id": 3,
-      "name": "Acrocuit Tower"
+      "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f",
+      "name": "Acrocuit Tower",
+      "role": "owner"
     }
   ]
 }
@@ -128,27 +148,31 @@ No identity needed.
 {
   "success": true,
   "data": {
-    "id": 3,
-    "name": "Acrocuit Tower"
+    "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f",
+    "name": "Acrocuit Tower",
+    "role": "owner"
   }
 }
 ```
 
 ### `GET /api/space-groups/{spaceGroupId}`
 
+Members, and anyone when the space group is public.
+
 ```json
 {
   "success": true,
   "data": {
-    "id": 3,
-    "name": "Acrocuit Tower"
+    "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f",
+    "name": "Acrocuit Tower",
+    "role": "owner"
   }
 }
 ```
 
 ### `PUT /api/space-groups/{spaceGroupId}`
 
-Renames the space group.
+Renames the space group. Needs `editor` or `owner`.
 
 ```json
 {
@@ -160,15 +184,128 @@ Renames the space group.
 {
   "success": true,
   "data": {
-    "id": 3,
-    "name": "Acrocuit Tower"
+    "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f",
+    "name": "Acrocuit Tower",
+    "role": "owner"
   }
 }
 ```
 
 ### `DELETE /api/space-groups/{spaceGroupId}`
 
-Deletes the space group with all its spaces, switch panels, switches, devices and links.
+Deletes the space group with all its spaces, switch panels, switches, devices and links. Needs `owner`.
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+## Space Group Members
+
+These routes need an identity, and return `501` on the SQLite backend. Except for leaving, only the owner can call them.
+
+### `GET /api/space-groups/{spaceGroupId}/members`
+
+Members are ordered owner, editors, then viewers.
+
+```json
+{
+  "success": true,
+  "data": {
+    "public": false,
+    "members": [
+      {
+        "email": "owner@example.com",
+        "role": "owner"
+      },
+      {
+        "email": "editor@example.com",
+        "role": "editor"
+      }
+    ]
+  }
+}
+```
+
+### `POST /api/space-groups/{spaceGroupId}/members`
+
+```json
+{
+  "email": "viewer@example.com",
+  "role": "viewer"
+}
+```
+
+| Field | Rule |
+| :--- | :--- |
+| `email` | Required, an email address |
+| `role` | Required, `viewer` or `editor` |
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+### `PUT /api/space-groups/{spaceGroupId}/members/{email}`
+
+Changes a member's role. The owner's role cannot be changed here; transfer ownership instead.
+
+```json
+{
+  "role": "editor"
+}
+```
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+### `DELETE /api/space-groups/{spaceGroupId}/members/{email}`
+
+Removes a member. With `me` or the caller's own email, the caller leaves the space group instead, which any member can do.
+
+- When the owner leaves, a random editor becomes the owner; with no editor it fails with `409`
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+### `PUT /api/space-groups/{spaceGroupId}/owner`
+
+Transfers ownership to another member; the previous owner becomes an editor.
+
+```json
+{
+  "email": "editor@example.com"
+}
+```
+
+```json
+{
+  "success": true,
+  "data": null
+}
+```
+
+### `PUT /api/space-groups/{spaceGroupId}/public`
+
+Sets whether anyone can read the space group.
+
+```json
+{
+  "public": true
+}
+```
 
 ```json
 {
@@ -188,12 +325,12 @@ Ordered by `display_order`.
   "success": true,
   "data": [
     {
-      "id": 13,
+      "id": "019a2b3d-df23-7f11-8432-ac56cf00e328",
       "name": "B3",
       "display_order": 1,
       "background_image_updated_at": 1793011394640,
       "space_group": {
-        "id": 3
+        "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
       }
     }
   ]
@@ -220,12 +357,12 @@ Adds a space at the end of the order.
 {
   "success": true,
   "data": {
-    "id": 20,
+    "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3",
     "name": "5F",
     "display_order": 8,
     "background_image_updated_at": 0,
     "space_group": {
-      "id": 3
+      "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
     }
   }
 }
@@ -237,12 +374,12 @@ Adds a space at the end of the order.
 {
   "success": true,
   "data": {
-    "id": 20,
+    "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3",
     "name": "5F",
     "display_order": 8,
     "background_image_updated_at": 1793011395389,
     "space_group": {
-      "id": 3
+      "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
     }
   }
 }
@@ -290,12 +427,12 @@ Returns every space in the space group, ordered by `display_order`.
   "success": true,
   "data": [
     {
-      "id": 13,
+      "id": "019a2b3d-df23-7f11-8432-ac56cf00e328",
       "name": "B3",
       "display_order": 1,
       "background_image_updated_at": 1793011394640,
       "space_group": {
-        "id": 3
+        "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
       }
     }
   ]
@@ -316,7 +453,7 @@ Returns the image itself with its `Content-Type`.
 A `multipart/form-data` request with the image in the `image` field.
 
 ```
-curl -X PUT -F image=@5f.png http://localhost:8080/api/spaces/20/background-image
+curl -X PUT -F image=@5f.png http://localhost:8080/api/spaces/019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3/background-image
 ```
 
 - PNG, JPEG, WebP or GIF, decided by the file content
@@ -328,12 +465,12 @@ Returns the space with the new `background_image_updated_at`.
 {
   "success": true,
   "data": {
-    "id": 20,
+    "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3",
     "name": "5F",
     "display_order": 8,
     "background_image_updated_at": 1793011395389,
     "space_group": {
-      "id": 3
+      "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
     }
   }
 }
@@ -352,14 +489,14 @@ Returns the space with `background_image_updated_at` set to `0`.
   "success": true,
   "data": [
     {
-      "id": 30,
+      "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529",
       "name": "DB-5F",
       "attributes": {
         "icon": "default:distribution_board",
         "switch_capacity": 16
       },
       "space": {
-        "id": 20
+        "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
       },
       "position": {
         "x": 82,
@@ -404,14 +541,14 @@ Returns the switch panel, as in `GET /api/switch-panels/{switchPanelId}`.
 {
   "success": true,
   "data": {
-    "id": 30,
+    "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529",
     "name": "DB-5F",
     "attributes": {
       "icon": "default:distribution_board",
       "switch_capacity": 16
     },
     "space": {
-      "id": 20
+      "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
     },
     "position": {
       "x": 82,
@@ -477,7 +614,7 @@ Ordered by `display_order`.
   "success": true,
   "data": [
     {
-      "id": 182,
+      "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
       "name": "UPS-5 Input",
       "display_order": 7,
       "attributes": {
@@ -489,7 +626,7 @@ Ordered by `display_order`.
         "poles": 3
       },
       "switch_panel": {
-        "id": 30
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
       }
     }
   ]
@@ -522,14 +659,14 @@ Returns the switch, as in `GET /api/switches/{switchId}`.
 {
   "success": true,
   "data": {
-    "id": 182,
+    "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
     "name": "UPS-5 Input",
     "display_order": 7,
     "attributes": {
       "max_current": 100
     },
     "switch_panel": {
-      "id": 30
+      "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
     }
   }
 }
@@ -589,14 +726,14 @@ The switches that feed this switch, each with the link's attributes.
   "success": true,
   "data": [
     {
-      "id": 176,
+      "id": "019a2b51-9150-7560-86e8-723c97ed63c0",
       "name": "DB-5F Main",
       "display_order": 1,
       "attributes": {
         "max_current": 100
       },
       "switch_panel": {
-        "id": 30
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
       },
       "link": {
         "attributes": {
@@ -613,7 +750,7 @@ The switches that feed this switch, each with the link's attributes.
 
 ```json
 {
-  "upstream_switch_id": 176,
+  "upstream_switch_id": "019a2b51-9150-7560-86e8-723c97ed63c0",
   "attributes": {
     "wire_size": 150,
     "wire_length": 1
@@ -634,8 +771,8 @@ The switches that feed this switch, each with the link's attributes.
 {
   "success": true,
   "data": {
-    "upstream_switch_id": 176,
-    "downstream_switch_id": 182,
+    "upstream_switch_id": "019a2b51-9150-7560-86e8-723c97ed63c0",
+    "downstream_switch_id": "019a2b52-4aea-7072-b438-e2b9a519e640",
     "attributes": {
       "wire_size": 150,
       "wire_length": 1
@@ -679,7 +816,7 @@ Returns the link, as in `POST /api/switches/{switchId}/upstreams`.
   "success": true,
   "data": [
     {
-      "id": 267,
+      "id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
       "name": "Server Rack 1",
       "attributes": {
         "icon": "default:outlet_grounded",
@@ -688,7 +825,7 @@ Returns the link, as in `POST /api/switches/{switchId}/upstreams`.
         "power_factor": 0.95
       },
       "space": {
-        "id": 20
+        "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
       },
       "position": {
         "x": -583,
@@ -733,14 +870,14 @@ Returns the device, as in `GET /api/devices/{deviceId}`.
 {
   "success": true,
   "data": {
-    "id": 267,
+    "id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
     "name": "Server Rack 1",
     "attributes": {
       "rated_power": 4000,
       "rated_voltage": 220
     },
     "space": {
-      "id": 20
+      "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
     },
     "position": {
       "x": -583,
@@ -814,14 +951,14 @@ The switches that feed this device, each with the link's attributes.
   "success": true,
   "data": [
     {
-      "id": 185,
+      "id": "019a2b52-a7b7-714e-a9ac-c68af050eed3",
       "name": "Rack 1",
       "display_order": 2,
       "attributes": {
         "max_current": 32
       },
       "switch_panel": {
-        "id": 31
+        "id": "019a2b40-0bf1-7b12-89b0-a3f22d43ab2c"
       },
       "link": {
         "attributes": {
@@ -838,7 +975,7 @@ The switches that feed this device, each with the link's attributes.
 
 ```json
 {
-  "switch_id": 185,
+  "switch_id": "019a2b52-a7b7-714e-a9ac-c68af050eed3",
   "attributes": {
     "wire_size": 5.5,
     "wire_length": 17.3
@@ -858,8 +995,8 @@ The switches that feed this device, each with the link's attributes.
 {
   "success": true,
   "data": {
-    "device_id": 267,
-    "switch_id": 185,
+    "device_id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
+    "switch_id": "019a2b52-a7b7-714e-a9ac-c68af050eed3",
     "attributes": {
       "wire_size": 5.5,
       "wire_length": 17.3
@@ -915,20 +1052,20 @@ The switch, every switch it feeds directly or indirectly, and the devices hangin
   "data": {
     "switches": [
       {
-        "id": 182,
+        "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
         "name": "UPS-5 Input",
         "display_order": 7,
         "attributes": {
           "max_current": 100
         },
         "switch_panel": {
-          "id": 30,
+          "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529",
           "name": "DB-5F",
           "attributes": {
             "switch_capacity": 16
           },
           "space": {
-            "id": 20
+            "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
           },
           "position": {
             "x": 82,
@@ -940,8 +1077,8 @@ The switch, every switch it feeds directly or indirectly, and the devices hangin
     ],
     "switch_links": [
       {
-        "upstream_switch_id": 182,
-        "downstream_switch_id": 184,
+        "upstream_switch_id": "019a2b52-4aea-7072-b438-e2b9a519e640",
+        "downstream_switch_id": "019a2b52-88c8-7d07-9858-3ae64028a233",
         "attributes": {
           "wire_size": 22,
           "wire_length": 14.7
@@ -950,13 +1087,13 @@ The switch, every switch it feeds directly or indirectly, and the devices hangin
     ],
     "devices": [
       {
-        "id": 267,
+        "id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
         "name": "Server Rack 1",
         "attributes": {
           "rated_power": 4000
         },
         "space": {
-          "id": 20
+          "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
         },
         "position": {
           "x": -583,
@@ -967,8 +1104,8 @@ The switch, every switch it feeds directly or indirectly, and the devices hangin
     ],
     "device_links": [
       {
-        "device_id": 267,
-        "switch_id": 185,
+        "device_id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
+        "switch_id": "019a2b52-a7b7-714e-a9ac-c68af050eed3",
         "attributes": {
           "wire_size": 5.5,
           "wire_length": 17.3
@@ -989,20 +1126,20 @@ The device, the switches it hangs off, and every switch feeding those directly o
   "data": {
     "switches": [
       {
-        "id": 109,
+        "id": "019a2b49-78c3-7335-b5d3-b98ac80bcf74",
         "name": "MSB Main Incomer",
         "display_order": 1,
         "attributes": {
           "max_current": 2500
         },
         "switch_panel": {
-          "id": 21,
+          "id": "019a2b3e-d69b-7630-b97c-400000f18c97",
           "name": "MSB",
           "attributes": {
             "switch_capacity": 16
           },
           "space": {
-            "id": 15
+            "id": "019a2b3e-1d01-73b6-9f41-fbecf7302d57"
           },
           "position": {
             "x": -190,
@@ -1014,8 +1151,8 @@ The device, the switches it hangs off, and every switch feeding those directly o
     ],
     "switch_links": [
       {
-        "upstream_switch_id": 109,
-        "downstream_switch_id": 117,
+        "upstream_switch_id": "019a2b49-78c3-7335-b5d3-b98ac80bcf74",
+        "downstream_switch_id": "019a2b4a-703b-7d58-93ed-d5525e90d703",
         "attributes": {
           "wire_size": 150,
           "wire_length": 1
@@ -1024,13 +1161,13 @@ The device, the switches it hangs off, and every switch feeding those directly o
     ],
     "devices": [
       {
-        "id": 267,
+        "id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
         "name": "Server Rack 1",
         "attributes": {
           "rated_power": 4000
         },
         "space": {
-          "id": 20
+          "id": "019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3"
         },
         "position": {
           "x": -583,
@@ -1041,8 +1178,8 @@ The device, the switches it hangs off, and every switch feeding those directly o
     ],
     "device_links": [
       {
-        "device_id": 267,
-        "switch_id": 185,
+        "device_id": "019a2b5c-9045-7fe9-beb7-afc0437e6b8d",
+        "switch_id": "019a2b52-a7b7-714e-a9ac-c68af050eed3",
         "attributes": {
           "wire_size": 5.5,
           "wire_length": 17.3

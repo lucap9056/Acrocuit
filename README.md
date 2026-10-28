@@ -50,6 +50,12 @@ English | [繁體中文](README.zh-TW.md)
 
 <img src="docs/screenshots/wire-attributes.png" alt="Wire attributes and voltage drop" width="75%">
 
+### Sharing
+
+- Invite people to a space group as editors or viewers; viewers see everything but cannot change it
+- Make a space group public to share its link with anyone, no sign-in needed
+- Transfer ownership, or leave a space group you no longer need
+
 ### Icon packs
 
 - The built-in pack covers common electrical symbols: distribution, switches, outlets, lighting and equipment
@@ -90,6 +96,8 @@ Open `http://localhost:8080` and sign in with your provider. See [Deployment](#d
 - **Switch chains**: a switch can have several upstream switches in the same space group, cycles are rejected
 - **Device wiring**: a device can hang off several switches
 - **Background images**: each space can have one background image
+- **IDs**: every resource is identified by a UUIDv7
+- **Access**: each space group has members with the role `owner`, `editor` or `viewer`, and can be made public; see [Roles](docs/api.md#roles)
 - **Attributes**: devices, switches and their links carry a free-form JSON object `attributes` (up to 2048 bytes)
   - The backend only keeps the structure valid; load and capacity rules are evaluated in the frontend
 
@@ -107,7 +115,6 @@ Open `http://localhost:8080` and sign in with your provider. See [Deployment](#d
   - Only nginx is published (`http://localhost:8080`)
 - Register `<PUBLIC_URL>/auth/callback` as the provider's redirect URL
 - Sign in via `/auth/login`, then call `/api` with `Authorization: Bearer <access_token>`
-- Volumes created before the built-in users were removed must be reset with `down -v`
 
 #### PostgreSQL
 
@@ -141,8 +148,10 @@ Acrocuit does not manage users. The database decides the mode:
 | `postgres://` | set | Multi-user, verifies the signed `X-Forwarded-Identity` |
 | `postgres://` | unset | Multi-user, trusts the plain `X-Forwarded-User-Email` |
 
-- Multi-user mode expects [corvauth](https://github.com/lucap9056/corvauth) `/verify` behind a reverse proxy
-  - The email is the owner; a missing or invalid identity gets `401`
+- Multi-user mode expects [corvauth](https://github.com/lucap9056/corvauth) `/verify-optional` behind a reverse proxy
+  - A request without an identity passes through as anonymous and can only read public space groups; anything else gets `401`
+  - An invalid identity gets `401`
+  - What each email can do in a space group follows its role; see [Roles](docs/api.md#roles)
 - The secret is at least 32 bytes and shared with corvauth
 - Without the secret, make sure a proxy strips client-supplied identity headers
 - Setting the secret with SQLite only logs a warning
@@ -175,7 +184,7 @@ Tests send requests to a running server (`ACROCUIT_HOST`, default `http://localh
 
 ```bash
 go test ./tests -run TestE2E -v
-ACROCUIT_SPACE_ID=1 go test ./tests -v -run 'TestGetSpace$'
+ACROCUIT_SPACE_ID=019a2b3c-6bef-7778-9ef0-728ee35bfd93 go test ./tests -v -run 'TestGetSpace$'
 ```
 
 In multi-user mode, pass `ACROCUIT_ACCESS_TOKEN` (through the proxy) or `ACROCUIT_IDENTITY_TOKEN` (directly to the app).
