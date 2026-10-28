@@ -4,6 +4,7 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ type setAttributesRequest struct {
 
 func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -57,7 +58,7 @@ func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
 
 func (ctr *switchesController) GetSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -79,7 +80,7 @@ type setSwitchRequest struct {
 
 func (ctr *switchesController) SetSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -100,7 +101,7 @@ func (ctr *switchesController) SetSwitch(c *gin.Context) {
 
 func (ctr *switchesController) DelSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -115,7 +116,7 @@ func (ctr *switchesController) DelSwitch(c *gin.Context) {
 
 func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -136,7 +137,7 @@ func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 
 func (ctr *switchesController) GetSwitchUpstreams(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -152,13 +153,13 @@ func (ctr *switchesController) GetSwitchUpstreams(c *gin.Context) {
 }
 
 type addSwitchUpstreamRequest struct {
-	UpstreamSwitchId int               `json:"upstream_switch_id" binding:"required"`
+	UpstreamSwitchId uuid.UUID         `json:"upstream_switch_id" binding:"required"`
 	Attributes       models.Attributes `json:"attributes"`
 }
 
 func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -168,7 +169,7 @@ func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 		return
 	}
 
-	link, err := ctr.Switches.AddSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId, req.Attributes.OrEmpty())
+	link, err := ctr.Switches.AddSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId.String(), req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -179,11 +180,11 @@ func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 
 func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
-	upstreamSwitchId, ok := intParam(c, paramUpstreamSwitchID)
+	upstreamSwitchId, ok := uuidParam(c, paramUpstreamSwitchID)
 	if !ok {
 		return
 	}
@@ -204,11 +205,11 @@ func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
 
 func (ctr *switchesController) DelSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
-	upstreamSwitchId, ok := intParam(c, paramUpstreamSwitchID)
+	upstreamSwitchId, ok := uuidParam(c, paramUpstreamSwitchID)
 	if !ok {
 		return
 	}

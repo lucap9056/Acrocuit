@@ -32,7 +32,7 @@ func switchPanelsHandlers(r *gin.RouterGroup, base controller) {
 
 func (ctr *switchPanelsController) GetSwitchPanel(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}
@@ -54,7 +54,7 @@ type setSwitchPanelRequest struct {
 
 func (ctr *switchPanelsController) SetSwitchPanel(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}
@@ -79,7 +79,7 @@ type setPositionRequest struct {
 
 func (ctr *switchPanelsController) SetSwitchPanelPosition(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}
@@ -100,7 +100,7 @@ func (ctr *switchPanelsController) SetSwitchPanelPosition(c *gin.Context) {
 
 func (ctr *switchPanelsController) DelSwitchPanel(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}
@@ -115,7 +115,7 @@ func (ctr *switchPanelsController) DelSwitchPanel(c *gin.Context) {
 
 func (ctr *switchPanelsController) GetSwitches(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}
@@ -137,7 +137,7 @@ type createSwitchRequest struct {
 
 func (ctr *switchPanelsController) AddSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchPanelId, ok := intParam(c, paramSwitchPanelID)
+	switchPanelId, ok := uuidParam(c, paramSwitchPanelID)
 	if !ok {
 		return
 	}

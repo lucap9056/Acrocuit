@@ -11,18 +11,18 @@ const SWITCH_ALL_COLUMNS = schema.FullSwitches_ID + "," + schema.FullSwitches_NA
 var switchAllFields = []uint8{0, 1, 2, 3, 4, 5}
 
 type Switch struct {
-	Id            int        `json:"id"`
+	Id            string     `json:"id"`
 	Name          string     `json:"name"`
 	DisplayOrder  int        `json:"display_order"`
 	Attributes    Attributes `json:"attributes"`
-	SwitchPanelId int        `json:"-"`
-	SpaceGroupId  int        `json:"-"`
+	SwitchPanelId string     `json:"-"`
+	SpaceGroupId  string     `json:"-"`
 
 	SwitchPanel *Ref `json:"switch_panel"`
 }
 
 func (s *Switch) Build() {
-	if s.SwitchPanel == nil && s.SwitchPanelId != 0 {
+	if s.SwitchPanel == nil && s.SwitchPanelId != "" {
 		s.SwitchPanel = &Ref{Id: s.SwitchPanelId}
 	}
 }

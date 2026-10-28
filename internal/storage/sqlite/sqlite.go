@@ -97,7 +97,7 @@ func exists(ctx context.Context, q querier, query string, args ...any) (bool, er
 	return found, err
 }
 
-func requireRow(ctx context.Context, q querier, table, idColumn string, id int) error {
+func requireRow(ctx context.Context, q querier, table, idColumn, id string) error {
 	found, err := exists(ctx, q, `SELECT 1 FROM `+table+` WHERE `+idColumn+` = $1`, id)
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ var (
 	switchesOrder = orderedTable{schema.SwitchesTable, schema.Switches_ID, schema.Switches_SWITCH_PANEL_ID, schema.Switches_DISPLAY_ORDER}
 )
 
-func (o orderedTable) move(ctx context.Context, tx *sql.Tx, groupId, id, from, to int) error {
+func (o orderedTable) move(ctx context.Context, tx *sql.Tx, groupId, id string, from, to int) error {
 	low, high, shift := from, to, -1
 	if to < from {
 		low, high, shift = to, from, 1

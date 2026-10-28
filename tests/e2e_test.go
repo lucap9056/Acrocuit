@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,10 +96,10 @@ func (c *client) Send(req *http.Request, data any) int {
 	return status
 }
 
-func (c *client) BackgroundImage(spaceId int, etag string) (int, http.Header, []byte) {
+func (c *client) BackgroundImage(spaceId string, etag string) (int, http.Header, []byte) {
 	c.t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/spaces/%d/background-image", spaceId), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/spaces/%s/background-image", spaceId), nil)
 	require.NoError(c.t, err, "new request")
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
@@ -132,47 +133,47 @@ func powerChain(c *client, path string) models.PowerChain {
 	return chain
 }
 
-func downstream(c *client, switchId int) models.PowerChain {
+func downstream(c *client, switchId string) models.PowerChain {
 	c.t.Helper()
-	return powerChain(c, fmt.Sprintf("/switches/%d/downstream", switchId))
+	return powerChain(c, fmt.Sprintf("/switches/%s/downstream", switchId))
 }
 
-func upstream(c *client, deviceId int) models.PowerChain {
+func upstream(c *client, deviceId string) models.PowerChain {
 	c.t.Helper()
-	return powerChain(c, fmt.Sprintf("/devices/%d/upstream", deviceId))
+	return powerChain(c, fmt.Sprintf("/devices/%s/upstream", deviceId))
 }
 
-func idsOf(ids map[string]int, names ...string) []int {
-	result := make([]int, len(names))
+func idsOf(ids map[string]string, names ...string) []string {
+	result := make([]string, len(names))
 	for i, name := range names {
 		result[i] = ids[name]
 	}
 	return result
 }
 
-func switchIds(switches []models.Switch) []int {
-	result := make([]int, len(switches))
+func switchIds(switches []models.Switch) []string {
+	result := make([]string, len(switches))
 	for i, b := range switches {
 		result[i] = b.Id
 	}
 	return result
 }
 
-func chainSwitchIds(switches []models.ChainSwitch) []int {
-	result := make([]int, len(switches))
+func chainSwitchIds(switches []models.ChainSwitch) []string {
+	result := make([]string, len(switches))
 	for i, b := range switches {
 		result[i] = b.Id
 	}
 	return result
 }
 
-func hasDeviceOnSwitch(chain models.PowerChain, deviceId, switchId int) bool {
+func hasDeviceOnSwitch(chain models.PowerChain, deviceId, switchId string) bool {
 	return slices.ContainsFunc(chain.DeviceLinks, func(l models.DeviceLink) bool {
 		return l.DeviceId == deviceId && l.SwitchId == switchId
 	})
 }
 
-func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId int) (models.SwitchLink, bool) {
+func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId string) (models.SwitchLink, bool) {
 	index := slices.IndexFunc(chain.SwitchLinks, func(l models.SwitchLink) bool {
 		return l.UpstreamSwitchId == upstreamId && l.DownstreamSwitchId == downstreamId
 	})
@@ -182,34 +183,34 @@ func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId int) (mode
 	return chain.SwitchLinks[index], true
 }
 
-func logTree(t *testing.T, rootId int, chain models.PowerChain) {
+func logTree(t *testing.T, rootId string, chain models.PowerChain) {
 	t.Helper()
 
-	names := make(map[int]string, len(chain.Switches))
+	names := make(map[string]string, len(chain.Switches))
 	for _, b := range chain.Switches {
 		names[b.Id] = b.Name
 	}
-	children := make(map[int][]int)
+	children := make(map[string][]string)
 	for _, l := range chain.SwitchLinks {
 		children[l.UpstreamSwitchId] = append(children[l.UpstreamSwitchId], l.DownstreamSwitchId)
 	}
-	devices := make(map[int]models.Device, len(chain.Devices))
+	devices := make(map[string]models.Device, len(chain.Devices))
 	for _, d := range chain.Devices {
 		devices[d.Id] = d
 	}
-	attached := make(map[int][]models.Device)
+	attached := make(map[string][]models.Device)
 	for _, l := range chain.DeviceLinks {
 		attached[l.SwitchId] = append(attached[l.SwitchId], devices[l.DeviceId])
 	}
 
 	var sb strings.Builder
-	var walk func(id int, prefix string, last bool)
-	walk = func(id int, prefix string, last bool) {
+	var walk func(id string, prefix string, last bool)
+	walk = func(id string, prefix string, last bool) {
 		branch, indent := "├─ ", "│  "
 		if last {
 			branch, indent = "└─ ", "   "
 		}
-		fmt.Fprintf(&sb, "%s%s[B] %s (#%d)\n", prefix, branch, names[id], id)
+		fmt.Fprintf(&sb, "%s%s[B] %s (#%s)\n", prefix, branch, names[id], id)
 
 		kids, devs := children[id], attached[id]
 		for i, d := range devs {
@@ -217,14 +218,14 @@ func logTree(t *testing.T, rootId int, chain models.PowerChain) {
 			if i == len(devs)-1 && len(kids) == 0 {
 				leaf = "└─ "
 			}
-			fmt.Fprintf(&sb, "%s%s[D] %s (#%d)\n", prefix+indent, leaf, d.Name, d.Id)
+			fmt.Fprintf(&sb, "%s%s[D] %s (#%s)\n", prefix+indent, leaf, d.Name, d.Id)
 		}
 		for i, k := range kids {
 			walk(k, prefix+indent, i == len(kids)-1)
 		}
 	}
 	walk(rootId, "", true)
-	t.Logf("downstream of #%d:\n%s", rootId, sb.String())
+	t.Logf("downstream of #%s:\n%s", rootId, sb.String())
 }
 
 func pngImage(t *testing.T, size int) []byte {
@@ -235,7 +236,7 @@ func pngImage(t *testing.T, size int) []byte {
 	return buf.Bytes()
 }
 
-func backgroundImageRequest(t *testing.T, spaceId int, field string, data []byte) *http.Request {
+func backgroundImageRequest(t *testing.T, spaceId string, field string, data []byte) *http.Request {
 	t.Helper()
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -244,7 +245,7 @@ func backgroundImageRequest(t *testing.T, spaceId int, field string, data []byte
 	part.Write(data)
 	writer.Close()
 
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/spaces/%d/background-image", spaceId), &body)
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/spaces/%s/background-image", spaceId), &body)
 	require.NoError(t, err, "new request")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	return req
@@ -259,13 +260,13 @@ func TestE2E(t *testing.T) {
 	req := newRequest(t, http.MethodPost, "/space-groups", body)
 	status := c.Send(req, &spaceGroup)
 	require.Equal(t, http.StatusOK, status, "create space group")
-	spaceGroupPath := fmt.Sprintf("/space-groups/%d", spaceGroup.Id)
+	spaceGroupPath := fmt.Sprintf("/space-groups/%s", spaceGroup.Id)
 	t.Cleanup(func() {
 		req := newRequest(t, http.MethodDelete, spaceGroupPath, nil)
 		c.Send(req, nil)
 	})
 
-	spaces := make(map[string]int)
+	spaces := make(map[string]string)
 	for _, name := range []string{"space1", "space2", "space3", "space4", "space5"} {
 		path := spaceGroupPath + "/spaces"
 		body := map[string]any{"name": name}
@@ -277,7 +278,7 @@ func TestE2E(t *testing.T) {
 		spaces[name] = space.Id
 	}
 
-	switchPanels := make(map[string]int)
+	switchPanels := make(map[string]string)
 	for _, tc := range []struct{ space, name string }{
 		{"space1", "group1"},
 		{"space2", "group2"},
@@ -285,7 +286,7 @@ func TestE2E(t *testing.T) {
 		{"space4", "group4"},
 		{"space5", "group5"},
 	} {
-		path := fmt.Sprintf("/spaces/%d/switch-panels", spaces[tc.space])
+		path := fmt.Sprintf("/spaces/%s/switch-panels", spaces[tc.space])
 		body := map[string]any{"name": tc.name}
 
 		var switchPanel models.SwitchPanel
@@ -295,7 +296,7 @@ func TestE2E(t *testing.T) {
 		switchPanels[tc.name] = switchPanel.Id
 	}
 
-	switches := make(map[string]int)
+	switches := make(map[string]string)
 	for _, tc := range []struct{ group, name, upstream string }{
 		{"group1", "switch1", ""},
 		{"group1", "switch2", "switch1"},
@@ -309,7 +310,7 @@ func TestE2E(t *testing.T) {
 		{"group4", "switch10", "switch7"},
 		{"group5", "switch11", "switch8"},
 	} {
-		path := fmt.Sprintf("/switch-panels/%d/switches", switchPanels[tc.group])
+		path := fmt.Sprintf("/switch-panels/%s/switches", switchPanels[tc.group])
 		body := map[string]any{"name": tc.name}
 
 		var sw models.Switch
@@ -319,7 +320,7 @@ func TestE2E(t *testing.T) {
 		switches[tc.name] = sw.Id
 
 		if tc.upstream != "" {
-			path := fmt.Sprintf("/switches/%d/upstreams", sw.Id)
+			path := fmt.Sprintf("/switches/%s/upstreams", sw.Id)
 			body := map[string]any{"upstream_switch_id": switches[tc.upstream], "attributes": map[string]any{"from": tc.upstream}}
 			req := newRequest(t, http.MethodPost, path, body)
 			status := c.Send(req, nil)
@@ -327,7 +328,7 @@ func TestE2E(t *testing.T) {
 		}
 	}
 
-	secondUpstreamPath := fmt.Sprintf("/switches/%d/upstreams", switches["switch9"])
+	secondUpstreamPath := fmt.Sprintf("/switches/%s/upstreams", switches["switch9"])
 	secondUpstream := map[string]any{"upstream_switch_id": switches["switch6"]}
 	req = newRequest(t, http.MethodPost, secondUpstreamPath, secondUpstream)
 	require.Equal(t, http.StatusOK, c.Send(req, nil), "link switch9 to switch6")
@@ -343,7 +344,7 @@ func TestE2E(t *testing.T) {
 			{"switch3", "switch11"},
 			{"switch10", "switch10"},
 		} {
-			path := fmt.Sprintf("/switches/%d/upstreams", switches[tc.sw])
+			path := fmt.Sprintf("/switches/%s/upstreams", switches[tc.sw])
 			body := map[string]any{"upstream_switch_id": switches[tc.upstream]}
 
 			req := newRequest(t, http.MethodPost, path, body)
@@ -356,10 +357,10 @@ func TestE2E(t *testing.T) {
 		c := c.with(t)
 		for _, path := range []string{
 			spaceGroupPath,
-			fmt.Sprintf("/spaces/%d", spaces["space1"]),
-			fmt.Sprintf("/spaces/%d/switch-panels", spaces["space1"]),
-			fmt.Sprintf("/spaces/%d/devices", spaces["space1"]),
-			fmt.Sprintf("/switches/%d", root),
+			fmt.Sprintf("/spaces/%s", spaces["space1"]),
+			fmt.Sprintf("/spaces/%s/switch-panels", spaces["space1"]),
+			fmt.Sprintf("/spaces/%s/devices", spaces["space1"]),
+			fmt.Sprintf("/switches/%s", root),
 		} {
 			req := newRequest(t, http.MethodGet, path+"?include=id,unknown", nil)
 			assert.Equal(t, http.StatusBadRequest, c.Send(req, nil), "GET %s", path)
@@ -377,7 +378,7 @@ func TestE2E(t *testing.T) {
 		assert.ElementsMatch(t, idsOf(switches, "switch5", "switch6"), switchIds(upstreams), "upstreams of switch9")
 	})
 
-	devices := make(map[string]int)
+	devices := make(map[string]string)
 	for _, tc := range []struct{ space, name string }{
 		{"space2", "device1"},
 		{"space2", "device2"},
@@ -391,7 +392,7 @@ func TestE2E(t *testing.T) {
 		{"space5", "device10"},
 		{"space5", "device11"},
 	} {
-		path := fmt.Sprintf("/spaces/%d/devices", spaces[tc.space])
+		path := fmt.Sprintf("/spaces/%s/devices", spaces[tc.space])
 		body := map[string]any{"name": tc.name}
 
 		var device models.Device
@@ -417,7 +418,7 @@ func TestE2E(t *testing.T) {
 		{"device10", "switch8"},
 		{"device11", "switch8"},
 	} {
-		path := fmt.Sprintf("/devices/%d/switches", devices[tc.device])
+		path := fmt.Sprintf("/devices/%s/switches", devices[tc.device])
 		body := map[string]any{"switch_id": switches[tc.sw]}
 
 		req := newRequest(t, http.MethodPost, path, body)
@@ -427,7 +428,7 @@ func TestE2E(t *testing.T) {
 
 	t.Run("AttachDeviceRejectsDuplicate", func(t *testing.T) {
 		c := c.with(t)
-		path := fmt.Sprintf("/devices/%d/switches", shared)
+		path := fmt.Sprintf("/devices/%s/switches", shared)
 		body := map[string]any{"switch_id": left}
 
 		req := newRequest(t, http.MethodPost, path, body)
@@ -475,11 +476,11 @@ func TestE2E(t *testing.T) {
 		chain := upstream(c, shared)
 		assert.ElementsMatch(t, want, chainSwitchIds(chain.Switches), "upstream of device9")
 		assert.Len(t, chain.SwitchLinks, len(want)-1, "upstream switch links of device9")
-		linked := make([]int, len(chain.DeviceLinks))
+		linked := make([]string, len(chain.DeviceLinks))
 		for i, l := range chain.DeviceLinks {
 			linked[i] = l.SwitchId
 		}
-		assert.ElementsMatch(t, []int{left, right}, linked, "device links of device9")
+		assert.ElementsMatch(t, []string{left, right}, linked, "device links of device9")
 	})
 
 	t.Run("PowerChainIncludesPanelsAndPositions", func(t *testing.T) {
@@ -487,26 +488,26 @@ func TestE2E(t *testing.T) {
 		panelPosition := models.Position{X: 1, Y: 2, Z: 3}
 		devicePosition := models.Position{X: 4, Y: 5, Z: 6}
 
-		path := fmt.Sprintf("/switch-panels/%d/position", switchPanels["group4"])
+		path := fmt.Sprintf("/switch-panels/%s/position", switchPanels["group4"])
 		req := newRequest(t, http.MethodPut, path, map[string]any{"position": panelPosition})
 		require.Equal(t, http.StatusOK, c.Send(req, nil), "PUT %s", path)
 
-		path = fmt.Sprintf("/devices/%d/position", devices["device8"])
+		path = fmt.Sprintf("/devices/%s/position", devices["device8"])
 		req = newRequest(t, http.MethodPut, path, map[string]any{"position": devicePosition})
 		require.Equal(t, http.StatusOK, c.Send(req, nil), "PUT %s", path)
 
 		assertPanel := func(sw models.ChainSwitch, source string) {
 			t.Helper()
 			panel := sw.SwitchPanel
-			require.NotNil(t, panel, "%s: switch #%d panel", source, sw.Id)
-			require.NotNil(t, panel.Space, "%s: switch #%d panel space", source, sw.Id)
+			require.NotNil(t, panel, "%s: switch #%s panel", source, sw.Id)
+			require.NotNil(t, panel.Space, "%s: switch #%s panel space", source, sw.Id)
 			if panel.Id == switchPanels["group4"] {
 				assert.Equal(t, "group4", panel.Name, "%s: panel name", source)
 				assert.Equal(t, spaces["space4"], panel.Space.Id, "%s: panel space", source)
 				assert.Equal(t, &panelPosition, panel.Position, "%s: panel position", source)
 			} else {
-				assert.NotEmpty(t, panel.Name, "%s: switch #%d panel name", source, sw.Id)
-				assert.Nil(t, panel.Position, "%s: switch #%d panel position", source, sw.Id)
+				assert.NotEmpty(t, panel.Name, "%s: switch #%s panel name", source, sw.Id)
+				assert.Nil(t, panel.Position, "%s: switch #%s panel position", source, sw.Id)
 			}
 		}
 
@@ -518,7 +519,7 @@ func TestE2E(t *testing.T) {
 			if d.Id == devices["device8"] {
 				assert.Equal(t, &devicePosition, d.Position, "downstream device8 position")
 			} else {
-				assert.Nil(t, d.Position, "downstream device #%d position", d.Id)
+				assert.Nil(t, d.Position, "downstream device #%s position", d.Id)
 			}
 		}
 
@@ -528,7 +529,7 @@ func TestE2E(t *testing.T) {
 	})
 
 	spaceId := spaces["space2"]
-	spacePath := fmt.Sprintf("/spaces/%d", spaceId)
+	spacePath := fmt.Sprintf("/spaces/%s", spaceId)
 	backgroundImagePath := spacePath + "/background-image"
 
 	t.Run("SpaceBackgroundImageRoundTrip", func(t *testing.T) {
@@ -585,7 +586,7 @@ func TestE2E(t *testing.T) {
 	t.Run("SpaceBackgroundImageRejectsInvalidUpload", func(t *testing.T) {
 		c := c.with(t)
 		for _, tc := range []struct {
-			space int
+			space string
 			field string
 			data  []byte
 			want  int
@@ -593,11 +594,11 @@ func TestE2E(t *testing.T) {
 			{spaceId, "image", []byte("plain text, not an image"), http.StatusUnsupportedMediaType},
 			{spaceId, "file", pngImage(t, 2), http.StatusBadRequest},
 			{spaceId, "image", make([]byte, 11<<20), http.StatusRequestEntityTooLarge},
-			{0, "image", pngImage(t, 2), http.StatusNotFound},
+			{uuid.Nil.String(), "image", pngImage(t, 2), http.StatusNotFound},
 		} {
 			req := backgroundImageRequest(t, tc.space, tc.field, tc.data)
 			status := c.Send(req, nil)
-			assert.Equal(t, tc.want, status, "upload %q (%d bytes) to space %d", tc.field, len(tc.data), tc.space)
+			assert.Equal(t, tc.want, status, "upload %q (%d bytes) to space %s", tc.field, len(tc.data), tc.space)
 		}
 		status, _, _ := c.BackgroundImage(spaceId, "")
 		assert.Equal(t, http.StatusNotFound, status, "GET background image after rejected uploads")
@@ -605,18 +606,18 @@ func TestE2E(t *testing.T) {
 
 	t.Run("DeleteSpaceRemovesCrossSpaceReferences", func(t *testing.T) {
 		c := c.with(t)
-		removedPath := fmt.Sprintf("/spaces/%d", spaces["space5"])
+		removedPath := fmt.Sprintf("/spaces/%s", spaces["space5"])
 		req := newRequest(t, http.MethodDelete, removedPath, nil)
 		status := c.Send(req, nil)
 		require.Equal(t, http.StatusOK, status, "delete space5")
 
 		for _, path := range []string{
 			removedPath,
-			fmt.Sprintf("/switch-panels/%d", switchPanels["group5"]),
-			fmt.Sprintf("/switches/%d", switches["switch8"]),
-			fmt.Sprintf("/switches/%d", right),
-			fmt.Sprintf("/devices/%d", devices["device10"]),
-			fmt.Sprintf("/devices/%d", devices["device11"]),
+			fmt.Sprintf("/switch-panels/%s", switchPanels["group5"]),
+			fmt.Sprintf("/switches/%s", switches["switch8"]),
+			fmt.Sprintf("/switches/%s", right),
+			fmt.Sprintf("/devices/%s", devices["device10"]),
+			fmt.Sprintf("/devices/%s", devices["device11"]),
 		} {
 			req := newRequest(t, http.MethodGet, path, nil)
 			status := c.Send(req, nil)
@@ -648,7 +649,7 @@ func TestE2E(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, status, "GET %s after delete", spaceGroupPath)
 		for _, tc := range []struct {
 			prefix string
-			ids    map[string]int
+			ids    map[string]string
 		}{
 			{"/spaces", spaces},
 			{"/switch-panels", switchPanels},
@@ -656,7 +657,7 @@ func TestE2E(t *testing.T) {
 			{"/devices", devices},
 		} {
 			for _, id := range tc.ids {
-				path := fmt.Sprintf("%s/%d", tc.prefix, id)
+				path := fmt.Sprintf("%s/%s", tc.prefix, id)
 				req := newRequest(t, http.MethodGet, path, nil)
 				status := c.Send(req, nil)
 				assert.Equal(t, http.StatusNotFound, status, "GET %s after deleting space group", path)

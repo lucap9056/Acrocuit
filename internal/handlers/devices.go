@@ -4,6 +4,7 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func devicesHandlers(r *gin.RouterGroup, base controller) {
 
 func (ctr *devicesController) GetDevice(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -59,7 +60,7 @@ type setDeviceRequest struct {
 
 func (ctr *devicesController) SetDevice(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -80,7 +81,7 @@ func (ctr *devicesController) SetDevice(c *gin.Context) {
 
 func (ctr *devicesController) SetDevicePosition(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -101,7 +102,7 @@ func (ctr *devicesController) SetDevicePosition(c *gin.Context) {
 
 func (ctr *devicesController) DelDevice(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -116,7 +117,7 @@ func (ctr *devicesController) DelDevice(c *gin.Context) {
 
 func (ctr *devicesController) GetDeviceSwitches(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -132,13 +133,13 @@ func (ctr *devicesController) GetDeviceSwitches(c *gin.Context) {
 }
 
 type addDeviceSwitchRequest struct {
-	SwitchId   int               `json:"switch_id" binding:"required"`
+	SwitchId   uuid.UUID         `json:"switch_id" binding:"required"`
 	Attributes models.Attributes `json:"attributes"`
 }
 
 func (ctr *devicesController) AddDeviceSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
@@ -148,7 +149,7 @@ func (ctr *devicesController) AddDeviceSwitch(c *gin.Context) {
 		return
 	}
 
-	link, err := ctr.Devices.AddDeviceSwitch(c.Request.Context(), userEmail, deviceId, req.SwitchId, req.Attributes.OrEmpty())
+	link, err := ctr.Devices.AddDeviceSwitch(c.Request.Context(), userEmail, deviceId, req.SwitchId.String(), req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -159,11 +160,11 @@ func (ctr *devicesController) AddDeviceSwitch(c *gin.Context) {
 
 func (ctr *devicesController) SetDeviceSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -184,11 +185,11 @@ func (ctr *devicesController) SetDeviceSwitch(c *gin.Context) {
 
 func (ctr *devicesController) DelDeviceSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}
-	switchId, ok := intParam(c, paramSwitchID)
+	switchId, ok := uuidParam(c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -203,7 +204,7 @@ func (ctr *devicesController) DelDeviceSwitch(c *gin.Context) {
 
 func (ctr *devicesController) GetDeviceUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	deviceId, ok := intParam(c, paramDeviceID)
+	deviceId, ok := uuidParam(c, paramDeviceID)
 	if !ok {
 		return
 	}

@@ -12,7 +12,7 @@ type sqliteSpaces struct {
 	db *sql.DB
 }
 
-func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId int, include string) ([]models.Space, error) {
+func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId string, include string) ([]models.Space, error) {
 	keys, fields, err := models.ParseSpaceColumns(include)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func querySpaces(ctx context.Context, q querier, fields []uint8, query string, a
 	return spaces, rows.Err()
 }
 
-func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId int, include string) (*models.Space, error) {
+func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId string, include string) (*models.Space, error) {
 	keys, fields, err := models.ParseSpaceColumns(include)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId int, incl
 	return &space, nil
 }
 
-func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId int, name string) (*models.Space, error) {
+func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId string, name string) (*models.Space, error) {
 	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -89,11 +89,12 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId int,
 	return space, nil
 }
 
-func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId int, displayOrder int) ([]models.Space, error) {
+func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, displayOrder int) ([]models.Space, error) {
 	var spaces []models.Space
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		var spaceGroupId, currentOrder int
+		var spaceGroupId string
+		var currentOrder int
 		current := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
 		if err := tx.QueryRowContext(ctx, current, spaceId).Scan(&spaceGroupId, &currentOrder); err != nil {
 			return notFoundIfNoRows(err)
@@ -123,7 +124,7 @@ func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId int, dis
 	return spaces, nil
 }
 
-func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId int, name *string) (*models.Space, error) {
+func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId string, name *string) (*models.Space, error) {
 	space := &models.Space{}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -155,12 +156,12 @@ func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId int, name
 	return space, nil
 }
 
-func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId int) error {
+func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId string) error {
 	query := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
 	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, spaceId))
 }
 
-func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId int) (*models.BackgroundImage, error) {
+func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.BackgroundImage, error) {
 	query := `
 		SELECT ` + schema.FullSpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.FullSpaceBackgroundImages_DATA + `, ` + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT + `
 		FROM ` + schema.SpaceBackgroundImagesTable + `
@@ -176,7 +177,7 @@ func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return image, nil
 }
 
-func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId int, contentType string, data []byte) (*models.Space, error) {
+func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string, contentType string, data []byte) (*models.Space, error) {
 	var space *models.Space
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -204,7 +205,7 @@ func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return space, nil
 }
 
-func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId int) (*models.Space, error) {
+func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.Space, error) {
 	var space *models.Space
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -224,7 +225,7 @@ func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return space, nil
 }
 
-func setBackgroundImageUpdatedAt(ctx context.Context, tx *sql.Tx, spaceId int, updatedAt int64) (*models.Space, error) {
+func setBackgroundImageUpdatedAt(ctx context.Context, tx *sql.Tx, spaceId string, updatedAt int64) (*models.Space, error) {
 	query := `
 		UPDATE ` + schema.SpacesTable + `
 		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1

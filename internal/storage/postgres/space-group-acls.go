@@ -14,7 +14,7 @@ const spaceGroupOwnedBy = `EXISTS (
 		AND owner_acl.` + schema.SpaceGroupACLs_ROLE + ` = '` + schema.SpaceGroupACLs_ROLE_OWNER + `'
 )`
 
-func (s *pgSpaceGroups) GetSpaceGroupMembers(ctx context.Context, userEmail string, spaceGroupId int) (*models.SpaceGroupMembers, error) {
+func (s *pgSpaceGroups) GetSpaceGroupMembers(ctx context.Context, userEmail string, spaceGroupId string) (*models.SpaceGroupMembers, error) {
 	query := `
 		SELECT ` + schema.FullSpaceGroupACLs_USER_EMAIL + `, ` + schema.FullSpaceGroupACLs_ROLE + `
 		FROM ` + schema.SpaceGroupACLsTable + `
@@ -57,7 +57,7 @@ func (s *pgSpaceGroups) GetSpaceGroupMembers(ctx context.Context, userEmail stri
 	return result, nil
 }
 
-func (s *pgSpaceGroups) AddSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId int, memberEmail, role string) error {
+func (s *pgSpaceGroups) AddSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId string, memberEmail, role string) error {
 	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
@@ -91,7 +91,7 @@ func (s *pgSpaceGroups) AddSpaceGroupMember(ctx context.Context, userEmail strin
 	return nil
 }
 
-func (s *pgSpaceGroups) DelSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId int, memberEmail string) error {
+func (s *pgSpaceGroups) DelSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId string, memberEmail string) error {
 	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
@@ -113,7 +113,7 @@ func (s *pgSpaceGroups) DelSpaceGroupMember(ctx context.Context, userEmail strin
 	return nil
 }
 
-func (s *pgSpaceGroups) SetSpaceGroupMemberRole(ctx context.Context, userEmail string, spaceGroupId int, memberEmail, role string) error {
+func (s *pgSpaceGroups) SetSpaceGroupMemberRole(ctx context.Context, userEmail string, spaceGroupId string, memberEmail, role string) error {
 	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
@@ -139,7 +139,7 @@ func (s *pgSpaceGroups) SetSpaceGroupMemberRole(ctx context.Context, userEmail s
 	return nil
 }
 
-func (s *pgSpaceGroups) TransferSpaceGroupOwner(ctx context.Context, userEmail string, spaceGroupId int, memberEmail string) error {
+func (s *pgSpaceGroups) TransferSpaceGroupOwner(ctx context.Context, userEmail string, spaceGroupId string, memberEmail string) error {
 	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
@@ -170,7 +170,7 @@ func (s *pgSpaceGroups) TransferSpaceGroupOwner(ctx context.Context, userEmail s
 	return nil
 }
 
-func (s *pgSpaceGroups) SetSpaceGroupPublic(ctx context.Context, userEmail string, spaceGroupId int, public bool) error {
+func (s *pgSpaceGroups) SetSpaceGroupPublic(ctx context.Context, userEmail string, spaceGroupId string, public bool) error {
 	changePublicAccess := `
 		DELETE FROM ` + schema.SpaceGroupACLsTable + `
 		WHERE ` + schema.FullSpaceGroupACLs_SPACE_GROUP_ID + ` = $1
@@ -202,7 +202,7 @@ func (s *pgSpaceGroups) SetSpaceGroupPublic(ctx context.Context, userEmail strin
 	return nil
 }
 
-func (s *pgSpaceGroups) LeaveSpaceGroup(ctx context.Context, userEmail string, spaceGroupId int) error {
+func (s *pgSpaceGroups) LeaveSpaceGroup(ctx context.Context, userEmail string, spaceGroupId string) error {
 	if userEmail == models.PublicAccessEmail {
 		return repository.ErrAnonymous
 	}

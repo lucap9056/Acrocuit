@@ -17,7 +17,7 @@ const selectSwitchChainWithPanel = `
 	ORDER BY ` + schema.FullSwitches_ID
 
 func switchIdsJSON(switches []models.ChainSwitch) (string, error) {
-	ids := make([]int, len(switches))
+	ids := make([]string, len(switches))
 	for i, sw := range switches {
 		ids[i] = sw.Id
 	}

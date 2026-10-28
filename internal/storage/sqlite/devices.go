@@ -12,7 +12,7 @@ type sqliteDevices struct {
 	db *sql.DB
 }
 
-func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId int, include string) ([]models.Device, error) {
+func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId string, include string) ([]models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId int, i
 	return devices, rows.Err()
 }
 
-func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId int, include string) (*models.Device, error) {
+func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId string, include string) (*models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId int, i
 	return &device, nil
 }
 
-func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId int, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	device := &models.Device{Name: name, SpaceId: spaceId, Position: position, Attributes: attributes}
 
 	err := withTx(ctx, d.db, func(tx *sql.Tx) error {
@@ -91,7 +91,7 @@ func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId int, na
 	return device, nil
 }
 
-func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId int, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId string, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	device := &models.Device{}
 
 	err := withTx(ctx, d.db, func(tx *sql.Tx) error {
@@ -128,16 +128,16 @@ func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId int, n
 	return device, nil
 }
 
-func (d *sqliteDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId int, position models.Position) (*models.Device, error) {
+func (d *sqliteDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId string, position models.Position) (*models.Device, error) {
 	return d.SetDevice(ctx, userEmail, deviceId, nil, &position, nil)
 }
 
-func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId int) error {
+func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId string) error {
 	query := `DELETE FROM ` + schema.DevicesTable + ` WHERE ` + schema.Devices_ID + ` = $1`
 	return notFoundIfNoneAffected(d.db.ExecContext(ctx, query, deviceId))
 }
 
-func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceId int, include string) ([]models.LinkedSwitch, error) {
+func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceId string, include string) ([]models.LinkedSwitch, error) {
 	if err := requireRow(ctx, d.db, schema.DevicesTable, schema.Devices_ID, deviceId); err != nil {
 		return nil, err
 	}
@@ -155,11 +155,11 @@ func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceI
 	return queryLinkedSwitches(ctx, d.db, fields, query, deviceId)
 }
 
-func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId, switchId int, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
 	link := &models.DeviceLink{DeviceId: deviceId, SwitchId: switchId, Attributes: attributes}
 
 	err := withTx(ctx, d.db, func(tx *sql.Tx) error {
-		var spaceGroupId int
+		var spaceGroupId string
 		spaceGroup := `
 			SELECT ` + schema.FullSpaces_SPACE_GROUP_ID + `
 			FROM ` + schema.DevicesTable + `
@@ -188,7 +188,7 @@ func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return link, nil
 }
 
-func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId, switchId int, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
 	query := `
 		UPDATE ` + schema.DeviceSwitchesTable + `
 		SET ` + schema.DeviceSwitches_ATTRIBUTES + ` = $1
@@ -203,7 +203,7 @@ func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return &link, nil
 }
 
-func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId, switchId int) error {
+func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string) error {
 	query := `
 		DELETE FROM ` + schema.DeviceSwitchesTable + `
 		WHERE ` + schema.DeviceSwitches_DEVICE_ID + ` = $1 AND ` + schema.DeviceSwitches_SWITCH_ID + ` = $2
@@ -211,7 +211,7 @@ func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return notFoundIfNoneAffected(d.db.ExecContext(ctx, query, deviceId, switchId))
 }
 
-func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId int) (*models.PowerChain, error) {
+func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId string) (*models.PowerChain, error) {
 	devices, err := queryDevicesWithPosition(ctx, d.db, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
@@ -273,7 +273,7 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 	return chain, nil
 }
 
-func upsertDevicePosition(ctx context.Context, q querier, deviceId int, position models.Position) error {
+func upsertDevicePosition(ctx context.Context, q querier, deviceId string, position models.Position) error {
 	query := `
 		INSERT INTO ` + schema.DevicePositionsTable + ` (` + schema.DevicePositions_DEVICE_ID + `, ` + schema.DevicePositions_POSITION_X + `, ` + schema.DevicePositions_POSITION_Y + `, ` + schema.DevicePositions_POSITION_Z + `)
 		VALUES ($1, $2, $3, $4)

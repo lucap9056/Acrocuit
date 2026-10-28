@@ -1,14 +1,13 @@
-DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, INT, VARCHAR, INT);
-DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, INT, VARCHAR);
+DROP FUNCTION IF EXISTS {{fn_set_space.func}}(TEXT, UUID, VARCHAR);
 
 CREATE OR REPLACE FUNCTION {{fn_set_space.func}}(
     p_user_email TEXT,
-    p_space_id INT,
+    p_space_id UUID,
     p_name VARCHAR(255) DEFAULT NULL
 ) RETURNS TABLE (
-    {{fn_set_space.o_id}} INT,
+    {{fn_set_space.o_id}} UUID,
     {{fn_set_space.o_name}} VARCHAR(255),
-    {{fn_set_space.o_space_group_id}} INT,
+    {{fn_set_space.o_space_group_id}} UUID,
     {{fn_set_space.o_display_order}} INT,
     {{fn_set_space.o_background_image_updated_at}} BIGINT
 ) LANGUAGE plpgsql AS $$
@@ -33,21 +32,21 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_move_space.func}}(TEXT, INT, INT);
+DROP FUNCTION IF EXISTS {{fn_move_space.func}}(TEXT, UUID, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_move_space.func}}(
     p_user_email TEXT,
-    p_space_id INT,
+    p_space_id UUID,
     p_display_order INT
 ) RETURNS TABLE (
-    {{fn_move_space.o_id}} INT,
+    {{fn_move_space.o_id}} UUID,
     {{fn_move_space.o_name}} VARCHAR(255),
-    {{fn_move_space.o_space_group_id}} INT,
+    {{fn_move_space.o_space_group_id}} UUID,
     {{fn_move_space.o_display_order}} INT,
     {{fn_move_space.o_background_image_updated_at}} BIGINT
 ) LANGUAGE plpgsql AS $$
 DECLARE
-    v_space_group_id INT;
+    v_space_group_id UUID;
     v_current_order INT;
     v_delta INT;
 BEGIN
@@ -89,20 +88,18 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR, INT);
-DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR);
-DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, INT, VARCHAR, JSON);
+DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, UUID, VARCHAR, JSON);
 
 CREATE OR REPLACE FUNCTION {{fn_set_switch.func}}(
     p_user_email TEXT,
-    p_switch_id INT,
+    p_switch_id UUID,
     p_name VARCHAR(255) DEFAULT NULL,
     p_attributes JSON DEFAULT NULL
 ) RETURNS TABLE (
-    {{fn_set_switch.o_id}} INT,
+    {{fn_set_switch.o_id}} UUID,
     {{fn_set_switch.o_name}} VARCHAR(255),
-    {{fn_set_switch.o_switch_panel_id}} INT,
-    {{fn_set_switch.o_space_group_id}} INT,
+    {{fn_set_switch.o_switch_panel_id}} UUID,
+    {{fn_set_switch.o_space_group_id}} UUID,
     {{fn_set_switch.o_display_order}} INT,
     {{fn_set_switch.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
@@ -128,22 +125,22 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_move_switch.func}}(TEXT, INT, INT);
+DROP FUNCTION IF EXISTS {{fn_move_switch.func}}(TEXT, UUID, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_move_switch.func}}(
     p_user_email TEXT,
-    p_switch_id INT,
+    p_switch_id UUID,
     p_display_order INT
 ) RETURNS TABLE (
-    {{fn_move_switch.o_id}} INT,
+    {{fn_move_switch.o_id}} UUID,
     {{fn_move_switch.o_name}} VARCHAR(255),
-    {{fn_move_switch.o_switch_panel_id}} INT,
-    {{fn_move_switch.o_space_group_id}} INT,
+    {{fn_move_switch.o_switch_panel_id}} UUID,
+    {{fn_move_switch.o_space_group_id}} UUID,
     {{fn_move_switch.o_display_order}} INT,
     {{fn_move_switch.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
 DECLARE
-    v_switch_panel_id INT;
+    v_switch_panel_id UUID;
     v_current_order INT;
     v_delta INT;
 BEGIN
@@ -185,20 +182,20 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_add_switch_upstream.func}}(TEXT, INT, INT, JSON);
+DROP FUNCTION IF EXISTS {{fn_add_switch_upstream.func}}(TEXT, UUID, UUID, JSON);
 
 CREATE OR REPLACE FUNCTION {{fn_add_switch_upstream.func}}(
     p_user_email TEXT,
-    p_switch_id INT,
-    p_upstream_switch_id INT,
+    p_switch_id UUID,
+    p_upstream_switch_id UUID,
     p_attributes JSON
 ) RETURNS TABLE (
-    {{fn_add_switch_upstream.o_upstream_switch_id}} INT,
-    {{fn_add_switch_upstream.o_downstream_switch_id}} INT,
+    {{fn_add_switch_upstream.o_upstream_switch_id}} UUID,
+    {{fn_add_switch_upstream.o_downstream_switch_id}} UUID,
     {{fn_add_switch_upstream.o_attributes}} JSON
 ) LANGUAGE plpgsql AS $$
 DECLARE
-    v_space_group_id INT;
+    v_space_group_id UUID;
     v_has_cycle BOOLEAN;
 BEGIN
     SELECT b.{{switches.space_group_id}}
@@ -251,18 +248,18 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS {{fn_add_device_switch.func}}(TEXT, INT, INT);
+DROP FUNCTION IF EXISTS {{fn_add_device_switch.func}}(TEXT, UUID, UUID, JSON);
 
 CREATE OR REPLACE FUNCTION {{fn_add_device_switch.func}}(
     p_user_email TEXT,
-    p_device_id INT,
-    p_switch_id INT,
+    p_device_id UUID,
+    p_switch_id UUID,
     p_attributes JSON
 ) RETURNS TABLE (
     {{fn_add_device_switch.o_result}} INT
 ) LANGUAGE plpgsql AS $$
 DECLARE
-    v_space_group_id INT;
+    v_space_group_id UUID;
 BEGIN
     SELECT s.{{spaces.space_group_id}}
     INTO v_space_group_id

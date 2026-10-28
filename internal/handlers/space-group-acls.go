@@ -42,7 +42,7 @@ type spaceGroupPublicRequest struct {
 
 func (ctr *spaceGroupsController) GetSpaceGroupMembers(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -58,7 +58,7 @@ func (ctr *spaceGroupsController) GetSpaceGroupMembers(c *gin.Context) {
 
 func (ctr *spaceGroupsController) AddSpaceGroupMember(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -78,7 +78,7 @@ func (ctr *spaceGroupsController) AddSpaceGroupMember(c *gin.Context) {
 
 func (ctr *spaceGroupsController) SetSpaceGroupMemberRole(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -99,7 +99,7 @@ func (ctr *spaceGroupsController) SetSpaceGroupMemberRole(c *gin.Context) {
 
 func (ctr *spaceGroupsController) DelSpaceGroupMember(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -121,7 +121,7 @@ func (ctr *spaceGroupsController) DelSpaceGroupMember(c *gin.Context) {
 
 func (ctr *spaceGroupsController) TransferSpaceGroupOwner(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -141,7 +141,7 @@ func (ctr *spaceGroupsController) TransferSpaceGroupOwner(c *gin.Context) {
 
 func (ctr *spaceGroupsController) SetSpaceGroupPublic(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := intParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
 	if !ok {
 		return
 	}

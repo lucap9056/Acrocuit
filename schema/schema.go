@@ -175,9 +175,20 @@ const (
 	FilterSpaceGroupACLs_IsOwner  = FullSpaceGroupACLs_ROLE + " = '" + SpaceGroupACLs_ROLE_OWNER + "'"
 )
 
+const sqliteUUIDv7 = `printf('%08x-%04x-%04x-%04x-%012x',
+	CAST(unixepoch('subsec') * 1000 AS INTEGER) >> 16,
+	CAST(unixepoch('subsec') * 1000 AS INTEGER) & 65535,
+	28672 | (random() & 4095),
+	32768 | (random() & 16383),
+	random() & 281474976710655
+)`
+
 var funcMap = template.FuncMap{
 	"attributes_max_bytes": func() int {
 		return AttributesMaxBytes
+	},
+	"sqlite_uuidv7": func() string {
+		return sqliteUUIDv7
 	},
 	SpaceGroupsTable: func() map[string]string {
 		return map[string]string{

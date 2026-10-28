@@ -26,7 +26,7 @@ var backgroundImageTypes = map[string]bool{
 
 func (ctr *spacesController) GetBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := intParam(c, paramSpaceID)
+	spaceId, ok := uuidParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -51,7 +51,7 @@ func (ctr *spacesController) GetBackgroundImage(c *gin.Context) {
 
 func (ctr *spacesController) SetBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := intParam(c, paramSpaceID)
+	spaceId, ok := uuidParam(c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -78,7 +78,7 @@ func (ctr *spacesController) SetBackgroundImage(c *gin.Context) {
 
 func (ctr *spacesController) DelBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := intParam(c, paramSpaceID)
+	spaceId, ok := uuidParam(c, paramSpaceID)
 	if !ok {
 		return
 	}

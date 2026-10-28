@@ -12,7 +12,7 @@ type sqliteSwitches struct {
 	db *sql.DB
 }
 
-func (s *sqliteSwitches) GetSwitches(ctx context.Context, _ string, switchPanelId int, include string) ([]models.Switch, error) {
+func (s *sqliteSwitches) GetSwitches(ctx context.Context, _ string, switchPanelId string, include string) ([]models.Switch, error) {
 	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (s *sqliteSwitches) GetSwitches(ctx context.Context, _ string, switchPanelI
 	return querySwitches(ctx, s.db, fields, query, switchPanelId)
 }
 
-func (s *sqliteSwitches) GetSwitch(ctx context.Context, _ string, switchId int, include string) (*models.Switch, error) {
+func (s *sqliteSwitches) GetSwitch(ctx context.Context, _ string, switchId string, include string) (*models.Switch, error) {
 	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (s *sqliteSwitches) GetSwitch(ctx context.Context, _ string, switchId int, 
 	return &sw, nil
 }
 
-func (s *sqliteSwitches) AddSwitch(ctx context.Context, _ string, switchPanelId int, name string, attributes models.Attributes) (*models.Switch, error) {
+func (s *sqliteSwitches) AddSwitch(ctx context.Context, _ string, switchPanelId string, name string, attributes models.Attributes) (*models.Switch, error) {
 	sw := &models.Switch{Name: name, SwitchPanelId: switchPanelId, Attributes: attributes}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -70,11 +70,12 @@ func (s *sqliteSwitches) AddSwitch(ctx context.Context, _ string, switchPanelId 
 	return sw, nil
 }
 
-func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId int, displayOrder int) ([]models.Switch, error) {
+func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId string, displayOrder int) ([]models.Switch, error) {
 	var switches []models.Switch
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		var switchPanelId, currentOrder int
+		var switchPanelId string
+		var currentOrder int
 		current := `SELECT ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_DISPLAY_ORDER + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
 		if err := tx.QueryRowContext(ctx, current, switchId).Scan(&switchPanelId, &currentOrder); err != nil {
 			return notFoundIfNoRows(err)
@@ -104,7 +105,7 @@ func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId int,
 	return switches, nil
 }
 
-func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId int, name *string, attributes models.Attributes) (*models.Switch, error) {
+func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId string, name *string, attributes models.Attributes) (*models.Switch, error) {
 	var sw *models.Switch
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
@@ -129,12 +130,12 @@ func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId int, 
 	return sw, nil
 }
 
-func (s *sqliteSwitches) DelSwitch(ctx context.Context, _ string, switchId int) error {
+func (s *sqliteSwitches) DelSwitch(ctx context.Context, _ string, switchId string) error {
 	query := `DELETE FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
 	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, switchId))
 }
 
-func (s *sqliteSwitches) GetSwitchUpstreams(ctx context.Context, _ string, switchId int, include string) ([]models.LinkedSwitch, error) {
+func (s *sqliteSwitches) GetSwitchUpstreams(ctx context.Context, _ string, switchId string, include string) ([]models.LinkedSwitch, error) {
 	if err := requireRow(ctx, s.db, schema.SwitchesTable, schema.Switches_ID, switchId); err != nil {
 		return nil, err
 	}
@@ -153,11 +154,11 @@ func (s *sqliteSwitches) GetSwitchUpstreams(ctx context.Context, _ string, switc
 	return queryLinkedSwitches(ctx, s.db, fields, query, switchId)
 }
 
-func (s *sqliteSwitches) AddSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId int, attributes models.Attributes) (*models.SwitchLink, error) {
+func (s *sqliteSwitches) AddSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId string, attributes models.Attributes) (*models.SwitchLink, error) {
 	link := &models.SwitchLink{UpstreamSwitchId: upstreamSwitchId, DownstreamSwitchId: switchId, Attributes: attributes}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		var spaceGroupId int
+		var spaceGroupId string
 		spaceGroup := `SELECT ` + schema.Switches_SPACE_GROUP_ID + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
 		if err := tx.QueryRowContext(ctx, spaceGroup, switchId).Scan(&spaceGroupId); err != nil {
 			return notFoundIfNoRows(err)
@@ -208,7 +209,7 @@ func (s *sqliteSwitches) AddSwitchUpstream(ctx context.Context, _ string, switch
 	return link, nil
 }
 
-func (s *sqliteSwitches) SetSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId int, attributes models.Attributes) (*models.SwitchLink, error) {
+func (s *sqliteSwitches) SetSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId string, attributes models.Attributes) (*models.SwitchLink, error) {
 	query := `
 		UPDATE ` + schema.SwitchLinksTable + `
 		SET ` + schema.SwitchLinks_ATTRIBUTES + ` = $1
@@ -223,7 +224,7 @@ func (s *sqliteSwitches) SetSwitchUpstream(ctx context.Context, _ string, switch
 	return &link, nil
 }
 
-func (s *sqliteSwitches) DelSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId int) error {
+func (s *sqliteSwitches) DelSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId string) error {
 	query := `
 		DELETE FROM ` + schema.SwitchLinksTable + `
 		WHERE ` + schema.SwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $1 AND ` + schema.SwitchLinks_UPSTREAM_SWITCH_ID + ` = $2
@@ -231,7 +232,7 @@ func (s *sqliteSwitches) DelSwitchUpstream(ctx context.Context, _ string, switch
 	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, switchId, upstreamSwitchId))
 }
 
-func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, switchId int) (*models.PowerChain, error) {
+func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, switchId string) (*models.PowerChain, error) {
 	query := `
 		WITH RECURSIVE switch_chain(id) AS (
 			SELECT ` + schema.FullSwitches_ID + `
@@ -298,7 +299,7 @@ func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, swit
 	return chain, nil
 }
 
-func requireSwitchInSpaceGroup(ctx context.Context, q querier, switchId, spaceGroupId int) error {
+func requireSwitchInSpaceGroup(ctx context.Context, q querier, switchId, spaceGroupId string) error {
 	found, err := exists(ctx, q, `
 		SELECT 1 FROM `+schema.SwitchesTable+`
 		WHERE `+schema.Switches_ID+` = $1 AND `+schema.Switches_SPACE_GROUP_ID+` = $2
@@ -312,7 +313,7 @@ func requireSwitchInSpaceGroup(ctx context.Context, q querier, switchId, spaceGr
 	return nil
 }
 
-func selectSwitch(ctx context.Context, q querier, switchId int) (*models.Switch, error) {
+func selectSwitch(ctx context.Context, q querier, switchId string) (*models.Switch, error) {
 	query := `SELECT ` + models.SWITCH_ALL_COLUMNS + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.FullSwitches_ID + ` = $1`
 
 	sw := &models.Switch{}

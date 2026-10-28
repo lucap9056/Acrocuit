@@ -9,7 +9,7 @@ import (
 const SPACE_GROUP_ALL_COLUMNS = schema.FullSpaceGroups_ID + "," + schema.FullSpaceGroups_NAME
 
 type SpaceGroup struct {
-	Id   int    `json:"id"`
+	Id   string `json:"id"`
 	Name string `json:"name"`
 	Role string `json:"role"`
 }

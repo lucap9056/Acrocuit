@@ -39,18 +39,18 @@ func (s *sqliteSpaceGroups) GetSpaceGroups(ctx context.Context, _, include strin
 	return spaceGroups, rows.Err()
 }
 
-func (s *sqliteSpaceGroups) AddSpaceGroup(ctx context.Context, _, name string) (int, error) {
+func (s *sqliteSpaceGroups) AddSpaceGroup(ctx context.Context, _, name string) (string, error) {
 	query := `INSERT INTO ` + schema.SpaceGroupsTable + ` (` + schema.SpaceGroups_NAME + `) VALUES ($1) RETURNING ` + schema.SpaceGroups_ID
 
-	var spaceGroupId int
+	var spaceGroupId string
 	if err := s.db.QueryRowContext(ctx, query, name).Scan(&spaceGroupId); err != nil {
-		return 0, err
+		return "", err
 	}
 
 	return spaceGroupId, nil
 }
 
-func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGroupId int, include string) (*models.SpaceGroup, error) {
+func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGroupId string, include string) (*models.SpaceGroup, error) {
 	keys, fields, err := models.ParseSpaceGroupColumns(include, sqliteSpaceGroupRole)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGr
 	return sg, nil
 }
 
-func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, spaceGroupId int, name string) (*models.SpaceGroup, error) {
+func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, spaceGroupId string, name string) (*models.SpaceGroup, error) {
 	query := `UPDATE ` + schema.SpaceGroupsTable + ` SET ` + schema.SpaceGroups_NAME + ` = $1 WHERE ` + schema.SpaceGroups_ID + ` = $2
 		RETURNING ` + schema.SpaceGroups_ID + `, ` + schema.SpaceGroups_NAME + `, ` + sqliteSpaceGroupRole
 
@@ -78,7 +78,7 @@ func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, sp
 	return sg, nil
 }
 
-func (s *sqliteSpaceGroups) DelSpaceGroup(ctx context.Context, _ string, spaceGroupId int) error {
+func (s *sqliteSpaceGroups) DelSpaceGroup(ctx context.Context, _ string, spaceGroupId string) error {
 	query := `DELETE FROM ` + schema.SpaceGroupsTable + ` WHERE ` + schema.SpaceGroups_ID + ` = $1`
 	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, spaceGroupId))
 }

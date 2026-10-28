@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -87,7 +88,7 @@ func attributes(t *testing.T, path string, v any) {
 
 func spaceGroupShape() shape {
 	return object(map[string]shape{
-		"id":   integer,
+		"id":   text,
 		"name": text,
 		"role": text,
 	})
@@ -95,7 +96,7 @@ func spaceGroupShape() shape {
 
 func spaceShape() shape {
 	return object(map[string]shape{
-		"id":                          integer,
+		"id":                          text,
 		"name":                        text,
 		"display_order":               integer,
 		"background_image_updated_at": integer,
@@ -121,7 +122,7 @@ func switchPanelRefShape() shape {
 
 func switchPanelShapeWith(attributesShape shape) shape {
 	return object(map[string]shape{
-		"id":         integer,
+		"id":         text,
 		"name":       text,
 		"attributes": attributesShape,
 		"space":      nullable(spaceShape()),
@@ -131,7 +132,7 @@ func switchPanelShapeWith(attributesShape shape) shape {
 
 func switchShape() shape {
 	return object(map[string]shape{
-		"id":            integer,
+		"id":            text,
 		"name":          text,
 		"display_order": integer,
 		"attributes":    attributes,
@@ -141,7 +142,7 @@ func switchShape() shape {
 
 func linkedSwitchShape() shape {
 	return object(map[string]shape{
-		"id":            integer,
+		"id":            text,
 		"name":          text,
 		"display_order": integer,
 		"attributes":    attributes,
@@ -154,7 +155,7 @@ func linkedSwitchShape() shape {
 
 func deviceShape() shape {
 	return object(map[string]shape{
-		"id":         integer,
+		"id":         text,
 		"name":       text,
 		"attributes": attributes,
 		"space":      nullable(spaceShape()),
@@ -164,16 +165,16 @@ func deviceShape() shape {
 
 func switchLinkShape() shape {
 	return object(map[string]shape{
-		"upstream_switch_id":   integer,
-		"downstream_switch_id": integer,
+		"upstream_switch_id":   text,
+		"downstream_switch_id": text,
 		"attributes":           attributes,
 	})
 }
 
 func deviceLinkShape() shape {
 	return object(map[string]shape{
-		"device_id":  integer,
-		"switch_id":  integer,
+		"device_id":  text,
+		"switch_id":  text,
 		"attributes": attributes,
 	})
 }
@@ -281,9 +282,9 @@ func expectPosition(t *testing.T, v any, x, y, z int) {
 	expectInt(t, v, z, "position", "z")
 }
 
-func mustId(t *testing.T, v any) int {
+func mustId(t *testing.T, v any) string {
 	t.Helper()
-	id, ok := intField(t, v, "id")
+	id, ok := field(t, v, "id").(string)
 	require.True(t, ok, "data.id")
 	return id
 }
@@ -304,7 +305,7 @@ func TestContract(t *testing.T) {
 	req := newRequest(t, http.MethodPost, "/space-groups", body)
 	data := c.checkShape(req, http.StatusOK, successShape(spaceGroupShape()))
 	spaceGroupId := mustId(t, data)
-	spaceGroupPath := fmt.Sprintf("/space-groups/%d", spaceGroupId)
+	spaceGroupPath := fmt.Sprintf("/space-groups/%s", spaceGroupId)
 	t.Cleanup(func() {
 		req := newRequest(t, http.MethodDelete, spaceGroupPath, nil)
 		c.Send(req, nil)
@@ -314,47 +315,47 @@ func TestContract(t *testing.T) {
 	req = newRequest(t, http.MethodPost, spaceGroupPath+"/spaces", body)
 	data = c.checkShape(req, http.StatusOK, successShape(spaceShape()))
 	spaceId := mustId(t, data)
-	expectInt(t, data, spaceGroupId, "space_group", "id")
-	spacePath := fmt.Sprintf("/spaces/%d", spaceId)
+	expectText(t, data, spaceGroupId, "space_group", "id")
+	spacePath := fmt.Sprintf("/spaces/%s", spaceId)
 
 	body = map[string]any{"name": "switch panel", "position": map[string]int{"x": 1, "y": 2, "z": 3}, "attributes": map[string]any{"location": "B1"}}
 	req = newRequest(t, http.MethodPost, spacePath+"/switch-panels", body)
 	data = c.checkShape(req, http.StatusOK, successShape(switchPanelShape()))
 	switchPanelId := mustId(t, data)
-	expectInt(t, data, spaceId, "space", "id")
+	expectText(t, data, spaceId, "space", "id")
 	expectPosition(t, data, 1, 2, 3)
 	expectText(t, data, "B1", "attributes", "location")
-	switchPanelPath := fmt.Sprintf("/switch-panels/%d", switchPanelId)
+	switchPanelPath := fmt.Sprintf("/switch-panels/%s", switchPanelId)
 
 	body = map[string]any{"name": "root", "attributes": map[string]any{"rating": 32}}
 	req = newRequest(t, http.MethodPost, switchPanelPath+"/switches", body)
 	data = c.checkShape(req, http.StatusOK, successShape(switchShape()))
 	rootId := mustId(t, data)
-	expectInt(t, data, switchPanelId, "switch_panel", "id")
+	expectText(t, data, switchPanelId, "switch_panel", "id")
 	expectInt(t, data, 32, "attributes", "rating")
-	rootPath := fmt.Sprintf("/switches/%d", rootId)
+	rootPath := fmt.Sprintf("/switches/%s", rootId)
 
 	body = map[string]any{"name": "child"}
 	req = newRequest(t, http.MethodPost, switchPanelPath+"/switches", body)
 	data = c.checkShape(req, http.StatusOK, successShape(switchShape()))
 	childId := mustId(t, data)
 	expectEmptyObject(t, data, "attributes")
-	childPath := fmt.Sprintf("/switches/%d", childId)
+	childPath := fmt.Sprintf("/switches/%s", childId)
 
 	body = map[string]any{"upstream_switch_id": rootId}
 	req = newRequest(t, http.MethodPost, childPath+"/upstreams", body)
 	data = c.checkShape(req, http.StatusOK, successShape(switchLinkShape()))
-	expectInt(t, data, rootId, "upstream_switch_id")
-	expectInt(t, data, childId, "downstream_switch_id")
-	upstreamPath := fmt.Sprintf("%s/upstreams/%d", childPath, rootId)
+	expectText(t, data, rootId, "upstream_switch_id")
+	expectText(t, data, childId, "downstream_switch_id")
+	upstreamPath := fmt.Sprintf("%s/upstreams/%s", childPath, rootId)
 
 	body = map[string]any{"name": "device", "position": map[string]int{"x": 1, "y": 2, "z": 3}}
 	req = newRequest(t, http.MethodPost, spacePath+"/devices", body)
 	data = c.checkShape(req, http.StatusOK, successShape(deviceShape()))
 	deviceId := mustId(t, data)
-	expectInt(t, data, spaceId, "space", "id")
+	expectText(t, data, spaceId, "space", "id")
 	expectPosition(t, data, 1, 2, 3)
-	devicePath := fmt.Sprintf("/devices/%d", deviceId)
+	devicePath := fmt.Sprintf("/devices/%s", deviceId)
 
 	body = map[string]any{"switch_id": childId, "attributes": map[string]any{"socket": "A1"}}
 	req = newRequest(t, http.MethodPost, devicePath+"/switches", body)
@@ -381,7 +382,7 @@ func TestContract(t *testing.T) {
 		c := c.with(t)
 		req := newRequest(t, http.MethodGet, spacePath, nil)
 		data := c.checkShape(req, http.StatusOK, successShape(spaceShape()))
-		expectInt(t, data, spaceGroupId, "space_group", "id")
+		expectText(t, data, spaceGroupId, "space_group", "id")
 
 		for _, tc := range []struct {
 			method, path string
@@ -406,7 +407,7 @@ func TestContract(t *testing.T) {
 		c := c.with(t)
 		req := newRequest(t, http.MethodGet, switchPanelPath, nil)
 		data := c.checkShape(req, http.StatusOK, successShape(switchPanelShape()))
-		expectInt(t, data, spaceId, "space", "id")
+		expectText(t, data, spaceId, "space", "id")
 
 		for _, tc := range []struct {
 			method, path string
@@ -441,7 +442,7 @@ func TestContract(t *testing.T) {
 		c := c.with(t)
 		req := newRequest(t, http.MethodGet, childPath, nil)
 		data := c.checkShape(req, http.StatusOK, successShape(switchShape()))
-		expectInt(t, data, switchPanelId, "switch_panel", "id")
+		expectText(t, data, switchPanelId, "switch_panel", "id")
 
 		for _, tc := range []struct {
 			method, path string
@@ -475,15 +476,15 @@ func TestContract(t *testing.T) {
 
 		req = newRequest(t, http.MethodGet, childPath+"/upstreams", nil)
 		data = c.checkShape(req, http.StatusOK, successShape(arrayOf(linkedSwitchShape())))
-		expectInt(t, data, rootId, "0", "id")
+		expectText(t, data, rootId, "0", "id")
 		expectInt(t, data, 32, "0", "attributes", "rating")
 		expectText(t, data, "5.5mm2", "0", "link", "attributes", "cable")
 
 		req = newRequest(t, http.MethodGet, rootPath+"/downstream", nil)
 		data = c.checkShape(req, http.StatusOK, successShape(powerChainShape()))
-		expectInt(t, data, rootId, "switch_links", "0", "upstream_switch_id")
+		expectText(t, data, rootId, "switch_links", "0", "upstream_switch_id")
 		expectText(t, data, "5.5mm2", "switch_links", "0", "attributes", "cable")
-		expectInt(t, data, childId, "device_links", "0", "switch_id")
+		expectText(t, data, childId, "device_links", "0", "switch_id")
 		expectText(t, data, "A1", "device_links", "0", "attributes", "socket")
 	})
 
@@ -491,7 +492,7 @@ func TestContract(t *testing.T) {
 		c := c.with(t)
 		req := newRequest(t, http.MethodGet, devicePath, nil)
 		data := c.checkShape(req, http.StatusOK, successShape(deviceShape()))
-		expectInt(t, data, spaceId, "space", "id")
+		expectText(t, data, spaceId, "space", "id")
 
 		body := map[string]any{"position": map[string]int{"x": 4, "y": 5, "z": 6}}
 		req = newRequest(t, http.MethodPut, devicePath+"/position", body)
@@ -504,7 +505,7 @@ func TestContract(t *testing.T) {
 		expectInt(t, data, 1500, "attributes", "watts")
 		expectPosition(t, data, 4, 5, 6)
 
-		detachPath := fmt.Sprintf("%s/switches/%d", devicePath, childId)
+		detachPath := fmt.Sprintf("%s/switches/%s", devicePath, childId)
 		body = map[string]any{"attributes": map[string]any{"socket": "B2"}}
 		req = newRequest(t, http.MethodPut, detachPath, body)
 		data = c.checkShape(req, http.StatusOK, successShape(deviceLinkShape()))
@@ -512,13 +513,13 @@ func TestContract(t *testing.T) {
 
 		req = newRequest(t, http.MethodGet, devicePath+"/switches", nil)
 		data = c.checkShape(req, http.StatusOK, successShape(arrayOf(linkedSwitchShape())))
-		expectInt(t, data, childId, "0", "id")
+		expectText(t, data, childId, "0", "id")
 		expectInt(t, data, 16, "0", "attributes", "rating")
 		expectText(t, data, "B2", "0", "link", "attributes", "socket")
 
 		req = newRequest(t, http.MethodGet, devicePath+"/upstream", nil)
 		data = c.checkShape(req, http.StatusOK, successShape(powerChainShape()))
-		expectInt(t, data, deviceId, "devices", "0", "id")
+		expectText(t, data, deviceId, "devices", "0", "id")
 		expectInt(t, data, 1500, "devices", "0", "attributes", "watts")
 		expectText(t, data, "B2", "device_links", "0", "attributes", "socket")
 		expectText(t, data, "5.5mm2", "switch_links", "0", "attributes", "cable")
@@ -545,13 +546,13 @@ func TestContract(t *testing.T) {
 			body         any
 			want         int
 		}{
-			{http.MethodGet, "/spaces/0", nil, http.StatusNotFound},
+			{http.MethodGet, "/spaces/" + uuid.Nil.String(), nil, http.StatusNotFound},
 			{http.MethodGet, "/spaces/abc", nil, http.StatusBadRequest},
 			{http.MethodPost, "/space-groups", map[string]any{}, http.StatusBadRequest},
 			{http.MethodPost, rootPath + "/upstreams", map[string]any{"upstream_switch_id": rootId}, http.StatusBadRequest},
 			{http.MethodPost, rootPath + "/upstreams", map[string]any{"upstream_switch_id": childId}, http.StatusBadRequest},
 			{http.MethodPost, childPath + "/upstreams", map[string]any{"upstream_switch_id": rootId}, http.StatusConflict},
-			{http.MethodPut, rootPath + "/upstreams/0", map[string]any{"attributes": map[string]any{}}, http.StatusNotFound},
+			{http.MethodPut, rootPath + "/upstreams/" + uuid.Nil.String(), map[string]any{"attributes": map[string]any{}}, http.StatusNotFound},
 			{http.MethodPut, upstreamPath, map[string]any{}, http.StatusBadRequest},
 			{http.MethodPut, devicePath, map[string]any{"attributes": []int{1}}, http.StatusBadRequest},
 			{http.MethodPut, devicePath, map[string]any{"attributes": "text"}, http.StatusBadRequest},

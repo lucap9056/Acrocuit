@@ -8,18 +8,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-func intParam(c *gin.Context, name string) (int, bool) {
-	v, err := strconv.Atoi(c.Param(name))
+func uuidParam(c *gin.Context, name string) (string, bool) {
+	v, err := uuid.Parse(c.Param(name))
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, fmt.Sprintf("invalid %s", name))
-		return 0, false
+		return "", false
 	}
-	return v, true
+	return v.String(), true
 }
 
 func requireUser(c *gin.Context) {
