@@ -89,6 +89,7 @@ func spaceGroupShape() shape {
 	return object(map[string]shape{
 		"id":   integer,
 		"name": text,
+		"role": text,
 	})
 }
 

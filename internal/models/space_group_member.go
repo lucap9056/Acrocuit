@@ -1,5 +1,7 @@
 package models
 
+const PublicAccessEmail = "@nyone"
+
 type SpaceGroupMember struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`

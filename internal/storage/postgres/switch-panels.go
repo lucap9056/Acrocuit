@@ -36,7 +36,7 @@ func (panel *pgSwitchPanels) GetSwitchPanels(ctx context.Context, userEmail stri
 			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
 		  )`
 
-	rows, err := panel.pool.Query(ctx, query, spaceId, userEmail, publicAccessEmail)
+	rows, err := panel.pool.Query(ctx, query, spaceId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail strin
 		  )`
 
 	var group models.SwitchPanel
-	err = panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, publicAccessEmail).Scan(group.Values(fields)...)
+	err = panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, models.PublicAccessEmail).Scan(group.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}

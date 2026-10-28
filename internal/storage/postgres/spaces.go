@@ -32,7 +32,7 @@ func (s *pgSpaces) GetSpaces(ctx context.Context, userEmail string, spaceGroupId
 			)
 		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
 
-	rows, err := s.pool.Query(ctx, query, spaceGroupId, userEmail, publicAccessEmail)
+	rows, err := s.pool.Query(ctx, query, spaceGroupId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *pgSpaces) GetSpace(ctx context.Context, userEmail string, spaceId int, 
             )`
 
 	var space models.Space
-	err = s.pool.QueryRow(ctx, query, spaceId, userEmail, publicAccessEmail).Scan(space.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, spaceId, userEmail, models.PublicAccessEmail).Scan(space.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -203,7 +203,7 @@ func (s *pgSpaces) GetSpaceBackgroundImage(ctx context.Context, userEmail string
 	`
 
 	image := &models.BackgroundImage{}
-	err := s.pool.QueryRow(ctx, query, spaceId, userEmail, publicAccessEmail).Scan(&image.ContentType, &image.Data, &image.UpdatedAt)
+	err := s.pool.QueryRow(ctx, query, spaceId, userEmail, models.PublicAccessEmail).Scan(&image.ContentType, &image.Data, &image.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}

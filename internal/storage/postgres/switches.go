@@ -34,7 +34,7 @@ func (s *pgSwitches) GetSwitches(ctx context.Context, userEmail string, switchPa
 		  )
 		ORDER BY ` + schema.FullSwitches_DISPLAY_ORDER
 
-	rows, err := s.pool.Query(ctx, query, switchPanelId, userEmail, publicAccessEmail)
+	rows, err := s.pool.Query(ctx, query, switchPanelId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId i
 		  )`
 
 	var sw models.Switch
-	err = s.pool.QueryRow(ctx, query, switchId, userEmail, publicAccessEmail).Scan(sw.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, switchId, userEmail, models.PublicAccessEmail).Scan(sw.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -195,7 +195,7 @@ func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, s
 		)
 	`
 	var exists bool
-	if err := s.pool.QueryRow(ctx, existsQuery, switchId, userEmail, publicAccessEmail).Scan(&exists); err != nil {
+	if err := s.pool.QueryRow(ctx, existsQuery, switchId, userEmail, models.PublicAccessEmail).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
@@ -321,7 +321,7 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 		JOIN `+schema.SwitchPanelsTable+` ON `+schema.JoinSwitches_SwitchPanels+`
 		LEFT JOIN `+schema.SwitchPanelPositionsTable+` ON `+schema.JoinSwitchPanelPositions_SwitchPanels+`
 		ORDER BY `+schema.FullSwitches_ID+`
-	`, switchId, userEmail, publicAccessEmail)
+	`, switchId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}

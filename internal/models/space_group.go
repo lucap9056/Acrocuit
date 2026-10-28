@@ -11,11 +11,12 @@ const SPACE_GROUP_ALL_COLUMNS = schema.FullSpaceGroups_ID + "," + schema.FullSpa
 type SpaceGroup struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
+	Role string `json:"role"`
 }
 
-func ParseSpaceGroupColumns(columnsStr string) (string, []uint8, error) {
+func ParseSpaceGroupColumns(columnsStr, roleColumn string) (string, []uint8, error) {
 	if strings.TrimSpace(columnsStr) == "" {
-		return SPACE_GROUP_ALL_COLUMNS, []uint8{0, 1}, nil
+		return SPACE_GROUP_ALL_COLUMNS + "," + roleColumn, []uint8{0, 1, 2}, nil
 	}
 
 	collector := newColumnCollector(columnsStr)
@@ -30,6 +31,8 @@ func ParseSpaceGroupColumns(columnsStr string) (string, []uint8, error) {
 			collector.Append(0, schema.FullSpaceGroups_ID)
 		case schema.SpaceGroups_NAME, schema.FullSpaceGroups_NAME:
 			collector.Append(1, schema.FullSpaceGroups_NAME)
+		case schema.SpaceGroupACLs_ROLE:
+			collector.Append(2, roleColumn)
 		default:
 			return "", nil, fmt.Errorf("%w: %s", ErrInvalidColumn, col)
 		}
@@ -47,6 +50,8 @@ func (sg *SpaceGroup) Values(fields []uint8) []any {
 			values[i] = &sg.Id
 		case 1:
 			values[i] = &sg.Name
+		case 2:
+			values[i] = &sg.Role
 		}
 	}
 	return values

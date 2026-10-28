@@ -4,6 +4,7 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
+	"acrocuit/schema"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -64,7 +65,7 @@ func (ctr *spaceGroupsController) AddSpaceGroup(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, models.SpaceGroup{Id: id, Name: req.Name})
+	response.OK(c, models.SpaceGroup{Id: id, Name: req.Name, Role: schema.SpaceGroupACLs_ROLE_OWNER})
 }
 
 func (ctr *spaceGroupsController) GetSpaceGroup(c *gin.Context) {
@@ -96,12 +97,13 @@ func (ctr *spaceGroupsController) EditSpaceGroupName(c *gin.Context) {
 		return
 	}
 
-	if err := ctr.SpaceGroups.EditSpaceGroupName(c.Request.Context(), userEmail, spaceGroupId, req.Name); err != nil {
+	spaceGroup, err := ctr.SpaceGroups.EditSpaceGroupName(c.Request.Context(), userEmail, spaceGroupId, req.Name)
+	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.OK(c, models.SpaceGroup{Id: spaceGroupId, Name: req.Name})
+	response.OK(c, spaceGroup)
 }
 
 func (ctr *spaceGroupsController) DelSpaceGroup(c *gin.Context) {

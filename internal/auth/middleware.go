@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"acrocuit/internal/models"
 	"acrocuit/internal/options"
 	"acrocuit/internal/response"
 	"errors"
@@ -48,7 +49,7 @@ func requireForwardedHeader() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		email := strings.TrimSpace(c.GetHeader(UserEmailHeader))
 		if email == "" {
-			response.AbortError(c, http.StatusUnauthorized, "Missing or invalid identity.")
+			allowAnonymous(c)
 			return
 		}
 
@@ -69,7 +70,13 @@ func requireIdentityToken(identitySecret string) (gin.HandlerFunc, error) {
 	)
 
 	return func(c *gin.Context) {
-		email, err := parseIdentity(parser, secret, c.GetHeader(IdentityHeader))
+		token := c.GetHeader(IdentityHeader)
+		if token == "" {
+			allowAnonymous(c)
+			return
+		}
+
+		email, err := parseIdentity(parser, secret, token)
 		if err != nil {
 			response.AbortError(c, http.StatusUnauthorized, "Missing or invalid identity.")
 			return
@@ -80,11 +87,12 @@ func requireIdentityToken(identitySecret string) (gin.HandlerFunc, error) {
 	}, nil
 }
 
-func parseIdentity(parser *jwt.Parser, secret []byte, token string) (string, error) {
-	if token == "" {
-		return "", errInvalidIdentity
-	}
+func allowAnonymous(c *gin.Context) {
+	c.Set(contextUserEmailKey, models.PublicAccessEmail)
+	c.Next()
+}
 
+func parseIdentity(parser *jwt.Parser, secret []byte, token string) (string, error) {
 	var claims jwt.RegisteredClaims
 	_, err := parser.ParseWithClaims(token, &claims, func(t *jwt.Token) (any, error) {
 		if t.Header["typ"] != identityTokenType {

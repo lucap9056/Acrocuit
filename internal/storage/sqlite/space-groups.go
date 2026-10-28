@@ -7,12 +7,14 @@ import (
 	"database/sql"
 )
 
+const sqliteSpaceGroupRole = `'` + schema.SpaceGroupACLs_ROLE_OWNER + `'`
+
 type sqliteSpaceGroups struct {
 	db *sql.DB
 }
 
 func (s *sqliteSpaceGroups) GetSpaceGroups(ctx context.Context, _, include string) ([]models.SpaceGroup, error) {
-	keys, fields, err := models.ParseSpaceGroupColumns(include)
+	keys, fields, err := models.ParseSpaceGroupColumns(include, sqliteSpaceGroupRole)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +51,7 @@ func (s *sqliteSpaceGroups) AddSpaceGroup(ctx context.Context, _, name string) (
 }
 
 func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGroupId int, include string) (*models.SpaceGroup, error) {
-	keys, fields, err := models.ParseSpaceGroupColumns(include)
+	keys, fields, err := models.ParseSpaceGroupColumns(include, sqliteSpaceGroupRole)
 	if err != nil {
 		return nil, err
 	}
@@ -64,9 +66,16 @@ func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGr
 	return sg, nil
 }
 
-func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, spaceGroupId int, name string) error {
-	query := `UPDATE ` + schema.SpaceGroupsTable + ` SET ` + schema.SpaceGroups_NAME + ` = $1 WHERE ` + schema.SpaceGroups_ID + ` = $2`
-	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, name, spaceGroupId))
+func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, spaceGroupId int, name string) (*models.SpaceGroup, error) {
+	query := `UPDATE ` + schema.SpaceGroupsTable + ` SET ` + schema.SpaceGroups_NAME + ` = $1 WHERE ` + schema.SpaceGroups_ID + ` = $2
+		RETURNING ` + schema.SpaceGroups_ID + `, ` + schema.SpaceGroups_NAME + `, ` + sqliteSpaceGroupRole
+
+	sg := &models.SpaceGroup{}
+	if err := s.db.QueryRowContext(ctx, query, name, spaceGroupId).Scan(&sg.Id, &sg.Name, &sg.Role); err != nil {
+		return nil, notFoundIfNoRows(err)
+	}
+
+	return sg, nil
 }
 
 func (s *sqliteSpaceGroups) DelSpaceGroup(ctx context.Context, _ string, spaceGroupId int) error {

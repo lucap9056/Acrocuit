@@ -34,7 +34,7 @@ func (d *pgDevices) GetDevices(ctx context.Context, userEmail string, spaceId in
 			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
 		  )`
 
-	rows, err := d.pool.Query(ctx, query, spaceId, userEmail, publicAccessEmail)
+	rows, err := d.pool.Query(ctx, query, spaceId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId in
 		  )`
 
 	var device models.Device
-	err = d.pool.QueryRow(ctx, query, deviceId, userEmail, publicAccessEmail).Scan(device.Values(fields)...)
+	err = d.pool.QueryRow(ctx, query, deviceId, userEmail, models.PublicAccessEmail).Scan(device.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -228,7 +228,7 @@ func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, dev
 		)
 	`
 	var exists bool
-	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userEmail, publicAccessEmail).Scan(&exists)
+	err := d.pool.QueryRow(ctx, existsQuery, deviceId, userEmail, models.PublicAccessEmail).Scan(&exists)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 			  WHERE `+schema.JoinSpaceGroupACLs_Spaces+`
 			    AND `+schema.FullSpaceGroupACLs_USER_EMAIL+` IN ($2, $3)
 		  )
-	`, deviceId, userEmail, publicAccessEmail)
+	`, deviceId, userEmail, models.PublicAccessEmail)
 	if err != nil {
 		return nil, err
 	}

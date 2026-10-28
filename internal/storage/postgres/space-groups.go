@@ -16,7 +16,11 @@ type pgSpaceGroups struct {
 }
 
 func (s *pgSpaceGroups) GetSpaceGroups(ctx context.Context, userEmail, include string) ([]models.SpaceGroup, error) {
-	keys, fields, err := models.ParseSpaceGroupColumns(include)
+	if userEmail == models.PublicAccessEmail {
+		return nil, repository.ErrAnonymous
+	}
+
+	keys, fields, err := models.ParseSpaceGroupColumns(include, schema.FullSpaceGroupACLs_ROLE)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +49,10 @@ func (s *pgSpaceGroups) GetSpaceGroups(ctx context.Context, userEmail, include s
 }
 
 func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name string) (int, error) {
+	if userEmail == models.PublicAccessEmail {
+		return 0, repository.ErrAnonymous
+	}
+
 	query := `
 		WITH new_group AS (
 			INSERT INTO ` + schema.SpaceGroupsTable + ` (` + schema.SpaceGroups_NAME + `) VALUES ($1) RETURNING ` + schema.SpaceGroups_ID + `
@@ -62,22 +70,21 @@ func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name strin
 }
 
 func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spaceGroupId int, include string) (*models.SpaceGroup, error) {
-	keys, fields, err := models.ParseSpaceGroupColumns(include)
+	keys, fields, err := models.ParseSpaceGroupColumns(include, schema.FullSpaceGroupACLs_ROLE)
 	if err != nil {
 		return nil, err
 	}
 
 	query := `SELECT ` + keys + `
-    FROM ` + schema.SpaceGroupsTable + `
-    WHERE ` + schema.FullSpaceGroups_ID + ` = $1 
-    	AND EXISTS (
-        	SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
-        	WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + `
-        		AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
-    	)`
+		FROM ` + schema.SpaceGroupsTable + `
+		JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_SpaceGroups + `
+			AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		WHERE ` + schema.FullSpaceGroups_ID + ` = $1
+		ORDER BY ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3
+		LIMIT 1`
 
 	sg := &models.SpaceGroup{}
-	err = s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, publicAccessEmail).Scan(sg.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, models.PublicAccessEmail).Scan(sg.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -88,24 +95,32 @@ func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spa
 	return sg, nil
 }
 
-func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string, spaceGroupId int, name string) error {
+func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string, spaceGroupId int, name string) (*models.SpaceGroup, error) {
 	query := `
-		UPDATE ` + schema.SpaceGroupsTable + `
-		SET ` + schema.SpaceGroups_NAME + ` = $1
-		WHERE ` + schema.FullSpaceGroups_ID + ` = $2 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
-			WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
+		WITH updated AS (
+			UPDATE ` + schema.SpaceGroupsTable + `
+			SET ` + schema.SpaceGroups_NAME + ` = $1
+			WHERE ` + schema.FullSpaceGroups_ID + ` = $2 AND EXISTS (
+				SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+				WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
+			)
+			RETURNING ` + schema.SpaceGroups_ID + `, ` + schema.SpaceGroups_NAME + `
 		)
+		SELECT updated.` + schema.SpaceGroups_ID + `, updated.` + schema.SpaceGroups_NAME + `, ` + schema.FullSpaceGroupACLs_ROLE + `
+		FROM updated
+		JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.FullSpaceGroupACLs_SPACE_GROUP_ID + ` = updated.` + schema.SpaceGroups_ID + `
+			AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3
 	`
-	t, err := s.pool.Exec(ctx, query, name, spaceGroupId, userEmail)
-	if err != nil {
-		return err
+	sg := &models.SpaceGroup{}
+	err := s.pool.QueryRow(ctx, query, name, spaceGroupId, userEmail).Scan(&sg.Id, &sg.Name, &sg.Role)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, repository.ErrNotFound
 	}
-	if t.RowsAffected() == 0 {
-		return repository.ErrNotFound
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return sg, nil
 }
 
 func (s *pgSpaceGroups) DelSpaceGroup(ctx context.Context, userEmail string, spaceGroupId int) error {

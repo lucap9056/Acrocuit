@@ -41,7 +41,7 @@ func (s *pgSpaceGroups) GetSpaceGroupMembers(ctx context.Context, userEmail stri
 			return nil, err
 		}
 		found = true
-		if member.Email == publicAccessEmail {
+		if member.Email == models.PublicAccessEmail {
 			result.Public = true
 			continue
 		}
@@ -58,7 +58,7 @@ func (s *pgSpaceGroups) GetSpaceGroupMembers(ctx context.Context, userEmail stri
 }
 
 func (s *pgSpaceGroups) AddSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId int, memberEmail, role string) error {
-	if memberEmail == publicAccessEmail {
+	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
 	if role != schema.SpaceGroupACLs_ROLE_VIEWER && role != schema.SpaceGroupACLs_ROLE_EDITOR {
@@ -92,7 +92,7 @@ func (s *pgSpaceGroups) AddSpaceGroupMember(ctx context.Context, userEmail strin
 }
 
 func (s *pgSpaceGroups) DelSpaceGroupMember(ctx context.Context, userEmail string, spaceGroupId int, memberEmail string) error {
-	if memberEmail == publicAccessEmail {
+	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
 
@@ -114,7 +114,7 @@ func (s *pgSpaceGroups) DelSpaceGroupMember(ctx context.Context, userEmail strin
 }
 
 func (s *pgSpaceGroups) SetSpaceGroupMemberRole(ctx context.Context, userEmail string, spaceGroupId int, memberEmail, role string) error {
-	if memberEmail == publicAccessEmail {
+	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
 	if role != schema.SpaceGroupACLs_ROLE_VIEWER && role != schema.SpaceGroupACLs_ROLE_EDITOR {
@@ -140,7 +140,7 @@ func (s *pgSpaceGroups) SetSpaceGroupMemberRole(ctx context.Context, userEmail s
 }
 
 func (s *pgSpaceGroups) TransferSpaceGroupOwner(ctx context.Context, userEmail string, spaceGroupId int, memberEmail string) error {
-	if memberEmail == publicAccessEmail {
+	if memberEmail == models.PublicAccessEmail {
 		return repository.ErrInvalidMember
 	}
 
@@ -192,7 +192,7 @@ func (s *pgSpaceGroups) SetSpaceGroupPublic(ctx context.Context, userEmail strin
 		SELECT EXISTS (SELECT 1 FROM permitted)
 	`
 	var permitted bool
-	if err := s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, publicAccessEmail).Scan(&permitted); err != nil {
+	if err := s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, models.PublicAccessEmail).Scan(&permitted); err != nil {
 		return err
 	}
 	if !permitted {
@@ -203,6 +203,10 @@ func (s *pgSpaceGroups) SetSpaceGroupPublic(ctx context.Context, userEmail strin
 }
 
 func (s *pgSpaceGroups) LeaveSpaceGroup(ctx context.Context, userEmail string, spaceGroupId int) error {
+	if userEmail == models.PublicAccessEmail {
+		return repository.ErrAnonymous
+	}
+
 	query := `
 		WITH member AS (
 			SELECT ` + schema.FullSpaceGroupACLs_ROLE + `

@@ -10,4 +10,5 @@ var (
 	ErrInvalidRole   = errors.New("storage: role must be viewer or editor")
 	ErrInvalidMember = errors.New("storage: invalid member email")
 	ErrNotSupported  = errors.New("storage: not supported by this backend")
+	ErrAnonymous     = errors.New("storage: anonymous requests are not allowed")
 )
