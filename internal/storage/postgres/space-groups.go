@@ -23,8 +23,8 @@ func (s *pgSpaceGroups) GetSpaceGroups(ctx context.Context, userEmail, include s
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SpaceGroupsTable + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SpaceGroups + `
-		WHERE ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
+		JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_SpaceGroups + `
+		WHERE ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $1`
 
 	rows, err := s.pool.Query(ctx, query, userEmail)
 	if err != nil {
@@ -47,14 +47,14 @@ func (s *pgSpaceGroups) GetSpaceGroups(ctx context.Context, userEmail, include s
 func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name string) (int, error) {
 	query := `
 		WITH new_group AS (
-			INSERT INTO ` + schema.SpaceGroupsTable + ` (` + schema.SpaceGroups_NAME + `) VALUES ($2) RETURNING ` + schema.SpaceGroups_ID + `
+			INSERT INTO ` + schema.SpaceGroupsTable + ` (` + schema.SpaceGroups_NAME + `) VALUES ($1) RETURNING ` + schema.SpaceGroups_ID + `
 		)
-		INSERT INTO ` + schema.SpaceGroupOwnersTable + ` (` + schema.SpaceGroupOwners_USER_EMAIL + `, ` + schema.SpaceGroupOwners_SPACE_GROUP_ID + `)
-		SELECT $1, ` + schema.SpaceGroups_ID + ` FROM new_group
-		RETURNING ` + schema.SpaceGroupOwners_SPACE_GROUP_ID + `
+		INSERT INTO ` + schema.SpaceGroupACLsTable + ` (` + schema.SpaceGroupACLs_USER_EMAIL + `, ` + schema.SpaceGroupACLs_SPACE_GROUP_ID + "," + schema.SpaceGroupACLs_ROLE + `)
+		SELECT $2, ` + schema.SpaceGroups_ID + `, $3 FROM new_group
+		RETURNING ` + schema.SpaceGroupACLs_SPACE_GROUP_ID + `
 	`
 	var spaceGroupId int
-	if err := s.pool.QueryRow(ctx, query, userEmail, name).Scan(&spaceGroupId); err != nil {
+	if err := s.pool.QueryRow(ctx, query, name, userEmail, schema.SpaceGroupACLs_ROLE_OWNER).Scan(&spaceGroupId); err != nil {
 		return 0, err
 	}
 
@@ -68,12 +68,16 @@ func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spa
 	}
 
 	query := `SELECT ` + keys + `
-		FROM ` + schema.SpaceGroupsTable + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SpaceGroups + `
-		WHERE ` + schema.FullSpaceGroups_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
+    FROM ` + schema.SpaceGroupsTable + `
+    WHERE ` + schema.FullSpaceGroups_ID + ` = $1 
+    	AND EXISTS (
+        	SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+        	WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + `
+        		AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+    	)`
 
 	sg := &models.SpaceGroup{}
-	err = s.pool.QueryRow(ctx, query, userEmail, spaceGroupId).Scan(sg.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, spaceGroupId, userEmail, publicAccessEmail).Scan(sg.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -89,8 +93,8 @@ func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string
 		UPDATE ` + schema.SpaceGroupsTable + `
 		SET ` + schema.SpaceGroups_NAME + ` = $1
 		WHERE ` + schema.FullSpaceGroups_ID + ` = $2 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-			WHERE ` + schema.JoinSpaceGroupOwners_SpaceGroups + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $3
+			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := s.pool.Exec(ctx, query, name, spaceGroupId, userEmail)
@@ -108,8 +112,8 @@ func (s *pgSpaceGroups) DelSpaceGroup(ctx context.Context, userEmail string, spa
 	query := `
 		DELETE FROM ` + schema.SpaceGroupsTable + `
 		WHERE ` + schema.FullSpaceGroups_ID + ` = $1 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-			WHERE ` + schema.JoinSpaceGroupOwners_SpaceGroups + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsOwner + `
 		)
 	`
 	t, err := s.pool.Exec(ctx, query, spaceGroupId, userEmail)

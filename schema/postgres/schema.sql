@@ -120,9 +120,11 @@ CREATE TABLE IF NOT EXISTS {{device_switches.table}} (
 
 CREATE INDEX IF NOT EXISTS ix_device_switches_switch_id ON {{device_switches.table}}({{device_switches.switch_id}});
 
-CREATE TABLE IF NOT EXISTS {{space_group_owners.table}} (
-    {{space_group_owners.user_email}} TEXT NOT NULL,
-    {{space_group_owners.space_group_id}} INT NOT NULL,
-    CONSTRAINT pk_space_group_owners PRIMARY KEY ({{space_group_owners.user_email}}, {{space_group_owners.space_group_id}}),
-    CONSTRAINT fk_space_group_owners_space_group FOREIGN KEY ({{space_group_owners.space_group_id}}) REFERENCES {{space_groups.table}}({{space_groups.id}}) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS {{space_group_acls.table}} (
+    {{space_group_acls.user_email}} TEXT NOT NULL,
+    {{space_group_acls.space_group_id}} INT NOT NULL,
+    {{space_group_acls.role}} VARCHAR(50) NOT NULL DEFAULT '{{space_group_acls.viewer}}',
+    CONSTRAINT chk_role_valid CHECK ({{space_group_acls.role}} IN ('{{space_group_acls.viewer}}', '{{space_group_acls.editor}}', '{{space_group_acls.owner}}')),
+    CONSTRAINT pk_space_group_acls PRIMARY KEY ({{space_group_acls.user_email}}, {{space_group_acls.space_group_id}}),
+    CONSTRAINT fk_space_group_acls_space_group FOREIGN KEY ({{space_group_acls.space_group_id}}) REFERENCES {{space_groups.table}}({{space_groups.id}}) ON DELETE CASCADE
 );

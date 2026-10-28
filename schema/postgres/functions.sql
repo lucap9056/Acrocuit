@@ -16,8 +16,8 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM {{spaces.table}} s
-        JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = s.{{spaces.space_group_id}}
-        WHERE s.{{spaces.id}} = p_space_id AND so.{{space_group_owners.user_email}} = p_user_email
+        JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = s.{{spaces.space_group_id}}
+        WHERE s.{{spaces.id}} = p_space_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
     ) THEN
         RETURN;
     END IF;
@@ -55,8 +55,8 @@ BEGIN
     INTO v_space_group_id, v_current_order
     FROM {{spaces.table}} s
     JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = s.{{spaces.space_group_id}}
-    JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = sg.{{space_groups.id}}
-    WHERE s.{{spaces.id}} = p_space_id AND so.{{space_group_owners.user_email}} = p_user_email
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = sg.{{space_groups.id}}
+    WHERE s.{{spaces.id}} = p_space_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
     FOR UPDATE OF sg;
 
     IF v_space_group_id IS NULL THEN
@@ -110,8 +110,8 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM {{switches.table}} b
-        JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = b.{{switches.space_group_id}}
-        WHERE b.{{switches.id}} = p_switch_id AND so.{{space_group_owners.user_email}} = p_user_email
+        JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = b.{{switches.space_group_id}}
+        WHERE b.{{switches.id}} = p_switch_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
     ) THEN
         RETURN;
     END IF;
@@ -151,8 +151,8 @@ BEGIN
     INTO v_switch_panel_id, v_current_order
     FROM {{switches.table}} b
     JOIN {{switch_panels.table}} bg ON bg.{{switch_panels.id}} = b.{{switches.switch_panel_id}}
-    JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = bg.{{switch_panels.space_group_id}}
-    WHERE b.{{switches.id}} = p_switch_id AND so.{{space_group_owners.user_email}} = p_user_email
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = bg.{{switch_panels.space_group_id}}
+    WHERE b.{{switches.id}} = p_switch_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
     FOR UPDATE OF bg;
 
     IF v_switch_panel_id IS NULL THEN
@@ -205,8 +205,8 @@ BEGIN
     INTO v_space_group_id
     FROM {{switches.table}} b
     JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = b.{{switches.space_group_id}}
-    JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = sg.{{space_groups.id}}
-    WHERE b.{{switches.id}} = p_switch_id AND so.{{space_group_owners.user_email}} = p_user_email
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = sg.{{space_groups.id}}
+    WHERE b.{{switches.id}} = p_switch_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
     FOR UPDATE OF sg;
 
     IF v_space_group_id IS NULL THEN
@@ -268,8 +268,8 @@ BEGIN
     INTO v_space_group_id
     FROM {{devices.table}} d
     JOIN {{spaces.table}} s ON s.{{spaces.id}} = d.{{devices.space_id}}
-    JOIN {{space_group_owners.table}} so ON so.{{space_group_owners.space_group_id}} = s.{{spaces.space_group_id}}
-    WHERE d.{{devices.id}} = p_device_id AND so.{{space_group_owners.user_email}} = p_user_email;
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = s.{{spaces.space_group_id}}
+    WHERE d.{{devices.id}} = p_device_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}';
 
     IF v_space_group_id IS NULL THEN
         RETURN QUERY SELECT 1;

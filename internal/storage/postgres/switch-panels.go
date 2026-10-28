@@ -23,14 +23,20 @@ func (panel *pgSwitchPanels) GetSwitchPanels(ctx context.Context, userEmail stri
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SwitchPanelsTable + `
-		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces
+		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces
+
 	if includePosition {
 		query += ` LEFT JOIN ` + schema.SwitchPanelPositionsTable + ` ON ` + schema.JoinSwitchPanelPositions_SwitchPanels
 	}
-	query += ` WHERE ` + schema.FullSwitchPanels_SPACE_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
 
-	rows, err := panel.pool.Query(ctx, query, userEmail, spaceId)
+	query += ` WHERE ` + schema.FullSwitchPanels_SPACE_ID + ` = $1
+		  AND EXISTS (
+			  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			  WHERE ` + schema.JoinSpaceGroupACLs_Spaces + `
+			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		  )`
+
+	rows, err := panel.pool.Query(ctx, query, spaceId, userEmail, publicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -57,15 +63,21 @@ func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail strin
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SwitchPanelsTable + `
-		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces
+		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces
+
 	if includePosition {
 		query += ` LEFT JOIN ` + schema.SwitchPanelPositionsTable + ` ON ` + schema.JoinSwitchPanelPositions_SwitchPanels
 	}
-	query += ` WHERE ` + schema.FullSwitchPanels_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
+
+	query += ` WHERE ` + schema.FullSwitchPanels_ID + ` = $1
+		  AND EXISTS (
+			  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			  WHERE ` + schema.JoinSpaceGroupACLs_Spaces + `
+			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		  )`
 
 	var group models.SwitchPanel
-	err = panel.pool.QueryRow(ctx, query, userEmail, switchPanelId).Scan(group.Values(fields)...)
+	err = panel.pool.QueryRow(ctx, query, switchPanelId, userEmail, publicAccessEmail).Scan(group.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -87,8 +99,8 @@ func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail strin
 		WITH permitted AS (
 			SELECT ` + schema.FullSpaces_SPACE_GROUP_ID + `
 			FROM ` + schema.SpacesTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+			WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		inserted_group AS (
@@ -127,8 +139,8 @@ func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail strin
 			SELECT ` + schema.FullSwitchPanels_ID + `
 			FROM ` + schema.SwitchPanelsTable + `
 			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		permitted_update AS (
@@ -172,8 +184,8 @@ func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEma
 			SELECT ` + schema.FullSwitchPanels_ID + `
 			FROM ` + schema.SwitchPanelsTable + `
 			JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSwitchPanels_Spaces + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 			FOR UPDATE OF ` + schema.SpacesTable + `
 		),
 		group_row AS (
@@ -222,8 +234,8 @@ func (panel *pgSwitchPanels) DelSwitchPanel(ctx context.Context, userEmail strin
 		DELETE FROM ` + schema.SwitchPanelsTable + `
 		WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND EXISTS (
 			SELECT 1 FROM ` + schema.SpacesTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.JoinSwitchPanels_Spaces + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+			WHERE ` + schema.JoinSwitchPanels_Spaces + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := panel.pool.Exec(ctx, query, switchPanelId, userEmail)

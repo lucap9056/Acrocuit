@@ -26,12 +26,31 @@ func (s *pgSwitches) GetSwitches(ctx context.Context, userEmail string, switchPa
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SwitchesTable + `
-		JOIN ` + schema.SwitchPanelsTable + ` ON ` + schema.JoinSwitches_SwitchPanels + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SwitchPanels + `
-		WHERE ` + schema.FullSwitches_SWITCH_PANEL_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1
+		WHERE ` + schema.FullSwitches_SWITCH_PANEL_ID + ` = $1
+		  AND EXISTS (
+			  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			  WHERE ` + schema.JoinSpaceGroupACLs_Switches + `
+			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		  )
 		ORDER BY ` + schema.FullSwitches_DISPLAY_ORDER
 
-	return querySwitches(ctx, s.pool, fields, query, userEmail, switchPanelId)
+	rows, err := s.pool.Query(ctx, query, switchPanelId, userEmail, publicAccessEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	switches := make([]models.Switch, 0)
+	for rows.Next() {
+		var sw models.Switch
+		if err := rows.Scan(sw.Values(fields)...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		switches = append(switches, sw)
+	}
+
+	return switches, rows.Err()
 }
 
 func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId int, include string) (*models.Switch, error) {
@@ -42,12 +61,15 @@ func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId i
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SwitchesTable + `
-		JOIN ` + schema.SwitchPanelsTable + ` ON ` + schema.JoinSwitches_SwitchPanels + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SwitchPanels + `
-		WHERE ` + schema.FullSwitches_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
+		WHERE ` + schema.FullSwitches_ID + ` = $1
+		  AND EXISTS (
+			  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			  WHERE ` + schema.JoinSpaceGroupACLs_Switches + `
+			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		  )`
 
 	var sw models.Switch
-	err = s.pool.QueryRow(ctx, query, userEmail, switchId).Scan(sw.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, switchId, userEmail, publicAccessEmail).Scan(sw.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -64,8 +86,8 @@ func (s *pgSwitches) AddSwitch(ctx context.Context, userEmail string, switchPane
 		WITH permitted AS (
 			SELECT ` + schema.FullSwitchPanels_SPACE_GROUP_ID + `
 			FROM ` + schema.SwitchPanelsTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SwitchPanels + `
-			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_SwitchPanels + `
+			WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 			FOR UPDATE OF ` + schema.SwitchPanelsTable + `
 		),
 		next_order AS (
@@ -102,17 +124,26 @@ func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId 
 	query := `SELECT ` + schema.FnMoveSwitch_OUTPUTS + ` FROM ` + schema.FnMoveSwitch + `($1, $2, $3)`
 
 	rows, err := s.pool.Query(ctx, query, userEmail, switchId, displayOrder)
-	switches, err := scanAll(rows, err, (*models.Switch).AllValues)
 	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	switches := make([]models.Switch, 0)
+	for rows.Next() {
+		var sw models.Switch
+		if err := rows.Scan(sw.AllValues()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		switches = append(switches, sw)
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
 	if len(switches) == 0 {
 		return nil, repository.ErrNotFound
-	}
-
-	for i := range switches {
-		switches[i].Build()
 	}
 
 	return switches, nil
@@ -140,8 +171,8 @@ func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId i
 		DELETE FROM ` + schema.SwitchesTable + `
 		WHERE ` + schema.FullSwitches_ID + ` = $1 AND EXISTS (
 			SELECT 1 FROM ` + schema.SwitchPanelsTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SwitchPanels + `
-			WHERE ` + schema.JoinSwitches_SwitchPanels + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_SwitchPanels + `
+			WHERE ` + schema.JoinSwitches_SwitchPanels + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := s.pool.Exec(ctx, query, switchId, userEmail)
@@ -159,12 +190,12 @@ func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, s
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.SwitchesTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Switches + `
-			WHERE ` + schema.FullSwitches_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Switches + `
+			WHERE ` + schema.FullSwitches_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
 		)
 	`
 	var exists bool
-	if err := s.pool.QueryRow(ctx, existsQuery, switchId, userEmail).Scan(&exists); err != nil {
+	if err := s.pool.QueryRow(ctx, existsQuery, switchId, userEmail, publicAccessEmail).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
@@ -182,7 +213,23 @@ func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, s
 		WHERE ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $1
 		ORDER BY ` + schema.FullSwitches_ID
 
-	return queryLinkedSwitches(ctx, s.pool, fields, query, switchId)
+	rows, err := s.pool.Query(ctx, query, switchId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	upstreams := make([]models.LinkedSwitch, 0)
+	for rows.Next() {
+		var upstream models.LinkedSwitch
+		if err := rows.Scan(upstream.Values(fields)...); err != nil {
+			return nil, err
+		}
+		upstream.Build()
+		upstreams = append(upstreams, upstream)
+	}
+
+	return upstreams, rows.Err()
 }
 
 func (s *pgSwitches) AddSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId int, attributes models.Attributes) (*models.SwitchLink, error) {
@@ -216,8 +263,8 @@ func (s *pgSwitches) SetSwitchUpstream(ctx context.Context, userEmail string, sw
 		UPDATE ` + schema.SwitchLinksTable + `
 		SET ` + schema.SwitchLinks_ATTRIBUTES + ` = $1
 		WHERE ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $2 AND ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + ` = $3 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-			WHERE ` + schema.JoinSpaceGroupOwners_SwitchLinks + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $4
+			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			WHERE ` + schema.JoinSpaceGroupACLs_SwitchLinks + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $4 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 		RETURNING ` + models.SWITCH_LINK_COLUMNS
 
@@ -237,8 +284,8 @@ func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, sw
 	query := `
 		DELETE FROM ` + schema.SwitchLinksTable + `
 		WHERE ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $1 AND ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + ` = $2 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-			WHERE ` + schema.JoinSpaceGroupOwners_SwitchLinks + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $3
+			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			WHERE ` + schema.JoinSpaceGroupACLs_SwitchLinks + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $3 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := s.pool.Exec(ctx, query, switchId, upstreamSwitchId, userEmail)
@@ -253,44 +300,79 @@ func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, sw
 }
 
 func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId int) (*models.PowerChain, error) {
-	query := `
+	switchRows, err := s.pool.Query(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
-			SELECT ` + schema.FullSwitches_ID + `
-			FROM ` + schema.SwitchesTable + `
-			WHERE ` + schema.FullSwitches_ID + ` = $1 AND EXISTS (
-				SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-				WHERE ` + schema.JoinSpaceGroupOwners_Switches + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			SELECT `+schema.FullSwitches_ID+`
+			FROM `+schema.SwitchesTable+`
+			WHERE `+schema.FullSwitches_ID+` = $1 AND EXISTS (
+				SELECT 1 FROM `+schema.SpaceGroupACLsTable+`
+				WHERE `+schema.JoinSpaceGroupACLs_Switches+` AND `+schema.FullSpaceGroupACLs_USER_EMAIL+` IN ($2, $3)
 			)
 
 			UNION
 
-			SELECT ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + `
-			FROM ` + schema.SwitchLinksTable + `
-			JOIN switch_chain ON ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + ` = switch_chain.id
+			SELECT `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
+			FROM `+schema.SwitchLinksTable+`
+			JOIN switch_chain ON `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+` = switch_chain.id
 		)
-	` + selectSwitchChainWithPanel
-	switches, err := querySwitchesWithPanel(ctx, s.pool, query, switchId, userEmail)
+		SELECT `+models.SWITCH_ALL_COLUMNS+`, `+models.SWITCH_PANEL_WITH_POSITION_COLUMNS+`
+		FROM switch_chain
+		JOIN `+schema.SwitchesTable+` ON `+schema.FullSwitches_ID+` = switch_chain.id
+		JOIN `+schema.SwitchPanelsTable+` ON `+schema.JoinSwitches_SwitchPanels+`
+		LEFT JOIN `+schema.SwitchPanelPositionsTable+` ON `+schema.JoinSwitchPanelPositions_SwitchPanels+`
+		ORDER BY `+schema.FullSwitches_ID+`
+	`, switchId, userEmail, publicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
-	if len(switches) == 0 {
+	defer switchRows.Close()
+
+	chain := &models.PowerChain{
+		Switches:    make([]models.ChainSwitch, 0),
+		SwitchLinks: make([]models.SwitchLink, 0),
+		Devices:     make([]models.Device, 0),
+		DeviceLinks: make([]models.DeviceLink, 0),
+	}
+	switchIds := make([]int, 0)
+	for switchRows.Next() {
+		var sw models.ChainSwitch
+		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		chain.Switches = append(chain.Switches, sw)
+		switchIds = append(switchIds, sw.Id)
+	}
+	if err := switchRows.Err(); err != nil {
+		return nil, err
+	}
+	if len(chain.Switches) == 0 {
 		return nil, repository.ErrNotFound
 	}
 
-	ids := switchIdsOf(switches)
-	chain := &models.PowerChain{Switches: switches}
-
-	chain.SwitchLinks, err = querySwitchLinks(ctx, s.pool, `
+	switchLinkRows, err := s.pool.Query(ctx, `
 		SELECT `+models.SWITCH_LINK_COLUMNS+`
 		FROM `+schema.SwitchLinksTable+`
 		WHERE `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+` = ANY($1)
 		ORDER BY `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+`, `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
-	`, ids)
+	`, switchIds)
 	if err != nil {
 		return nil, err
 	}
+	defer switchLinkRows.Close()
 
-	chain.Devices, err = queryDevicesWithPosition(ctx, s.pool, `
+	for switchLinkRows.Next() {
+		var link models.SwitchLink
+		if err := switchLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.SwitchLinks = append(chain.SwitchLinks, link)
+	}
+	if err := switchLinkRows.Err(); err != nil {
+		return nil, err
+	}
+
+	deviceRows, err := s.pool.Query(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
 		LEFT JOIN `+schema.DevicePositionsTable+` ON `+schema.JoinDevicePositions_Devices+`
@@ -300,38 +382,42 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 			WHERE `+schema.FullDeviceSwitches_SWITCH_ID+` = ANY($1)
 		)
 		ORDER BY `+schema.FullDevices_ID+`
-	`, ids)
+	`, switchIds)
 	if err != nil {
 		return nil, err
 	}
+	defer deviceRows.Close()
 
-	chain.DeviceLinks, err = queryDeviceLinks(ctx, s.pool, `
+	for deviceRows.Next() {
+		var device models.Device
+		if err := deviceRows.Scan(device.ValuesWithPosition()...); err != nil {
+			return nil, err
+		}
+		device.Build()
+		chain.Devices = append(chain.Devices, device)
+	}
+	if err := deviceRows.Err(); err != nil {
+		return nil, err
+	}
+
+	deviceLinkRows, err := s.pool.Query(ctx, `
 		SELECT `+models.DEVICE_LINK_COLUMNS+`
 		FROM `+schema.DeviceSwitchesTable+`
 		WHERE `+schema.FullDeviceSwitches_SWITCH_ID+` = ANY($1)
 		ORDER BY `+schema.FullDeviceSwitches_SWITCH_ID+`, `+schema.FullDeviceSwitches_DEVICE_ID+`
-	`, ids)
+	`, switchIds)
 	if err != nil {
 		return nil, err
 	}
+	defer deviceLinkRows.Close()
 
-	return chain, nil
-}
-
-func querySwitches(ctx context.Context, pool *pgxpool.Pool, fields []uint8, query string, args ...any) ([]models.Switch, error) {
-	rows, err := pool.Query(ctx, query, args...)
-	switches, err := scanAll(rows, err, func(sw *models.Switch) []any { return sw.Values(fields) })
-	for i := range switches {
-		switches[i].Build()
+	for deviceLinkRows.Next() {
+		var link models.DeviceLink
+		if err := deviceLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.DeviceLinks = append(chain.DeviceLinks, link)
 	}
-	return switches, err
-}
 
-func queryLinkedSwitches(ctx context.Context, pool *pgxpool.Pool, fields []uint8, query string, args ...any) ([]models.LinkedSwitch, error) {
-	rows, err := pool.Query(ctx, query, args...)
-	switches, err := scanAll(rows, err, func(ls *models.LinkedSwitch) []any { return ls.Values(fields) })
-	for i := range switches {
-		switches[i].Build()
-	}
-	return switches, err
+	return chain, deviceLinkRows.Err()
 }

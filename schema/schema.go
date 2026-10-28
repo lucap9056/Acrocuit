@@ -89,9 +89,13 @@ const (
 	DeviceSwitches_SWITCH_ID  = baseSwitchID
 	DeviceSwitches_ATTRIBUTES = baseAttributes
 
-	SpaceGroupOwnersTable           = "space_group_owners"
-	SpaceGroupOwners_USER_EMAIL     = "user_email"
-	SpaceGroupOwners_SPACE_GROUP_ID = baseSpaceGroupID
+	SpaceGroupACLsTable           = "space_group_acls"
+	SpaceGroupACLs_USER_EMAIL     = "user_email"
+	SpaceGroupACLs_SPACE_GROUP_ID = baseSpaceGroupID
+	SpaceGroupACLs_ROLE           = "role"
+	SpaceGroupACLs_ROLE_VIEWER    = "viewer"
+	SpaceGroupACLs_ROLE_EDITOR    = "editor"
+	SpaceGroupACLs_ROLE_OWNER     = "owner"
 )
 
 const (
@@ -145,24 +149,30 @@ const (
 	FullDeviceSwitches_SWITCH_ID  = DeviceSwitchesTable + "." + DeviceSwitches_SWITCH_ID
 	FullDeviceSwitches_ATTRIBUTES = DeviceSwitchesTable + "." + DeviceSwitches_ATTRIBUTES
 
-	FullSpaceGroupOwners_USER_EMAIL     = SpaceGroupOwnersTable + "." + SpaceGroupOwners_USER_EMAIL
-	FullSpaceGroupOwners_SPACE_GROUP_ID = SpaceGroupOwnersTable + "." + SpaceGroupOwners_SPACE_GROUP_ID
+	FullSpaceGroupACLs_USER_EMAIL     = SpaceGroupACLsTable + "." + SpaceGroupACLs_USER_EMAIL
+	FullSpaceGroupACLs_SPACE_GROUP_ID = SpaceGroupACLsTable + "." + SpaceGroupACLs_SPACE_GROUP_ID
+	FullSpaceGroupACLs_ROLE           = SpaceGroupACLsTable + "." + SpaceGroupACLs_ROLE
 )
 
 const (
 	JoinSwitchPanels_Spaces               = FullSwitchPanels_SPACE_ID + " = " + FullSpaces_ID
-	JoinSpaceGroupOwners_Spaces           = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaces_SPACE_GROUP_ID
+	JoinSpaceGroupACLs_Spaces             = FullSpaceGroupACLs_SPACE_GROUP_ID + " = " + FullSpaces_SPACE_GROUP_ID
 	JoinSwitchPanelPositions_SwitchPanels = FullSwitchPanelPositions_SWITCH_PANEL_ID + " = " + FullSwitchPanels_ID
 	JoinSwitches_SwitchPanels             = FullSwitches_SWITCH_PANEL_ID + " = " + FullSwitchPanels_ID
-	JoinSpaceGroupOwners_SwitchPanels     = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitchPanels_SPACE_GROUP_ID
-	JoinSpaceGroupOwners_Switches         = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitches_SPACE_GROUP_ID
+	JoinSpaceGroupACLs_SwitchPanels       = FullSpaceGroupACLs_SPACE_GROUP_ID + " = " + FullSwitchPanels_SPACE_GROUP_ID
+	JoinSpaceGroupACLs_Switches           = FullSpaceGroupACLs_SPACE_GROUP_ID + " = " + FullSwitches_SPACE_GROUP_ID
 	JoinSpaceBackgroundImages_Spaces      = FullSpaceBackgroundImages_SPACE_ID + " = " + FullSpaces_ID
 	JoinDevices_Spaces                    = FullDevices_SPACE_ID + " = " + FullSpaces_ID
 	JoinDevicePositions_Devices           = FullDevicePositions_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceSwitches_Devices            = FullDeviceSwitches_DEVICE_ID + " = " + FullDevices_ID
 	JoinDeviceSwitches_Switches           = FullDeviceSwitches_SWITCH_ID + " = " + FullSwitches_ID
-	JoinSpaceGroupOwners_SwitchLinks      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSwitchLinks_SPACE_GROUP_ID
-	JoinSpaceGroupOwners_SpaceGroups      = FullSpaceGroupOwners_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
+	JoinSpaceGroupACLs_SwitchLinks        = FullSpaceGroupACLs_SPACE_GROUP_ID + " = " + FullSwitchLinks_SPACE_GROUP_ID
+	JoinSpaceGroupACLs_SpaceGroups        = FullSpaceGroupACLs_SPACE_GROUP_ID + " = " + FullSpaceGroups_ID
+)
+
+const (
+	FilterSpaceGroupACLs_IsEditor = FullSpaceGroupACLs_ROLE + " <> '" + SpaceGroupACLs_ROLE_VIEWER + "'"
+	FilterSpaceGroupACLs_IsOwner  = FullSpaceGroupACLs_ROLE + " = '" + SpaceGroupACLs_ROLE_OWNER + "'"
 )
 
 var funcMap = template.FuncMap{
@@ -259,11 +269,15 @@ var funcMap = template.FuncMap{
 			DeviceSwitches_ATTRIBUTES: DeviceSwitches_ATTRIBUTES,
 		}
 	},
-	SpaceGroupOwnersTable: func() map[string]string {
+	SpaceGroupACLsTable: func() map[string]string {
 		return map[string]string{
-			baseTable:                       SpaceGroupOwnersTable,
-			SpaceGroupOwners_USER_EMAIL:     SpaceGroupOwners_USER_EMAIL,
-			SpaceGroupOwners_SPACE_GROUP_ID: SpaceGroupOwners_SPACE_GROUP_ID,
+			baseTable:                     SpaceGroupACLsTable,
+			SpaceGroupACLs_USER_EMAIL:     SpaceGroupACLs_USER_EMAIL,
+			SpaceGroupACLs_SPACE_GROUP_ID: SpaceGroupACLs_SPACE_GROUP_ID,
+			SpaceGroupACLs_ROLE:           SpaceGroupACLs_ROLE,
+			SpaceGroupACLs_ROLE_VIEWER:    SpaceGroupACLs_ROLE_VIEWER,
+			SpaceGroupACLs_ROLE_EDITOR:    SpaceGroupACLs_ROLE_EDITOR,
+			SpaceGroupACLs_ROLE_OWNER:     SpaceGroupACLs_ROLE_OWNER,
 		}
 	},
 }

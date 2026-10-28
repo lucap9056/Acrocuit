@@ -24,11 +24,15 @@ func (s *pgSpaces) GetSpaces(ctx context.Context, userEmail string, spaceGroupId
 
 	query := `SELECT ` + keys + `
 		FROM ` + schema.SpacesTable + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1
+		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
+			AND EXISTS (
+				SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+				WHERE ` + schema.JoinSpaceGroupACLs_Spaces + `
+					AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN($2, $3)
+			)
 		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
 
-	rows, err := s.pool.Query(ctx, query, userEmail, spaceGroupId)
+	rows, err := s.pool.Query(ctx, query, spaceGroupId, userEmail, publicAccessEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +58,16 @@ func (s *pgSpaces) GetSpace(ctx context.Context, userEmail string, spaceId int, 
 	}
 
 	query := `SELECT ` + keys + `
-		FROM ` + schema.SpacesTable + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-		WHERE ` + schema.FullSpaces_ID + ` = $2 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $1`
+        FROM ` + schema.SpacesTable + `
+        WHERE ` + schema.FullSpaces_ID + ` = $1
+            AND EXISTS (
+                SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+                WHERE ` + schema.JoinSpaceGroupACLs_Spaces + `
+                    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+            )`
 
 	var space models.Space
-	err = s.pool.QueryRow(ctx, query, userEmail, spaceId).Scan(space.Values(fields)...)
+	err = s.pool.QueryRow(ctx, query, spaceId, userEmail, publicAccessEmail).Scan(space.Values(fields)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -76,9 +84,14 @@ func (s *pgSpaces) AddSpace(ctx context.Context, userEmail string, spaceGroupId 
 		WITH permitted AS (
 			SELECT 1
 			FROM ` + schema.SpaceGroupsTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_SpaceGroups + `
-			WHERE ` + schema.FullSpaceGroups_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
-			FOR UPDATE OF ` + schema.SpaceGroupsTable + `
+			WHERE ` + schema.FullSpaceGroups_ID + ` = $1
+			  AND EXISTS (
+				  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+				  WHERE ` + schema.JoinSpaceGroupACLs_SpaceGroups + `
+				    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 
+				    AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
+			  )
+			FOR UPDATE
 		),
 		next_order AS (
 			SELECT COALESCE(MAX(` + schema.Spaces_DISPLAY_ORDER + `), 0) + 1 AS ` + schema.Spaces_DISPLAY_ORDER + `
@@ -161,8 +174,8 @@ func (s *pgSpaces) DelSpace(ctx context.Context, userEmail string, spaceId int) 
 	query := `
 		DELETE FROM ` + schema.SpacesTable + `
 		WHERE ` + schema.FullSpaces_ID + ` = $1 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupOwnersTable + `
-			WHERE ` + schema.JoinSpaceGroupOwners_Spaces + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			WHERE ` + schema.JoinSpaceGroupACLs_Spaces + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := s.pool.Exec(ctx, query, spaceId, userEmail)
@@ -181,12 +194,16 @@ func (s *pgSpaces) GetSpaceBackgroundImage(ctx context.Context, userEmail string
 		SELECT ` + schema.FullSpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.FullSpaceBackgroundImages_DATA + `, ` + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT + `
 		FROM ` + schema.SpaceBackgroundImagesTable + `
 		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinSpaceBackgroundImages_Spaces + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-		WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+		WHERE ` + schema.FullSpaces_ID + ` = $1
+		  AND EXISTS (
+			  SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
+			  WHERE ` + schema.JoinSpaceGroupACLs_Spaces + `
+			    AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` IN ($2, $3)
+		  )
 	`
 
 	image := &models.BackgroundImage{}
-	err := s.pool.QueryRow(ctx, query, spaceId, userEmail).Scan(&image.ContentType, &image.Data, &image.UpdatedAt)
+	err := s.pool.QueryRow(ctx, query, spaceId, userEmail, publicAccessEmail).Scan(&image.ContentType, &image.Data, &image.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrNotFound
 	}
@@ -207,8 +224,8 @@ func (s *pgSpaces) SetSpaceBackgroundImage(ctx context.Context, userEmail string
 	permitted := `
 		SELECT 1
 		FROM ` + schema.SpacesTable + `
-		JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-		WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+		JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+		WHERE ` + schema.FullSpaces_ID + ` = $1 AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		FOR UPDATE OF ` + schema.SpacesTable
 	var found int
 	err = tx.QueryRow(ctx, permitted, spaceId, userEmail).Scan(&found)
@@ -247,8 +264,8 @@ func (s *pgSpaces) DelSpaceBackgroundImage(ctx context.Context, userEmail string
 		DELETE FROM ` + schema.SpaceBackgroundImagesTable + `
 		WHERE ` + schema.FullSpaceBackgroundImages_SPACE_ID + ` = $1 AND EXISTS (
 			SELECT 1 FROM ` + schema.SpacesTable + `
-			JOIN ` + schema.SpaceGroupOwnersTable + ` ON ` + schema.JoinSpaceGroupOwners_Spaces + `
-			WHERE ` + schema.JoinSpaceBackgroundImages_Spaces + ` AND ` + schema.FullSpaceGroupOwners_USER_EMAIL + ` = $2
+			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_Spaces + `
+			WHERE ` + schema.JoinSpaceBackgroundImages_Spaces + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
 		)
 	`
 	t, err := tx.Exec(ctx, query, spaceId, userEmail)
