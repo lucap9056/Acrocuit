@@ -22,12 +22,12 @@ func switchPanelsHandlers(r *gin.RouterGroup, base controller) {
 	ctr := &switchPanelsController{base}
 
 	r.GET(routeSwitchPanelID, ctr.GetSwitchPanel)
-	r.PUT(routeSwitchPanelID, ctr.SetSwitchPanel)
-	r.PUT(routeSwitchPanelID+"/position", ctr.SetSwitchPanelPosition)
-	r.DELETE(routeSwitchPanelID, ctr.DelSwitchPanel)
+	r.PUT(routeSwitchPanelID, requireUser, ctr.SetSwitchPanel)
+	r.PUT(routeSwitchPanelID+"/position", requireUser, ctr.SetSwitchPanelPosition)
+	r.DELETE(routeSwitchPanelID, requireUser, ctr.DelSwitchPanel)
 
 	r.GET(routeSwitchPanelID+"/switches", ctr.GetSwitches)
-	r.POST(routeSwitchPanelID+"/switches", ctr.AddSwitch)
+	r.POST(routeSwitchPanelID+"/switches", requireUser, ctr.AddSwitch)
 }
 
 func (ctr *switchPanelsController) GetSwitchPanel(c *gin.Context) {

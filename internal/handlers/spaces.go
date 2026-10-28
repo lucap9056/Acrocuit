@@ -22,19 +22,19 @@ func spacesHandlers(r *gin.RouterGroup, base controller) {
 	ctr := &spacesController{base}
 
 	r.GET(routeSpaceID, ctr.GetSpace)
-	r.PUT(routeSpaceID, ctr.SetSpace)
-	r.DELETE(routeSpaceID, ctr.DelSpace)
-	r.PATCH(routeSpaceID+"/order", ctr.SetSpaceOrder)
+	r.PUT(routeSpaceID, requireUser, ctr.SetSpace)
+	r.DELETE(routeSpaceID, requireUser, ctr.DelSpace)
+	r.PATCH(routeSpaceID+"/order", requireUser, ctr.SetSpaceOrder)
 
 	r.GET(routeSpaceID+"/background-image", ctr.GetBackgroundImage)
-	r.PUT(routeSpaceID+"/background-image", ctr.SetBackgroundImage)
-	r.DELETE(routeSpaceID+"/background-image", ctr.DelBackgroundImage)
+	r.PUT(routeSpaceID+"/background-image", requireUser, ctr.SetBackgroundImage)
+	r.DELETE(routeSpaceID+"/background-image", requireUser, ctr.DelBackgroundImage)
 
 	r.GET(routeSpaceID+"/switch-panels", ctr.GetSwitchPanels)
-	r.POST(routeSpaceID+"/switch-panels", ctr.AddSwitchPanel)
+	r.POST(routeSpaceID+"/switch-panels", requireUser, ctr.AddSwitchPanel)
 
 	r.GET(routeSpaceID+"/devices", ctr.GetDevices)
-	r.POST(routeSpaceID+"/devices", ctr.AddDevice)
+	r.POST(routeSpaceID+"/devices", requireUser, ctr.AddDevice)
 }
 
 func (ctr *spacesController) GetSpace(c *gin.Context) {

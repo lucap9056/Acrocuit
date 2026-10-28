@@ -22,14 +22,14 @@ const (
 func spaceGroupsHandlers(r *gin.RouterGroup, base controller) {
 	ctr := &spaceGroupsController{base}
 
-	r.GET("", ctr.GetSpaceGroups)
-	r.POST("", ctr.AddSpaceGroup)
+	r.GET("", requireUser, ctr.GetSpaceGroups)
+	r.POST("", requireUser, ctr.AddSpaceGroup)
 	r.GET(routeSpaceGroupID, ctr.GetSpaceGroup)
-	r.PUT(routeSpaceGroupID, ctr.EditSpaceGroupName)
-	r.DELETE(routeSpaceGroupID, ctr.DelSpaceGroup)
+	r.PUT(routeSpaceGroupID, requireUser, ctr.EditSpaceGroupName)
+	r.DELETE(routeSpaceGroupID, requireUser, ctr.DelSpaceGroup)
 
 	r.GET(routeSpaceGroupID+"/spaces", ctr.GetSpaces)
-	r.POST(routeSpaceGroupID+"/spaces", ctr.AddSpace)
+	r.POST(routeSpaceGroupID+"/spaces", requireUser, ctr.AddSpace)
 
 	spaceGroupACLsHandlers(r, ctr)
 }

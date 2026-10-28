@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
 	"acrocuit/internal/storage/repository"
@@ -19,6 +20,15 @@ func intParam(c *gin.Context, name string) (int, bool) {
 		return 0, false
 	}
 	return v, true
+}
+
+func requireUser(c *gin.Context) {
+	if auth.UserEmail(c) == models.PublicAccessEmail {
+		response.AbortError(c, http.StatusUnauthorized, "Missing or invalid identity.")
+		return
+	}
+
+	c.Next()
 }
 
 func bindJSON(c *gin.Context, dst any) bool {

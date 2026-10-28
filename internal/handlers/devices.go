@@ -22,14 +22,14 @@ func devicesHandlers(r *gin.RouterGroup, base controller) {
 	ctr := &devicesController{base}
 
 	r.GET(routeDeviceID, ctr.GetDevice)
-	r.PUT(routeDeviceID, ctr.SetDevice)
-	r.PUT(routeDeviceID+"/position", ctr.SetDevicePosition)
-	r.DELETE(routeDeviceID, ctr.DelDevice)
+	r.PUT(routeDeviceID, requireUser, ctr.SetDevice)
+	r.PUT(routeDeviceID+"/position", requireUser, ctr.SetDevicePosition)
+	r.DELETE(routeDeviceID, requireUser, ctr.DelDevice)
 
 	r.GET(routeDeviceID+"/switches", ctr.GetDeviceSwitches)
-	r.POST(routeDeviceID+"/switches", ctr.AddDeviceSwitch)
-	r.PUT(routeDeviceID+"/switches/"+routeSwitchID, ctr.SetDeviceSwitch)
-	r.DELETE(routeDeviceID+"/switches/"+routeSwitchID, ctr.DelDeviceSwitch)
+	r.POST(routeDeviceID+"/switches", requireUser, ctr.AddDeviceSwitch)
+	r.PUT(routeDeviceID+"/switches/"+routeSwitchID, requireUser, ctr.SetDeviceSwitch)
+	r.DELETE(routeDeviceID+"/switches/"+routeSwitchID, requireUser, ctr.DelDeviceSwitch)
 
 	r.GET(routeDeviceID+"/upstream", ctr.GetDeviceUpstream)
 }

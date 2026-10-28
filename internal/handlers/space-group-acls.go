@@ -15,12 +15,12 @@ const (
 )
 
 func spaceGroupACLsHandlers(r *gin.RouterGroup, ctr *spaceGroupsController) {
-	r.GET(routeSpaceGroupID+"/members", ctr.GetSpaceGroupMembers)
-	r.POST(routeSpaceGroupID+"/members", ctr.AddSpaceGroupMember)
-	r.PUT(routeSpaceGroupID+"/members/"+routeMemberEmail, ctr.SetSpaceGroupMemberRole)
-	r.DELETE(routeSpaceGroupID+"/members/"+routeMemberEmail, ctr.DelSpaceGroupMember)
-	r.PUT(routeSpaceGroupID+"/owner", ctr.TransferSpaceGroupOwner)
-	r.PUT(routeSpaceGroupID+"/public", ctr.SetSpaceGroupPublic)
+	r.GET(routeSpaceGroupID+"/members", requireUser, ctr.GetSpaceGroupMembers)
+	r.POST(routeSpaceGroupID+"/members", requireUser, ctr.AddSpaceGroupMember)
+	r.PUT(routeSpaceGroupID+"/members/"+routeMemberEmail, requireUser, ctr.SetSpaceGroupMemberRole)
+	r.DELETE(routeSpaceGroupID+"/members/"+routeMemberEmail, requireUser, ctr.DelSpaceGroupMember)
+	r.PUT(routeSpaceGroupID+"/owner", requireUser, ctr.TransferSpaceGroupOwner)
+	r.PUT(routeSpaceGroupID+"/public", requireUser, ctr.SetSpaceGroupPublic)
 }
 
 type addSpaceGroupMemberRequest struct {

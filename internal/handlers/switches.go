@@ -25,14 +25,14 @@ func switchesHandlers(r *gin.RouterGroup, base controller) {
 
 	r.GET(routeSwitchID+"/downstream", ctr.GetSwitchDownstream)
 	r.GET(routeSwitchID, ctr.GetSwitch)
-	r.PUT(routeSwitchID, ctr.SetSwitch)
-	r.DELETE(routeSwitchID, ctr.DelSwitch)
-	r.PATCH(routeSwitchID+"/order", ctr.SetSwitchOrder)
+	r.PUT(routeSwitchID, requireUser, ctr.SetSwitch)
+	r.DELETE(routeSwitchID, requireUser, ctr.DelSwitch)
+	r.PATCH(routeSwitchID+"/order", requireUser, ctr.SetSwitchOrder)
 
 	r.GET(routeSwitchID+"/upstreams", ctr.GetSwitchUpstreams)
-	r.POST(routeSwitchID+"/upstreams", ctr.AddSwitchUpstream)
-	r.PUT(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, ctr.SetSwitchUpstream)
-	r.DELETE(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, ctr.DelSwitchUpstream)
+	r.POST(routeSwitchID+"/upstreams", requireUser, ctr.AddSwitchUpstream)
+	r.PUT(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, requireUser, ctr.SetSwitchUpstream)
+	r.DELETE(routeSwitchID+"/upstreams/"+routeUpstreamSwitchID, requireUser, ctr.DelSwitchUpstream)
 }
 
 type setAttributesRequest struct {
