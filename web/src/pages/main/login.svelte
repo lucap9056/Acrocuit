@@ -1,6 +1,8 @@
 <script lang="ts">
+  import XIcon from "phosphor-svelte/lib/XIcon";
   import api, { type TokenPair } from "@/api";
   import load from "@/components/loading-bar";
+  import { tooltip } from "@/components/tooltip";
   import { t } from "@/lib/i18n";
   import {
     assertNoProviderError,
@@ -13,9 +15,11 @@
   import styles from "./login.module.css";
 
   interface Props {
+    embedded?: boolean;
     onsuccess: (token: TokenPair) => void;
+    onclose?: () => void;
   }
-  const { onsuccess }: Props = $props();
+  const { embedded = false, onsuccess, onclose }: Props = $props();
 
   let pending = $state<AbortController>();
 
@@ -54,9 +58,24 @@
       pending.abort();
     }
   };
+
+  const close = () => {
+    cancel();
+    onclose?.();
+  };
 </script>
 
-<div class={styles.login}>
+<div class={styles.login} data-embedded={embedded}>
+  {#if onclose}
+    <button
+      class="icon_button {styles.close}"
+      aria-label={t("common.close")}
+      onclick={close}
+      {@attach tooltip(t("common.close"))}
+    >
+      <XIcon />
+    </button>
+  {/if}
   <h1>Acrocuit</h1>
   {#if pending}
     <button onclick={cancel}>{t("common.cancel")}</button>

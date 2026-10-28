@@ -35,6 +35,40 @@
     letter-spacing: 0.02em;
   }
 
+  &[data-embedded="true"] {
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 800 / 512;
+    background: url("./login-floorplan.svg") center / 100% auto no-repeat;
+    border-radius: 0;
+
+    @media (width < 50rem) {
+      height: 16rem;
+      aspect-ratio: auto;
+      background: none;
+    }
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 0;
+    padding: 0.375rem;
+    background: transparent;
+    color: var(--text);
+    font-size: 1.125rem;
+
+    &:hover {
+      background: var(--surface-muted);
+    }
+  }
+
   button {
     align-self: center;
     min-width: 10rem;

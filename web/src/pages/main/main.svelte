@@ -1,7 +1,8 @@
 <script lang="ts">
   import {
     AuthError,
-    AuthSession,
+    MemberAuthSession,
+    type AuthSession,
     type RefreshCallback,
     type TokenPair,
   } from "@/api";
@@ -24,6 +25,10 @@
   let isLoaded = $state(false);
   const isUnauthenticated = $derived(
     sessionErr instanceof AuthError && sessionErr.status === 401,
+  );
+  let isSpaceGroupRoute = $state(false);
+  const canEnterDashboard = $derived(
+    session?.kind === "member" || isSpaceGroupRoute,
   );
 
   const callback: RefreshCallback = {
@@ -72,6 +77,15 @@
     mountSignal = signal;
     connect(signal);
 
+    const spaceGroupParams = router.on(
+      "space-groups/:spaceGroupId/*",
+      (params) => {
+        isSpaceGroupRoute = params !== undefined;
+      },
+      signal,
+    );
+    isSpaceGroupRoute = spaceGroupParams !== undefined;
+
     return () => {
       router.dispose();
     };
@@ -79,7 +93,7 @@
 
   const onLogin = (token: TokenPair) => {
     if (mountSignal) {
-      const s = new AuthSession(callback, true, token);
+      const s = new MemberAuthSession(callback, true, token);
       setSession(s);
       session = s;
       sessionErr = undefined;
@@ -96,9 +110,11 @@
 </script>
 
 {#if isLoaded}
-  {#if session}
-    <Dashboard {session} {router} />
-  {:else if isUnauthenticated}
+  {#if session && canEnterDashboard}
+    {#key session}
+      <Dashboard {session} {router} onlogin={onLogin} />
+    {/key}
+  {:else if session || isUnauthenticated}
     <Login onsuccess={onLogin} />
   {:else}
     {#if sessionErr}

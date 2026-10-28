@@ -1,5 +1,5 @@
-import type { AccessToken, AuthError, TokenPair } from "@/api/auth";
-import auth from "@/api/auth";
+import type { AccessToken, TokenPair } from "@/api/auth";
+import auth, { AuthError } from "@/api/auth";
 import meta from "@/api/meta";
 
 const refreshAheadMs = 60_000;
@@ -19,14 +19,37 @@ export interface RefreshCallback {
   onerror: (error: AuthError) => void;
 }
 
-export class AuthSession {
-  public static readonly New = async (refreshCallback: RefreshCallback) => {
-    const { auth_required } = await meta.getMeta();
-    if (auth_required) {
-      await auth.refreshStatus();
+export type AuthSession = GuestAuthSession | MemberAuthSession;
+
+export const connectSession = async (
+  refreshCallback: RefreshCallback,
+): Promise<AuthSession> => {
+  const { auth_required } = await meta.getMeta();
+  if (!auth_required) {
+    return new MemberAuthSession(refreshCallback, false);
+  }
+
+  try {
+    await auth.refreshStatus();
+  } catch (err) {
+    if (err instanceof AuthError && err.status === 401) {
+      return new GuestAuthSession();
     }
-    return new AuthSession(refreshCallback, auth_required);
-  };
+    throw err;
+  }
+  return new MemberAuthSession(refreshCallback, true);
+};
+
+export class GuestAuthSession {
+  readonly kind = "guest";
+
+  public fetch(input: RequestInfo | URL, init: RequestInit = {}) {
+    return fetch(input, init);
+  }
+}
+
+export class MemberAuthSession {
+  readonly kind = "member";
 
   private accessToken?: AccessToken;
   private expiresAt = 0;

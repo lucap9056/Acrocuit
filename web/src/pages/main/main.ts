@@ -1,10 +1,10 @@
-import { AuthSession, type RefreshCallback } from "@/api";
+import { type AuthSession, connectSession, type RefreshCallback } from "@/api";
 
 let pending: Promise<AuthSession> | undefined;
 
 export const getSession = (callback: RefreshCallback) => {
   if (pending === undefined) {
-    pending = AuthSession.New(callback);
+    pending = connectSession(callback);
   }
   return pending;
 };

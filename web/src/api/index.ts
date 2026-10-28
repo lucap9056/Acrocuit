@@ -1,6 +1,12 @@
 export type * from "./auth";
 export { AuthError } from "./auth";
-export { AuthSession, type RefreshCallback } from "./auth/auth-session";
+export {
+  type AuthSession,
+  connectSession,
+  GuestAuthSession,
+  MemberAuthSession,
+  type RefreshCallback,
+} from "./auth/auth-session";
 
 export type * from "./models";
 export { ApiError } from "./response";

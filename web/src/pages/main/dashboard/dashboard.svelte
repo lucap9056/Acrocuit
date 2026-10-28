@@ -1,7 +1,14 @@
 <script lang="ts">
+  import SignInIcon from "phosphor-svelte/lib/SignInIcon";
   import SignOutIcon from "phosphor-svelte/lib/SignOutIcon";
-  import api, { type AuthSession, type SpaceGroup } from "@/api";
+  import api, {
+    type AuthSession,
+    type SpaceGroup,
+    type SpaceGroupId,
+    type TokenPair,
+  } from "@/api";
   import BackButton from "@/components/back-button/back-button.svelte";
+  import dialog, { type DialogContentProps } from "@/components/dialog";
   import HeaderTitle from "@/components/header-title/header-title.svelte";
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
@@ -15,6 +22,7 @@
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
   import { createWorkspace } from "@/lib/workspace";
+  import Login from "../login.svelte";
   import styles from "./dashboard.module.css";
   import SpaceGroupSelector from "./space-group-selector.svelte";
   import SpaceGroupView from "./space-group-view/space-group-view.svelte";
@@ -22,11 +30,23 @@
   interface Props {
     session: AuthSession;
     router: HashRouter;
+    onlogin: (token: TokenPair) => void;
   }
-  const { session, router }: Props = $props();
+  const { session, router, onlogin }: Props = $props();
 
   const workspace = $state(createWorkspace());
   let spaceGroup = $state<SpaceGroup>();
+
+  const loadSpaceGroup = (spaceGroupId: SpaceGroupId) => {
+    if (session.kind === "guest") {
+      return api.spaceGroups.getSpaceGroup(session, spaceGroupId);
+    }
+    return fetchSpaceGroups(session).then(
+      (spaceGroups) =>
+        spaceGroups.find((sg) => sg.id === spaceGroupId) ??
+        api.spaceGroups.getSpaceGroup(session, spaceGroupId),
+    );
+  };
 
   const onSpaceGroupSelected = (
     signal: AbortSignal,
@@ -39,14 +59,17 @@
     }
 
     const loading = load.begin(t("loading.fetchSpaceGroups"));
-    fetchSpaceGroups(session)
-      .then((spaceGroups) => {
+    loadSpaceGroup(spaceGroupId as SpaceGroupId)
+      .then((sg) => {
         if (!signal.aborted) {
-          spaceGroup = spaceGroups.find((sg) => sg.id === spaceGroupId);
+          spaceGroup = sg;
         }
       })
       .catch((err) => {
         console.error(err);
+        if (session.kind === "guest" && !signal.aborted) {
+          router.back("");
+        }
       })
       .finally(() => {
         loading.release();
@@ -77,6 +100,14 @@
     onSpaceGroupSelectedRouteHandle(params);
   });
 
+  const showLogin = () => {
+    dialog.push({
+      content: loginContent,
+      buttons: [],
+      maxWidth: "50rem",
+    });
+  };
+
   const logout = () => {
     const loading = load.begin(t("loading.signOut"));
     api.auth
@@ -93,6 +124,17 @@
   };
 </script>
 
+{#snippet loginContent({ dismiss }: DialogContentProps)}
+  <Login
+    embedded
+    onsuccess={(token) => {
+      dismiss();
+      onlogin(token);
+    }}
+    onclose={dismiss}
+  />
+{/snippet}
+
 <div class={styles.dashboard}>
   <div class={styles.header}>
     <div class={styles.left}>
@@ -102,13 +144,23 @@
       <HeaderTitle />
     </div>
     <div class={styles.right}>
-      <button
-        class="icon_button"
-        onclick={logout}
-        {@attach tooltip(t("auth.signOut"))}
-      >
-        <SignOutIcon />
-      </button>
+      {#if session.kind === "member"}
+        <button
+          class="icon_button"
+          onclick={logout}
+          {@attach tooltip(t("auth.signOut"))}
+        >
+          <SignOutIcon />
+        </button>
+      {:else}
+        <button
+          class="icon_button"
+          onclick={showLogin}
+          {@attach tooltip(t("auth.signIn"))}
+        >
+          <SignInIcon />
+        </button>
+      {/if}
     </div>
   </div>
   {#each spaceGroup
@@ -122,8 +174,10 @@
       spaceGroup={currentSpaceGroup}
     />
   {:else}
-    <div class={styles.space_groups}>
-      <SpaceGroupSelector {session} {router} />
-    </div>
+    {#if session.kind === "member"}
+      <div class={styles.space_groups}>
+        <SpaceGroupSelector {session} {router} />
+      </div>
+    {/if}
   {/each}
 </div>
