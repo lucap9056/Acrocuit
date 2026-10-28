@@ -16,9 +16,24 @@ export type Position = {
 
 export type Attributes = Record<string, unknown>;
 
+export type SpaceGroupRole = "owner" | "editor" | "viewer";
+
+export type SpaceGroupMemberRole = Exclude<SpaceGroupRole, "owner">;
+
 export type SpaceGroup = {
   id: SpaceGroupId;
   name: string;
+  role: SpaceGroupRole;
+};
+
+export type SpaceGroupMember = {
+  email: string;
+  role: SpaceGroupRole;
+};
+
+export type SpaceGroupMembers = {
+  public: boolean;
+  members: SpaceGroupMember[];
 };
 
 export type Space = {
