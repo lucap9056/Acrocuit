@@ -6,6 +6,7 @@ import (
 	"acrocuit/schema"
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 type sqliteDevices struct {
@@ -152,7 +153,23 @@ func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceI
 		JOIN ` + schema.SwitchesTable + ` ON ` + schema.JoinDeviceSwitches_Switches + `
 		WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1`
 
-	return queryLinkedSwitches(ctx, d.db, fields, query, deviceId)
+	rows, err := d.db.QueryContext(ctx, query, deviceId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	linkedSwitches := make([]models.LinkedSwitch, 0)
+	for rows.Next() {
+		var ls models.LinkedSwitch
+		if err := rows.Scan(ls.Values(fields)...); err != nil {
+			return nil, err
+		}
+		ls.Build()
+		linkedSwitches = append(linkedSwitches, ls)
+	}
+
+	return linkedSwitches, rows.Err()
 }
 
 func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
@@ -212,7 +229,7 @@ func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId,
 }
 
 func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId string) (*models.PowerChain, error) {
-	devices, err := queryDevicesWithPosition(ctx, d.db, `
+	deviceRows, err := d.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
 		LEFT JOIN `+schema.DevicePositionsTable+` ON `+schema.JoinDevicePositions_Devices+`
@@ -221,46 +238,95 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 	if err != nil {
 		return nil, err
 	}
-	if len(devices) == 0 {
+	defer deviceRows.Close()
+
+	chain := &models.PowerChain{
+		Devices:     make([]models.Device, 0),
+		Switches:    make([]models.ChainSwitch, 0),
+		SwitchLinks: make([]models.SwitchLink, 0),
+		DeviceLinks: make([]models.DeviceLink, 0),
+	}
+	for deviceRows.Next() {
+		var device models.Device
+		if err := deviceRows.Scan(device.ValuesWithPosition()...); err != nil {
+			return nil, err
+		}
+		device.Build()
+		chain.Devices = append(chain.Devices, device)
+	}
+	if err := deviceRows.Err(); err != nil {
+		return nil, err
+	}
+	if len(chain.Devices) == 0 {
 		return nil, repository.ErrNotFound
 	}
 
-	chain := &models.PowerChain{Devices: devices}
-
-	query := `
+	switchRows, err := d.db.QueryContext(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
-			SELECT ` + schema.FullDeviceSwitches_SWITCH_ID + `
-			FROM ` + schema.DeviceSwitchesTable + `
-			WHERE ` + schema.FullDeviceSwitches_DEVICE_ID + ` = $1
+			SELECT `+schema.FullDeviceSwitches_SWITCH_ID+`
+			FROM `+schema.DeviceSwitchesTable+`
+			WHERE `+schema.FullDeviceSwitches_DEVICE_ID+` = $1
 
 			UNION
 
-			SELECT ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + `
-			FROM ` + schema.SwitchLinksTable + `
-			JOIN switch_chain ON ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = switch_chain.id
+			SELECT `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+`
+			FROM `+schema.SwitchLinksTable+`
+			JOIN switch_chain ON `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+` = switch_chain.id
 		)
-	` + selectSwitchChainWithPanel
-	chain.Switches, err = querySwitchesWithPanel(ctx, d.db, query, deviceId)
+		SELECT `+models.SWITCH_ALL_COLUMNS+`, `+models.SWITCH_PANEL_WITH_POSITION_COLUMNS+`
+		FROM switch_chain
+		JOIN `+schema.SwitchesTable+` ON `+schema.FullSwitches_ID+` = switch_chain.id
+		JOIN `+schema.SwitchPanelsTable+` ON `+schema.JoinSwitches_SwitchPanels+`
+		LEFT JOIN `+schema.SwitchPanelPositionsTable+` ON `+schema.JoinSwitchPanelPositions_SwitchPanels+`
+		ORDER BY `+schema.FullSwitches_ID+`
+	`, deviceId)
+	if err != nil {
+		return nil, err
+	}
+	defer switchRows.Close()
+
+	switchIds := make([]string, 0)
+	for switchRows.Next() {
+		var sw models.ChainSwitch
+		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		chain.Switches = append(chain.Switches, sw)
+		switchIds = append(switchIds, sw.Id)
+	}
+	if err := switchRows.Err(); err != nil {
+		return nil, err
+	}
+
+	switchIdsJSON, err := json.Marshal(switchIds)
 	if err != nil {
 		return nil, err
 	}
 
-	ids, err := switchIdsJSON(chain.Switches)
-	if err != nil {
-		return nil, err
-	}
-
-	chain.SwitchLinks, err = querySwitchLinks(ctx, d.db, `
+	switchLinkRows, err := d.db.QueryContext(ctx, `
 		SELECT `+models.SWITCH_LINK_COLUMNS+`
 		FROM `+schema.SwitchLinksTable+`
 		WHERE `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+` IN (SELECT value FROM json_each($1))
 		ORDER BY `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+`, `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
-	`, ids)
+	`, string(switchIdsJSON))
 	if err != nil {
 		return nil, err
 	}
+	defer switchLinkRows.Close()
 
-	chain.DeviceLinks, err = queryDeviceLinks(ctx, d.db, `
+	for switchLinkRows.Next() {
+		var link models.SwitchLink
+		if err := switchLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.SwitchLinks = append(chain.SwitchLinks, link)
+	}
+	if err := switchLinkRows.Err(); err != nil {
+		return nil, err
+	}
+
+	deviceLinkRows, err := d.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_LINK_COLUMNS+`
 		FROM `+schema.DeviceSwitchesTable+`
 		WHERE `+schema.FullDeviceSwitches_DEVICE_ID+` = $1
@@ -269,8 +335,17 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 	if err != nil {
 		return nil, err
 	}
+	defer deviceLinkRows.Close()
 
-	return chain, nil
+	for deviceLinkRows.Next() {
+		var link models.DeviceLink
+		if err := deviceLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.DeviceLinks = append(chain.DeviceLinks, link)
+	}
+
+	return chain, deviceLinkRows.Err()
 }
 
 func upsertDevicePosition(ctx context.Context, q querier, deviceId string, position models.Position) error {

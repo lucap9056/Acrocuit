@@ -6,6 +6,7 @@ import (
 	"acrocuit/schema"
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 type sqliteSwitches struct {
@@ -23,7 +24,23 @@ func (s *sqliteSwitches) GetSwitches(ctx context.Context, _ string, switchPanelI
 		WHERE ` + schema.FullSwitches_SWITCH_PANEL_ID + ` = $1
 		ORDER BY ` + schema.FullSwitches_DISPLAY_ORDER
 
-	return querySwitches(ctx, s.db, fields, query, switchPanelId)
+	rows, err := s.db.QueryContext(ctx, query, switchPanelId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	switches := make([]models.Switch, 0)
+	for rows.Next() {
+		var sw models.Switch
+		if err := rows.Scan(sw.Values(fields)...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		switches = append(switches, sw)
+	}
+
+	return switches, rows.Err()
 }
 
 func (s *sqliteSwitches) GetSwitch(ctx context.Context, _ string, switchId string, include string) (*models.Switch, error) {
@@ -87,16 +104,27 @@ func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId stri
 			}
 		}
 
-		keys, fields, err := models.ParseSwitchColumns("")
-		if err != nil {
-			return err
-		}
-		query := `SELECT ` + keys + `
+		query := `SELECT ` + models.SWITCH_ALL_COLUMNS + `
 			FROM ` + schema.SwitchesTable + `
 			WHERE ` + schema.FullSwitches_SWITCH_PANEL_ID + ` = $1
 			ORDER BY ` + schema.FullSwitches_DISPLAY_ORDER
-		switches, err = querySwitches(ctx, tx, fields, query, switchPanelId)
-		return err
+		rows, err := tx.QueryContext(ctx, query, switchPanelId)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		switches = make([]models.Switch, 0)
+		for rows.Next() {
+			var sw models.Switch
+			if err := rows.Scan(sw.AllValues()...); err != nil {
+				return err
+			}
+			sw.Build()
+			switches = append(switches, sw)
+		}
+
+		return rows.Err()
 	})
 	if err != nil {
 		return nil, err
@@ -106,7 +134,7 @@ func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId stri
 }
 
 func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId string, name *string, attributes models.Attributes) (*models.Switch, error) {
-	var sw *models.Switch
+	sw := &models.Switch{}
 
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
 		update := `
@@ -119,13 +147,13 @@ func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId strin
 			return err
 		}
 
-		var err error
-		sw, err = selectSwitch(ctx, tx, switchId)
-		return err
+		query := `SELECT ` + models.SWITCH_ALL_COLUMNS + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.FullSwitches_ID + ` = $1`
+		return notFoundIfNoRows(tx.QueryRowContext(ctx, query, switchId).Scan(sw.AllValues()...))
 	})
 	if err != nil {
 		return nil, err
 	}
+	sw.Build()
 
 	return sw, nil
 }
@@ -151,7 +179,23 @@ func (s *sqliteSwitches) GetSwitchUpstreams(ctx context.Context, _ string, switc
 		WHERE ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $1
 		ORDER BY ` + schema.FullSwitches_ID
 
-	return queryLinkedSwitches(ctx, s.db, fields, query, switchId)
+	rows, err := s.db.QueryContext(ctx, query, switchId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	linkedSwitches := make([]models.LinkedSwitch, 0)
+	for rows.Next() {
+		var ls models.LinkedSwitch
+		if err := rows.Scan(ls.Values(fields)...); err != nil {
+			return nil, err
+		}
+		ls.Build()
+		linkedSwitches = append(linkedSwitches, ls)
+	}
+
+	return linkedSwitches, rows.Err()
 }
 
 func (s *sqliteSwitches) AddSwitchUpstream(ctx context.Context, _ string, switchId, upstreamSwitchId string, attributes models.Attributes) (*models.SwitchLink, error) {
@@ -233,45 +277,81 @@ func (s *sqliteSwitches) DelSwitchUpstream(ctx context.Context, _ string, switch
 }
 
 func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, switchId string) (*models.PowerChain, error) {
-	query := `
+	switchRows, err := s.db.QueryContext(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
-			SELECT ` + schema.FullSwitches_ID + `
-			FROM ` + schema.SwitchesTable + `
-			WHERE ` + schema.FullSwitches_ID + ` = $1
+			SELECT `+schema.FullSwitches_ID+`
+			FROM `+schema.SwitchesTable+`
+			WHERE `+schema.FullSwitches_ID+` = $1
 
 			UNION
 
-			SELECT ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + `
-			FROM ` + schema.SwitchLinksTable + `
-			JOIN switch_chain ON ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + ` = switch_chain.id
+			SELECT `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
+			FROM `+schema.SwitchLinksTable+`
+			JOIN switch_chain ON `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+` = switch_chain.id
 		)
-	` + selectSwitchChainWithPanel
-	switches, err := querySwitchesWithPanel(ctx, s.db, query, switchId)
+		SELECT `+models.SWITCH_ALL_COLUMNS+`, `+models.SWITCH_PANEL_WITH_POSITION_COLUMNS+`
+		FROM switch_chain
+		JOIN `+schema.SwitchesTable+` ON `+schema.FullSwitches_ID+` = switch_chain.id
+		JOIN `+schema.SwitchPanelsTable+` ON `+schema.JoinSwitches_SwitchPanels+`
+		LEFT JOIN `+schema.SwitchPanelPositionsTable+` ON `+schema.JoinSwitchPanelPositions_SwitchPanels+`
+		ORDER BY `+schema.FullSwitches_ID+`
+	`, switchId)
 	if err != nil {
 		return nil, err
 	}
-	if len(switches) == 0 {
+	defer switchRows.Close()
+
+	chain := &models.PowerChain{
+		Switches:    make([]models.ChainSwitch, 0),
+		SwitchLinks: make([]models.SwitchLink, 0),
+		Devices:     make([]models.Device, 0),
+		DeviceLinks: make([]models.DeviceLink, 0),
+	}
+	switchIds := make([]string, 0)
+	for switchRows.Next() {
+		var sw models.ChainSwitch
+		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		chain.Switches = append(chain.Switches, sw)
+		switchIds = append(switchIds, sw.Id)
+	}
+	if err := switchRows.Err(); err != nil {
+		return nil, err
+	}
+	if len(chain.Switches) == 0 {
 		return nil, repository.ErrNotFound
 	}
 
-	ids, err := switchIdsJSON(switches)
+	switchIdsJSON, err := json.Marshal(switchIds)
 	if err != nil {
 		return nil, err
 	}
 
-	chain := &models.PowerChain{Switches: switches}
-
-	chain.SwitchLinks, err = querySwitchLinks(ctx, s.db, `
+	switchLinkRows, err := s.db.QueryContext(ctx, `
 		SELECT `+models.SWITCH_LINK_COLUMNS+`
 		FROM `+schema.SwitchLinksTable+`
 		WHERE `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+` IN (SELECT value FROM json_each($1))
 		ORDER BY `+schema.FullSwitchLinks_UPSTREAM_SWITCH_ID+`, `+schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID+`
-	`, ids)
+	`, string(switchIdsJSON))
 	if err != nil {
 		return nil, err
 	}
+	defer switchLinkRows.Close()
 
-	chain.Devices, err = queryDevicesWithPosition(ctx, s.db, `
+	for switchLinkRows.Next() {
+		var link models.SwitchLink
+		if err := switchLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.SwitchLinks = append(chain.SwitchLinks, link)
+	}
+	if err := switchLinkRows.Err(); err != nil {
+		return nil, err
+	}
+
+	deviceRows, err := s.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
 		LEFT JOIN `+schema.DevicePositionsTable+` ON `+schema.JoinDevicePositions_Devices+`
@@ -281,22 +361,44 @@ func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, swit
 			WHERE `+schema.FullDeviceSwitches_SWITCH_ID+` IN (SELECT value FROM json_each($1))
 		)
 		ORDER BY `+schema.FullDevices_ID+`
-	`, ids)
+	`, string(switchIdsJSON))
 	if err != nil {
 		return nil, err
 	}
+	defer deviceRows.Close()
 
-	chain.DeviceLinks, err = queryDeviceLinks(ctx, s.db, `
+	for deviceRows.Next() {
+		var device models.Device
+		if err := deviceRows.Scan(device.ValuesWithPosition()...); err != nil {
+			return nil, err
+		}
+		device.Build()
+		chain.Devices = append(chain.Devices, device)
+	}
+	if err := deviceRows.Err(); err != nil {
+		return nil, err
+	}
+
+	deviceLinkRows, err := s.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_LINK_COLUMNS+`
 		FROM `+schema.DeviceSwitchesTable+`
 		WHERE `+schema.FullDeviceSwitches_SWITCH_ID+` IN (SELECT value FROM json_each($1))
 		ORDER BY `+schema.FullDeviceSwitches_SWITCH_ID+`, `+schema.FullDeviceSwitches_DEVICE_ID+`
-	`, ids)
+	`, string(switchIdsJSON))
 	if err != nil {
 		return nil, err
 	}
+	defer deviceLinkRows.Close()
 
-	return chain, nil
+	for deviceLinkRows.Next() {
+		var link models.DeviceLink
+		if err := deviceLinkRows.Scan(link.Values()...); err != nil {
+			return nil, err
+		}
+		chain.DeviceLinks = append(chain.DeviceLinks, link)
+	}
+
+	return chain, deviceLinkRows.Err()
 }
 
 func requireSwitchInSpaceGroup(ctx context.Context, q querier, switchId, spaceGroupId string) error {
@@ -311,45 +413,4 @@ func requireSwitchInSpaceGroup(ctx context.Context, q querier, switchId, spaceGr
 		return repository.ErrNotFound
 	}
 	return nil
-}
-
-func selectSwitch(ctx context.Context, q querier, switchId string) (*models.Switch, error) {
-	query := `SELECT ` + models.SWITCH_ALL_COLUMNS + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.FullSwitches_ID + ` = $1`
-
-	sw := &models.Switch{}
-	if err := q.QueryRowContext(ctx, query, switchId).Scan(sw.AllValues()...); err != nil {
-		return nil, notFoundIfNoRows(err)
-	}
-	sw.Build()
-
-	return sw, nil
-}
-
-func querySwitches(ctx context.Context, q querier, fields []uint8, query string, args ...any) ([]models.Switch, error) {
-	rows, err := q.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	switches := make([]models.Switch, 0)
-	for rows.Next() {
-		var sw models.Switch
-		if err := rows.Scan(sw.Values(fields)...); err != nil {
-			return nil, err
-		}
-		sw.Build()
-		switches = append(switches, sw)
-	}
-
-	return switches, rows.Err()
-}
-
-func queryLinkedSwitches(ctx context.Context, q querier, fields []uint8, query string, args ...any) ([]models.LinkedSwitch, error) {
-	rows, err := q.QueryContext(ctx, query, args...)
-	switches, err := scanAll(rows, err, func(ls *models.LinkedSwitch) []any { return ls.Values(fields) })
-	for i := range switches {
-		switches[i].Build()
-	}
-	return switches, err
 }
