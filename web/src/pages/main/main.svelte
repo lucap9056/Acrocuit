@@ -2,7 +2,6 @@
   import {
     AuthError,
     type AuthSession,
-    LocalAuthSession,
     MemberAuthSession,
     type RefreshCallback,
     type TokenPair,
@@ -14,6 +13,7 @@
   import { createHashRouter } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { writeLocalMode } from "@/lib/local-backend/mode";
   import Dashboard from "./dashboard/dashboard.svelte";
   import Login from "./login.svelte";
   import { clearSession, getSession, setSession } from "./main";
@@ -104,12 +104,8 @@
   };
 
   const onLocal = () => {
-    if (mountSignal) {
-      const s = new LocalAuthSession();
-      setSession(s);
-      session = s;
-      sessionErr = undefined;
-    }
+    writeLocalMode(true);
+    location.reload();
   };
 
   const reload = () => {

@@ -1,10 +1,18 @@
-import { type AuthSession, connectSession, type RefreshCallback } from "@/api";
+import {
+  type AuthSession,
+  connectSession,
+  LocalAuthSession,
+  type RefreshCallback,
+} from "@/api";
+import { readLocalMode } from "@/lib/local-backend/mode";
 
 let pending: Promise<AuthSession> | undefined;
 
 export const getSession = (callback: RefreshCallback) => {
   if (pending === undefined) {
-    pending = connectSession(callback);
+    pending = readLocalMode()
+      ? Promise.resolve(new LocalAuthSession())
+      : connectSession(callback);
   }
   return pending;
 };
