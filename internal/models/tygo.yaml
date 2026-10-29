@@ -5,7 +5,6 @@ packages:
     preserve_comments: "none"
     exclude_files:
       - "attributes.go"
-      - "background_image.go"
       - "emails.go"
       - "errors.go"
       - "ids.go"

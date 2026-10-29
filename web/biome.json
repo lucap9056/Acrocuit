@@ -11,7 +11,9 @@
       "**/src/**/*",
       "**/.vscode/**/*",
       "**/index.html",
-      "**/vite.config.ts"
+      "**/vite.config.ts",
+      "!**/src/api/models/index.ts",
+      "!**/src/lib/local-backend/storage/types.ts"
     ]
   },
   "formatter": {

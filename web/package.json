@@ -17,8 +17,9 @@
   },
   "private": true,
   "scripts": {
+    "build:wasm": "go -C ../cmd/wasm-build run . -root ../..",
     "dev": "vite",
-    "build": "vite build",
+    "build": "bun run build:wasm && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "format": "biome format",
