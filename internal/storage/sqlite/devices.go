@@ -8,9 +8,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-
-	modernc "modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type sqliteDevices struct {
@@ -272,8 +269,7 @@ func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId 
 
 	insert := `INSERT INTO ` + schema.DeviceSwitchesTable + ` (` + schema.DeviceSwitches_DEVICE_ID + `, ` + schema.DeviceSwitches_SWITCH_ID + `, ` + schema.DeviceSwitches_ATTRIBUTES + `) VALUES ($1, $2, $3)`
 	_, err = tx.ExecContext(ctx, insert, deviceId, switchId, attributes)
-	var sqliteErr *modernc.Error
-	if errors.As(err, &sqliteErr) && (sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE || sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY) {
+	if isUniqueViolation(err) {
 		return nil, repository.ErrConflict
 	}
 	if err != nil {
