@@ -325,7 +325,7 @@ func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, devic
 	return nil
 }
 
-func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChain, error) {
+func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChainGraph, error) {
 	deviceRows, err := d.pool.Query(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
@@ -343,7 +343,7 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 	}
 	defer deviceRows.Close()
 
-	chain := &models.PowerChain{
+	chain := &models.PowerChainGraph{
 		Devices:     make([]models.Device, 0),
 		Switches:    make([]models.ChainSwitch, 0),
 		SwitchLinks: make([]models.SwitchLink, 0),

@@ -327,7 +327,7 @@ func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId 
 	return nil
 }
 
-func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId models.DeviceId) (*models.PowerChain, error) {
+func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId models.DeviceId) (*models.PowerChainGraph, error) {
 	deviceRows, err := d.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
@@ -339,7 +339,7 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 	}
 	defer deviceRows.Close()
 
-	chain := &models.PowerChain{
+	chain := &models.PowerChainGraph{
 		Devices:     make([]models.Device, 0),
 		Switches:    make([]models.ChainSwitch, 0),
 		SwitchLinks: make([]models.SwitchLink, 0),

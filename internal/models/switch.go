@@ -7,15 +7,13 @@ import (
 	"strings"
 )
 
-const SWITCH_ALL_COLUMNS = schema.FullSwitches_ID + "," + schema.FullSwitches_NAME + "," + schema.FullSwitches_SWITCH_PANEL_ID + "," + schema.FullSwitches_SPACE_GROUP_ID + "," + schema.FullSwitches_DISPLAY_ORDER + "," + schema.FullSwitches_ATTRIBUTES
-
 var switchAllFields = []uint8{0, 1, 2, 3, 4, 5}
 
 type Switch struct {
 	Id            SwitchId      `json:"id"`
 	Name          string        `json:"name"`
 	DisplayOrder  int           `json:"display_order"`
-	Attributes    Attributes    `json:"attributes"`
+	Attributes    Attributes    `json:"attributes" tstype:"Attributes | null"`
 	SwitchPanelId SwitchPanelId `json:"-"`
 	SpaceGroupId  SpaceGroupId  `json:"-"`
 
@@ -33,8 +31,8 @@ func (s *Switch) AllValues() []any {
 }
 
 type ChainSwitch struct {
-	Switch
-	SwitchPanel *SwitchPanel `json:"switch_panel"`
+	Switch      `tstype:",extends"`
+	SwitchPanel *SwitchPanel `json:"switch_panel" tstype:",required"`
 }
 
 func (s *ChainSwitch) Build() {

@@ -1,0 +1,24 @@
+packages:
+  - path: "acrocuit/internal/models"
+    output_path: "../../web/src/api/models/index.ts"
+    optional_type: "null"
+    preserve_comments: "none"
+    exclude_files:
+      - "attributes.go"
+      - "background_image.go"
+      - "emails.go"
+      - "errors.go"
+      - "ids.go"
+      - "sql_columns.go"
+    frontmatter: |
+      export type SpaceGroupId = Brand<string, "SpaceGroupId">;
+      export type SpaceId = Brand<string, "SpaceId">;
+      export type SwitchPanelId = Brand<string, "SwitchPanelId">;
+      export type SwitchId = Brand<string, "SwitchId">;
+      export type DeviceId = Brand<string, "DeviceId">;
+
+      export type Attributes = Record<string, unknown>;
+
+      export type SpaceGroupRole = "owner" | "editor" | "viewer";
+
+      export type SpaceGroupMemberRole = Exclude<SpaceGroupRole, "owner">;

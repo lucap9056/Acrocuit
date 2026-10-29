@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const SPACE_ALL_COLUMNS = schema.FullSpaces_ID + "," + schema.FullSpaces_NAME + "," + schema.FullSpaces_SPACE_GROUP_ID + "," + schema.FullSpaces_DISPLAY_ORDER + "," + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT
-
 type Space struct {
 	Id                       SpaceId      `json:"id"`
 	Name                     string       `json:"name"`

@@ -1,5 +1,15 @@
 ARG WEB=embed
 
+FROM golang:1.26-alpine AS web-models
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY internal/models ./internal/models
+COPY schema ./schema
+RUN go generate ./internal/models
+
 FROM oven/bun:1.4 AS web-embed
 WORKDIR /src/web
 
@@ -7,6 +17,7 @@ COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY web ./
+COPY --from=web-models /src/web/src/api/models ./src/api/models
 RUN bun run build && mv dist /dist
 
 FROM scratch AS web-none

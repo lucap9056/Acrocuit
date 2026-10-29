@@ -123,22 +123,22 @@ func newRequest(t *testing.T, method, path string, body any) *http.Request {
 	return req
 }
 
-func powerChain(c *client, path string) models.PowerChain {
+func powerChain(c *client, path string) models.PowerChainGraph {
 	c.t.Helper()
 
-	var chain models.PowerChain
+	var chain models.PowerChainGraph
 	req := newRequest(c.t, http.MethodGet, path, nil)
 	status := c.Send(req, &chain)
 	require.Equal(c.t, http.StatusOK, status, "GET %s", path)
 	return chain
 }
 
-func downstream(c *client, switchId string) models.PowerChain {
+func downstream(c *client, switchId string) models.PowerChainGraph {
 	c.t.Helper()
 	return powerChain(c, fmt.Sprintf("/switches/%s/downstream", switchId))
 }
 
-func upstream(c *client, deviceId string) models.PowerChain {
+func upstream(c *client, deviceId string) models.PowerChainGraph {
 	c.t.Helper()
 	return powerChain(c, fmt.Sprintf("/devices/%s/upstream", deviceId))
 }
@@ -167,13 +167,13 @@ func chainSwitchIds(switches []models.ChainSwitch) []string {
 	return result
 }
 
-func hasDeviceOnSwitch(chain models.PowerChain, deviceId, switchId string) bool {
+func hasDeviceOnSwitch(chain models.PowerChainGraph, deviceId, switchId string) bool {
 	return slices.ContainsFunc(chain.DeviceLinks, func(l models.DeviceLink) bool {
 		return string(l.DeviceId) == deviceId && string(l.SwitchId) == switchId
 	})
 }
 
-func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId string) (models.SwitchLink, bool) {
+func findSwitchLink(chain models.PowerChainGraph, upstreamId, downstreamId string) (models.SwitchLink, bool) {
 	index := slices.IndexFunc(chain.SwitchLinks, func(l models.SwitchLink) bool {
 		return string(l.UpstreamSwitchId) == upstreamId && string(l.DownstreamSwitchId) == downstreamId
 	})
@@ -183,7 +183,7 @@ func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId string) (m
 	return chain.SwitchLinks[index], true
 }
 
-func logTree(t *testing.T, rootId string, chain models.PowerChain) {
+func logTree(t *testing.T, rootId string, chain models.PowerChainGraph) {
 	t.Helper()
 
 	names := make(map[string]string, len(chain.Switches))

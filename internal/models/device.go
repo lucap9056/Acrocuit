@@ -7,16 +7,12 @@ import (
 	"strings"
 )
 
-const DEVICE_ALL_COLUMNS = schema.FullDevices_ID + "," + schema.FullDevices_NAME + "," + schema.FullDevices_SPACE_ID + "," + schema.FullDevices_ATTRIBUTES
-
-const DEVICE_WITH_POSITION_COLUMNS = DEVICE_ALL_COLUMNS + "," + schema.FullDevicePositions_POSITION_X + "," + schema.FullDevicePositions_POSITION_Y + "," + schema.FullDevicePositions_POSITION_Z
-
 var deviceWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6}
 
 type Device struct {
 	Id           DeviceId     `json:"id"`
 	Name         string       `json:"name"`
-	Attributes   Attributes   `json:"attributes"`
+	Attributes   Attributes   `json:"attributes" tstype:"Attributes | null"`
 	SpaceId      SpaceId      `json:"-"`
 	SpaceGroupId SpaceGroupId `json:"-"`
 	PositionX    *int         `json:"-"`

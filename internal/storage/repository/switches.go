@@ -16,5 +16,5 @@ type Switches interface {
 	AddSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId, attributes models.Attributes) (*models.SwitchLink, error)
 	SetSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId, attributes models.Attributes) (*models.SwitchLink, error)
 	DelSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId) error
-	GetSwitchDownstream(ctx context.Context, userEmail string, switchId models.SwitchId) (*models.PowerChain, error)
+	GetSwitchDownstream(ctx context.Context, userEmail string, switchId models.SwitchId) (*models.PowerChainGraph, error)
 }

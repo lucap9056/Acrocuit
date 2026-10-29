@@ -16,5 +16,5 @@ type Devices interface {
 	AddDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error)
 	SetDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error)
 	DelDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId) error
-	GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChain, error)
+	GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChainGraph, error)
 }

@@ -1,15 +1,9 @@
 package models
 
-import "acrocuit/schema"
-
-const SWITCH_LINK_COLUMNS = schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + "," + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + "," + schema.FullSwitchLinks_ATTRIBUTES
-
-const DEVICE_LINK_COLUMNS = schema.FullDeviceSwitches_DEVICE_ID + "," + schema.FullDeviceSwitches_SWITCH_ID + "," + schema.FullDeviceSwitches_ATTRIBUTES
-
 type SwitchLink struct {
 	UpstreamSwitchId   SwitchId   `json:"upstream_switch_id"`
 	DownstreamSwitchId SwitchId   `json:"downstream_switch_id"`
-	Attributes         Attributes `json:"attributes"`
+	Attributes         Attributes `json:"attributes" tstype:"Attributes | null"`
 }
 
 func (l *SwitchLink) Values() []any {
@@ -19,7 +13,7 @@ func (l *SwitchLink) Values() []any {
 type DeviceLink struct {
 	DeviceId   DeviceId   `json:"device_id"`
 	SwitchId   SwitchId   `json:"switch_id"`
-	Attributes Attributes `json:"attributes"`
+	Attributes Attributes `json:"attributes" tstype:"Attributes | null"`
 }
 
 func (l *DeviceLink) Values() []any {
@@ -27,19 +21,19 @@ func (l *DeviceLink) Values() []any {
 }
 
 type LinkInfo struct {
-	Attributes Attributes `json:"attributes"`
+	Attributes Attributes `json:"attributes" tstype:"Attributes | null"`
 }
 
 type LinkedSwitch struct {
-	Switch
-	Link LinkInfo `json:"link"`
+	Switch `tstype:",extends"`
+	Link   LinkInfo `json:"link"`
 }
 
 func (ls *LinkedSwitch) Values(fields []uint8) []any {
 	return append(ls.Switch.Values(fields), &ls.Link.Attributes)
 }
 
-type PowerChain struct {
+type PowerChainGraph struct {
 	Switches    []ChainSwitch `json:"switches"`
 	SwitchLinks []SwitchLink  `json:"switch_links"`
 	Devices     []Device      `json:"devices"`

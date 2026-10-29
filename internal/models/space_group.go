@@ -7,12 +7,10 @@ import (
 	"strings"
 )
 
-const SPACE_GROUP_ALL_COLUMNS = schema.FullSpaceGroups_ID + "," + schema.FullSpaceGroups_NAME
-
 type SpaceGroup struct {
 	Id   SpaceGroupId `json:"id"`
 	Name string       `json:"name"`
-	Role string       `json:"role"`
+	Role string       `json:"role" tstype:"SpaceGroupRole"`
 }
 
 func ParseSpaceGroupColumns(columnsStr, roleColumn string) (string, []uint8, error) {

@@ -398,7 +398,7 @@ func (s *sqliteSwitches) DelSwitchUpstream(ctx context.Context, _ string, switch
 	return nil
 }
 
-func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, switchId models.SwitchId) (*models.PowerChain, error) {
+func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, switchId models.SwitchId) (*models.PowerChainGraph, error) {
 	switchRows, err := s.db.QueryContext(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
 			SELECT `+schema.FullSwitches_ID+`
@@ -423,7 +423,7 @@ func (s *sqliteSwitches) GetSwitchDownstream(ctx context.Context, _ string, swit
 	}
 	defer switchRows.Close()
 
-	chain := &models.PowerChain{
+	chain := &models.PowerChainGraph{
 		Switches:    make([]models.ChainSwitch, 0),
 		SwitchLinks: make([]models.SwitchLink, 0),
 		Devices:     make([]models.Device, 0),

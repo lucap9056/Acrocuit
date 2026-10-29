@@ -7,16 +7,12 @@ import (
 	"strings"
 )
 
-const SWITCH_PANEL_ALL_COLUMNS = schema.FullSwitchPanels_ID + "," + schema.FullSwitchPanels_NAME + "," + schema.FullSwitchPanels_SPACE_ID + "," + schema.FullSwitchPanels_SPACE_GROUP_ID + "," + schema.FullSwitchPanels_ATTRIBUTES
-
-const SWITCH_PANEL_WITH_POSITION_COLUMNS = SWITCH_PANEL_ALL_COLUMNS + "," + schema.FullSwitchPanelPositions_POSITION_X + "," + schema.FullSwitchPanelPositions_POSITION_Y + "," + schema.FullSwitchPanelPositions_POSITION_Z
-
 var switchPanelWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6, 7}
 
 type SwitchPanel struct {
 	Id           SwitchPanelId `json:"id"`
 	Name         string        `json:"name"`
-	Attributes   Attributes    `json:"attributes"`
+	Attributes   Attributes    `json:"attributes" tstype:"Attributes | null"`
 	SpaceId      SpaceId       `json:"-"`
 	SpaceGroupId SpaceGroupId  `json:"-"`
 	PositionX    *int          `json:"-"`

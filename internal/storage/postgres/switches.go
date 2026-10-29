@@ -299,7 +299,7 @@ func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, sw
 	return nil
 }
 
-func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId models.SwitchId) (*models.PowerChain, error) {
+func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId models.SwitchId) (*models.PowerChainGraph, error) {
 	switchRows, err := s.pool.Query(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
 			SELECT `+schema.FullSwitches_ID+`
@@ -327,7 +327,7 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 	}
 	defer switchRows.Close()
 
-	chain := &models.PowerChain{
+	chain := &models.PowerChainGraph{
 		Switches:    make([]models.ChainSwitch, 0),
 		SwitchLinks: make([]models.SwitchLink, 0),
 		Devices:     make([]models.Device, 0),
