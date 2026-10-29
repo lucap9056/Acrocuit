@@ -8,9 +8,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-
-	modernc "modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type sqliteSwitches struct {
@@ -343,8 +340,7 @@ func (s *sqliteSwitches) AddSwitchUpstream(ctx context.Context, _ string, switch
 		VALUES ($1, $2, $3, $4)
 	`
 	_, err = tx.ExecContext(ctx, insert, upstreamSwitchId, switchId, spaceGroupId, attributes)
-	var sqliteErr *modernc.Error
-	if errors.As(err, &sqliteErr) && (sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE || sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY) {
+	if isUniqueViolation(err) {
 		return nil, repository.ErrConflict
 	}
 	if err != nil {
