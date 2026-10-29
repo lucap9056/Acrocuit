@@ -10,6 +10,23 @@ COPY internal/models ./internal/models
 COPY schema ./schema
 RUN go generate ./internal/models
 
+FROM golang:1.26-alpine AS web-wasm
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY cmd/wasm-build/go.mod cmd/wasm-build/go.sum ./cmd/wasm-build/
+RUN go -C cmd/wasm-build mod download
+
+COPY internal/models ./internal/models
+COPY internal/storage/repository ./internal/storage/repository
+COPY internal/storage/sqlite ./internal/storage/sqlite
+COPY schema ./schema
+COPY cmd/wasm ./cmd/wasm
+COPY cmd/wasm-build ./cmd/wasm-build
+RUN go -C cmd/wasm-build run . -root /src
+
 FROM oven/bun:1.4 AS web-embed
 WORKDIR /src/web
 
@@ -18,7 +35,9 @@ RUN bun install --frozen-lockfile
 
 COPY web ./
 COPY --from=web-models /src/web/src/api/models ./src/api/models
-RUN bun run build && mv dist /dist
+COPY --from=web-wasm /src/web/src/lib/local-backend/storage/types.ts ./src/lib/local-backend/storage/types.ts
+COPY --from=web-wasm /src/web/wasm ./wasm
+RUN bunx vite build && mv dist /dist
 
 FROM scratch AS web-none
 WORKDIR /dist

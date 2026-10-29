@@ -4,6 +4,7 @@ bin/
 debug/
 web/node_modules/
 web/dist/
+web/wasm/
 docker*/
 .env
 

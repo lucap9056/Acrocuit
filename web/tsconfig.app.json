@@ -10,7 +10,8 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@public/*": ["./public/*"]
+      "@public/*": ["./public/*"],
+      "@wasm/*": ["./wasm/*"]
     },
     /**
      * Typecheck JS in `.svelte` and `.js` files by default.
