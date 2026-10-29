@@ -1,6 +1,7 @@
 package models
 
 import (
+	"acrocuit/internal/models/columns"
 	"acrocuit/schema"
 	"fmt"
 	"strings"
@@ -19,10 +20,10 @@ func ParseSpaceGroupColumns(columnsStr, roleColumn string) (string, []uint8, err
 		return SPACE_GROUP_ALL_COLUMNS + "," + roleColumn, []uint8{0, 1, 2}, nil
 	}
 
-	collector := newColumnCollector(columnsStr)
+	collector := columns.NewCollector(columnsStr)
 	defer collector.Release()
 
-	scanner := newColumnScanner(columnsStr)
+	scanner := columns.NewScanner(columnsStr)
 
 	for scanner.Next() {
 		col := scanner.Text()

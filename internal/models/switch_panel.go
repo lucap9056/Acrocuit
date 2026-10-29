@@ -1,6 +1,7 @@
 package models
 
 import (
+	"acrocuit/internal/models/columns"
 	"acrocuit/schema"
 	"fmt"
 	"strings"
@@ -46,10 +47,10 @@ func ParseSwitchPanelColumns(columnsStr string, allowPosition bool) (string, []u
 		return SWITCH_PANEL_ALL_COLUMNS, []uint8{0, 1, 2, 3, 4}, false, nil
 	}
 
-	collector := newColumnCollector(columnsStr)
+	collector := columns.NewCollector(columnsStr)
 	defer collector.Release()
 
-	scanner := newColumnScanner(columnsStr)
+	scanner := columns.NewScanner(columnsStr)
 
 	includePosition := false
 

@@ -1,4 +1,4 @@
-package models
+package columns
 
 import (
 	"strings"
@@ -24,25 +24,25 @@ func (b *bitmask) add(bit uint8) bool {
 	return false
 }
 
-type columnCollector struct {
+type Collector struct {
 	builder *strings.Builder
 	fields  []uint8
 	seen    bitmask
 }
 
-func newColumnCollector(columnsStr string) *columnCollector {
+func NewCollector(columnsStr string) *Collector {
 	maxCols := strings.Count(columnsStr, ",") + 1
 
 	builder := builderPool.Get().(*strings.Builder)
 	builder.Grow(maxCols * 16)
 
-	return &columnCollector{
+	return &Collector{
 		builder: builder,
 		fields:  make([]uint8, 0, maxCols),
 	}
 }
 
-func (c *columnCollector) Append(bit uint8, name string) {
+func (c *Collector) Append(bit uint8, name string) {
 	if !c.seen.add(bit) {
 		return
 	}
@@ -53,13 +53,13 @@ func (c *columnCollector) Append(bit uint8, name string) {
 	c.fields = append(c.fields, bit)
 }
 
-func (c *columnCollector) Release() {
+func (c *Collector) Release() {
 	if c.builder.Cap() <= 2048 {
 		c.builder.Reset()
 		builderPool.Put(c.builder)
 	}
 }
 
-func (c *columnCollector) Result() (string, []uint8) {
+func (c *Collector) Result() (string, []uint8) {
 	return c.builder.String(), c.fields
 }

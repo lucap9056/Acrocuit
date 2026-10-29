@@ -1,22 +1,17 @@
-package models
+package columns
 
-import (
-	"errors"
-	"strings"
-)
+import "strings"
 
-var ErrInvalidColumn = errors.New("invalid column")
-
-type columnScanner struct {
+type Scanner struct {
 	str     string
 	current string
 }
 
-func newColumnScanner(s string) columnScanner {
-	return columnScanner{str: s}
+func NewScanner(s string) Scanner {
+	return Scanner{str: s}
 }
 
-func (s *columnScanner) Next() bool {
+func (s *Scanner) Next() bool {
 	for len(s.str) > 0 {
 		var col string
 		if idx := strings.IndexByte(s.str, ','); idx >= 0 {
@@ -36,6 +31,6 @@ func (s *columnScanner) Next() bool {
 	return false
 }
 
-func (s *columnScanner) Text() string {
+func (s *Scanner) Text() string {
 	return s.current
 }

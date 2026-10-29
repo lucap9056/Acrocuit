@@ -17,7 +17,6 @@ const (
 	IdentityHeader          = "X-Forwarded-Identity"
 	UserEmailHeader         = "X-Forwarded-User-Email"
 	MinIdentitySecretLength = 32
-	SingleUserEmail         = "owner@localhost"
 
 	identityTokenType   = "identity+jwt"
 	contextUserEmailKey = "userEmail"
@@ -40,7 +39,7 @@ func RequireIdentity(opts *options.Options) (gin.HandlerFunc, error) {
 
 func requireSingleUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set(contextUserEmailKey, SingleUserEmail)
+		c.Set(contextUserEmailKey, models.SingleUserEmail)
 		c.Next()
 	}
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"acrocuit/internal/models/columns"
 	"acrocuit/schema"
 	"fmt"
 	"strings"
@@ -43,10 +44,10 @@ func ParseDeviceColumns(columnsStr string, allowPosition bool) (string, []uint8,
 		return DEVICE_ALL_COLUMNS, []uint8{0, 1, 2, 3}, false, nil
 	}
 
-	collector := newColumnCollector(columnsStr)
+	collector := columns.NewCollector(columnsStr)
 	defer collector.Release()
 
-	scanner := newColumnScanner(columnsStr)
+	scanner := columns.NewScanner(columnsStr)
 
 	includePosition := false
 

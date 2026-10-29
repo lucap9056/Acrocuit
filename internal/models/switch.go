@@ -1,6 +1,7 @@
 package models
 
 import (
+	"acrocuit/internal/models/columns"
 	"acrocuit/schema"
 	"fmt"
 	"strings"
@@ -50,10 +51,10 @@ func ParseSwitchColumns(columnsStr string) (string, []uint8, error) {
 		return SWITCH_ALL_COLUMNS, switchAllFields, nil
 	}
 
-	collector := newColumnCollector(columnsStr)
+	collector := columns.NewCollector(columnsStr)
 	defer collector.Release()
 
-	scanner := newColumnScanner(columnsStr)
+	scanner := columns.NewScanner(columnsStr)
 
 	for scanner.Next() {
 		col := scanner.Text()
