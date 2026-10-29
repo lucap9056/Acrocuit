@@ -1,8 +1,9 @@
 <script lang="ts">
   import {
     AuthError,
-    MemberAuthSession,
     type AuthSession,
+    LocalAuthSession,
+    MemberAuthSession,
     type RefreshCallback,
     type TokenPair,
   } from "@/api";
@@ -28,7 +29,9 @@
   );
   let isSpaceGroupRoute = $state(false);
   const canEnterDashboard = $derived(
-    session?.kind === "member" || isSpaceGroupRoute,
+    session?.kind === "member" ||
+      session?.kind === "local" ||
+      isSpaceGroupRoute,
   );
 
   const callback: RefreshCallback = {
@@ -100,6 +103,15 @@
     }
   };
 
+  const onLocal = () => {
+    if (mountSignal) {
+      const s = new LocalAuthSession();
+      setSession(s);
+      session = s;
+      sessionErr = undefined;
+    }
+  };
+
   const reload = () => {
     if (mountSignal) {
       connect(mountSignal);
@@ -115,7 +127,7 @@
       <Dashboard {session} {router} onlogin={onLogin} />
     {/key}
   {:else if session || isUnauthenticated}
-    <Login onsuccess={onLogin} />
+    <Login onsuccess={onLogin} onlocal={onLocal} />
   {:else}
     {#if sessionErr}
       <div>{sessionErr.message}</div>

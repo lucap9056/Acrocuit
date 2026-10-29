@@ -18,6 +18,7 @@
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
+    "localMode": "Local mode",
     "signInReceived": "Sign-in received",
     "closeWindowHint": "You can close this window and return to Acrocuit."
   },

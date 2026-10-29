@@ -103,6 +103,11 @@
   };
 
   const logout = () => {
+    if (session.kind === "local") {
+      location.assign("/");
+      return;
+    }
+
     const loading = load.begin(t("loading.signOut"));
     api.auth
       .logout()
@@ -138,7 +143,7 @@
       <HeaderTitle />
     </div>
     <div class={styles.right}>
-      {#if session.kind === "member"}
+      {#if session.kind !== "guest"}
         <button
           class="icon_button"
           onclick={logout}
@@ -168,7 +173,7 @@
       spaceGroup={currentSpaceGroup}
     />
   {:else}
-    {#if session.kind === "member"}
+    {#if session.kind !== "guest"}
       <div class={styles.space_groups}>
         <SpaceGroupSelector {session} {router} />
       </div>
