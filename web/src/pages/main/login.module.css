@@ -81,4 +81,13 @@
       background: var(--accent-hover);
     }
   }
+
+  .local {
+    background: transparent;
+    color: var(--text);
+
+    &:hover {
+      background: var(--surface-muted);
+    }
+  }
 }

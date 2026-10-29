@@ -18,8 +18,9 @@
     embedded?: boolean;
     onsuccess: (token: TokenPair) => void;
     onclose?: () => void;
+    onlocal?: () => void;
   }
-  const { embedded = false, onsuccess, onclose }: Props = $props();
+  const { embedded = false, onsuccess, onclose, onlocal }: Props = $props();
 
   let pending = $state<AbortController>();
 
@@ -81,5 +82,10 @@
     <button onclick={cancel}>{t("common.cancel")}</button>
   {:else}
     <button onclick={signIn}>{t("auth.signIn")}</button>
+    {#if onlocal}
+      <button class={styles.local} onclick={onlocal}>
+        {t("auth.localMode")}
+      </button>
+    {/if}
   {/if}
 </div>

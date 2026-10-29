@@ -1,6 +1,7 @@
 import type { AccessToken, TokenPair } from "@/api/auth";
 import auth, { AuthError } from "@/api/auth";
 import meta from "@/api/meta";
+import type { LocalAuthSession } from "./local-auth-session";
 
 const refreshAheadMs = 60_000;
 
@@ -19,7 +20,10 @@ export interface RefreshCallback {
   onerror: (error: AuthError) => void;
 }
 
-export type AuthSession = GuestAuthSession | MemberAuthSession;
+export type AuthSession =
+  | GuestAuthSession
+  | MemberAuthSession
+  | LocalAuthSession;
 
 export const connectSession = async (
   refreshCallback: RefreshCallback,

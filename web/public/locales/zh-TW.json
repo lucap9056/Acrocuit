@@ -18,6 +18,7 @@
   "auth": {
     "signIn": "登入",
     "signOut": "登出",
+    "localMode": "本機模式",
     "signInReceived": "已收到登入資訊",
     "closeWindowHint": "你可以關閉這個視窗並回到 Acrocuit"
   },

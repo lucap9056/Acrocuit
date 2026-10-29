@@ -7,6 +7,7 @@ export {
   MemberAuthSession,
   type RefreshCallback,
 } from "./auth/auth-session";
+export { LocalAuthSession } from "./auth/local-auth-session";
 
 export type * from "./models";
 export { ApiError } from "./response";
