@@ -19,6 +19,9 @@
     "signIn": "登入",
     "signOut": "登出",
     "localMode": "本機模式",
+    "inLocalMode": "目前為本機模式",
+    "exitLocalModeConfirm": "要退出本機模式嗎？本機資料會保留在這個瀏覽器中",
+    "enterLocalModeConfirm": "要切換到本機模式嗎？資料只會儲存在這個瀏覽器中",
     "signInReceived": "已收到登入資訊",
     "closeWindowHint": "你可以關閉這個視窗並回到 Acrocuit"
   },

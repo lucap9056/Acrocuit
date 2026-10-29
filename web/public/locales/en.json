@@ -19,6 +19,9 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "localMode": "Local mode",
+    "inLocalMode": "In local mode",
+    "exitLocalModeConfirm": "Exit local mode? Local data stays in this browser.",
+    "enterLocalModeConfirm": "Switch to local mode? Data will be stored only in this browser.",
     "signInReceived": "Sign-in received",
     "closeWindowHint": "You can close this window and return to Acrocuit."
   },

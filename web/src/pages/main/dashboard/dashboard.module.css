@@ -33,11 +33,20 @@
     .right {
       text-align: center;
       display: flex;
+      gap: 0.3125rem;
       padding: 0.3125rem;
 
       button {
         box-shadow: var(--shadow-control);
       }
+    }
+
+    .local_mode_hint {
+      align-self: center;
+      padding: 0 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      white-space: nowrap;
     }
   }
 
