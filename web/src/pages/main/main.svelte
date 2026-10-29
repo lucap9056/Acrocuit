@@ -6,6 +6,7 @@
     type RefreshCallback,
     type TokenPair,
   } from "@/api";
+  import dialog from "@/components/dialog";
   import Dialog from "@/components/dialog/dialog.svelte";
   import load from "@/components/loading-bar";
   import LoadingBar from "@/components/loading-bar/loading-bar.svelte";
@@ -17,7 +18,6 @@
   import Dashboard from "./dashboard/dashboard.svelte";
   import Login from "./login.svelte";
   import { clearSession, getSession, setSession } from "./main";
-  import styles from "./main.module.css";
 
   const router = createHashRouter();
 
@@ -62,9 +62,35 @@
       })
       .catch((err: Error) => {
         clearSession();
-        if (!signal.aborted) {
-          sessionErr = err;
+        if (signal.aborted) {
+          return;
         }
+        sessionErr = err;
+        if (err instanceof AuthError && err.status === 401) {
+          return;
+        }
+        dialog.push({
+          text: err.message,
+          buttons: [
+            {
+              text: t("auth.localMode"),
+              type: "",
+              align: "start",
+              onclick: () => {
+                onLocal();
+                return true;
+              },
+            },
+            {
+              text: t("common.retry"),
+              type: "primary",
+              onclick: () => {
+                reload();
+                return true;
+              },
+            },
+          ],
+        });
       })
       .finally(() => {
         if (!signal.aborted) {
@@ -124,13 +150,6 @@
     {/key}
   {:else if session || isUnauthenticated}
     <Login onsuccess={onLogin} onlocal={onLocal} />
-  {:else}
-    {#if sessionErr}
-      <div>{sessionErr.message}</div>
-    {/if}
-    <div class={styles.status}>
-      <button onclick={reload}>{t("common.retry")}</button>
-    </div>
   {/if}
 {/if}
 
