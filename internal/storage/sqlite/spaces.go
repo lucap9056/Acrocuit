@@ -2,9 +2,11 @@ package sqlite
 
 import (
 	"acrocuit/internal/models"
+	"acrocuit/internal/storage/repository"
 	"acrocuit/schema"
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -23,11 +25,7 @@ func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId str
 		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
 		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
 
-	return querySpaces(ctx, s.db, fields, query, spaceGroupId)
-}
-
-func querySpaces(ctx context.Context, q querier, fields []uint8, query string, args ...any) ([]models.Space, error) {
-	rows, err := q.QueryContext(ctx, query, args...)
+	rows, err := s.db.QueryContext(ctx, query, spaceGroupId)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +53,12 @@ func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId string, i
 	query := `SELECT ` + keys + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.FullSpaces_ID + ` = $1`
 
 	var space models.Space
-	if err := s.db.QueryRowContext(ctx, query, spaceId).Scan(space.Values(fields)...); err != nil {
-		return nil, notFoundIfNoRows(err)
+	err = s.db.QueryRowContext(ctx, query, spaceId).Scan(space.Values(fields)...)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 	space.Build()
 
@@ -64,23 +66,35 @@ func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId string, i
 }
 
 func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId string, name string) (*models.Space, error) {
-	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId}
-
-	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		if err := requireRow(ctx, tx, schema.SpaceGroupsTable, schema.SpaceGroups_ID, spaceGroupId); err != nil {
-			return err
-		}
-
-		insert := `
-			INSERT INTO ` + schema.SpacesTable + ` (` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `)
-			SELECT $1, $2, COALESCE(MAX(` + schema.Spaces_DISPLAY_ORDER + `), 0) + 1, 0
-			FROM ` + schema.SpacesTable + `
-			WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $2
-			RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_DISPLAY_ORDER
-		return tx.QueryRowContext(ctx, insert, name, spaceGroupId).
-			Scan(&space.Id, &space.DisplayOrder)
-	})
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	spaceGroup := `SELECT 1 FROM ` + schema.SpaceGroupsTable + ` WHERE ` + schema.SpaceGroups_ID + ` = $1`
+	var found int
+	err = tx.QueryRowContext(ctx, spaceGroup, spaceGroupId).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	insert := `
+		INSERT INTO ` + schema.SpacesTable + ` (` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `)
+		SELECT $1, $2, COALESCE(MAX(` + schema.Spaces_DISPLAY_ORDER + `), 0) + 1, 0
+		FROM ` + schema.SpacesTable + `
+		WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $2
+		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_DISPLAY_ORDER
+
+	space := &models.Space{Name: name, SpaceGroupId: spaceGroupId}
+	if err := tx.QueryRowContext(ctx, insert, name, spaceGroupId).Scan(&space.Id, &space.DisplayOrder); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -90,34 +104,84 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId stri
 }
 
 func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, displayOrder int) ([]models.Space, error) {
-	var spaces []models.Space
-
-	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		var spaceGroupId string
-		var currentOrder int
-		current := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
-		if err := tx.QueryRowContext(ctx, current, spaceId).Scan(&spaceGroupId, &currentOrder); err != nil {
-			return notFoundIfNoRows(err)
-		}
-
-		if displayOrder != currentOrder {
-			if err := spacesOrder.move(ctx, tx, spaceGroupId, spaceId, currentOrder, displayOrder); err != nil {
-				return err
-			}
-		}
-
-		keys, fields, err := models.ParseSpaceColumns("")
-		if err != nil {
-			return err
-		}
-		query := `SELECT ` + keys + `
-			FROM ` + schema.SpacesTable + `
-			WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
-			ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
-		spaces, err = querySpaces(ctx, tx, fields, query, spaceGroupId)
-		return err
-	})
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	current := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
+	var spaceGroupId string
+	var currentOrder int
+	err = tx.QueryRowContext(ctx, current, spaceId).Scan(&spaceGroupId, &currentOrder)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if displayOrder != currentOrder {
+		low, high, shift := currentOrder, displayOrder, -1
+		if displayOrder < currentOrder {
+			low, high, shift = displayOrder, currentOrder, 1
+		}
+
+		floorQuery := `SELECT MIN(` + schema.Spaces_DISPLAY_ORDER + `) FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $1`
+		var floor int
+		if err := tx.QueryRowContext(ctx, floorQuery, spaceGroupId).Scan(&floor); err != nil {
+			return nil, err
+		}
+
+		park := `
+			UPDATE ` + schema.SpacesTable + `
+			SET ` + schema.Spaces_DISPLAY_ORDER + ` = $1 - 1 - ($2 - CASE WHEN ` + schema.Spaces_ID + ` = $3 THEN $4 ELSE ` + schema.Spaces_DISPLAY_ORDER + ` + $5 END)
+			WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $6 AND ` + schema.Spaces_DISPLAY_ORDER + ` BETWEEN $7 AND $2
+		`
+		if _, err := tx.ExecContext(ctx, park, floor, high, spaceId, displayOrder, shift, spaceGroupId, low); err != nil {
+			return nil, err
+		}
+
+		restore := `
+			UPDATE ` + schema.SpacesTable + `
+			SET ` + schema.Spaces_DISPLAY_ORDER + ` = $1 - ($2 - 1 - ` + schema.Spaces_DISPLAY_ORDER + `)
+			WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $3 AND ` + schema.Spaces_DISPLAY_ORDER + ` < $2
+		`
+		if _, err := tx.ExecContext(ctx, restore, high, floor, spaceGroupId); err != nil {
+			return nil, err
+		}
+	}
+
+	keys, fields, err := models.ParseSpaceColumns("")
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT ` + keys + `
+		FROM ` + schema.SpacesTable + `
+		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
+		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
+
+	rows, err := tx.QueryContext(ctx, query, spaceGroupId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	spaces := make([]models.Space, 0)
+	for rows.Next() {
+		var space models.Space
+		if err := rows.Scan(space.Values(fields)...); err != nil {
+			return nil, err
+		}
+		space.Build()
+		spaces = append(spaces, space)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -125,29 +189,42 @@ func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, 
 }
 
 func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId string, name *string) (*models.Space, error) {
-	space := &models.Space{}
-
-	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		if err := requireRow(ctx, tx, schema.SpacesTable, schema.Spaces_ID, spaceId); err != nil {
-			return err
-		}
-
-		if name != nil {
-			rename := `UPDATE ` + schema.SpacesTable + ` SET ` + schema.Spaces_NAME + ` = $1 WHERE ` + schema.Spaces_ID + ` = $2`
-			if _, err := tx.ExecContext(ctx, rename, *name, spaceId); err != nil {
-				return err
-			}
-		}
-
-		result := `
-			SELECT ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `
-			FROM ` + schema.SpacesTable + `
-			WHERE ` + schema.Spaces_ID + ` = $1
-		`
-		return tx.QueryRowContext(ctx, result, spaceId).
-			Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
-	})
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	target := `SELECT 1 FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
+	var found int
+	err = tx.QueryRowContext(ctx, target, spaceId).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if name != nil {
+		rename := `UPDATE ` + schema.SpacesTable + ` SET ` + schema.Spaces_NAME + ` = $1 WHERE ` + schema.Spaces_ID + ` = $2`
+		if _, err := tx.ExecContext(ctx, rename, *name, spaceId); err != nil {
+			return nil, err
+		}
+	}
+
+	result := `
+		SELECT ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + `
+		FROM ` + schema.SpacesTable + `
+		WHERE ` + schema.Spaces_ID + ` = $1
+	`
+	space := &models.Space{}
+	err = tx.QueryRowContext(ctx, result, spaceId).
+		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -158,7 +235,20 @@ func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId string, n
 
 func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId string) error {
 	query := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
-	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, spaceId))
+	result, err := s.db.ExecContext(ctx, query, spaceId)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return repository.ErrNotFound
+	}
+
+	return nil
 }
 
 func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.BackgroundImage, error) {
@@ -170,74 +260,101 @@ func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, sp
 	`
 
 	image := &models.BackgroundImage{}
-	if err := s.db.QueryRowContext(ctx, query, spaceId).Scan(&image.ContentType, &image.Data, &image.UpdatedAt); err != nil {
-		return nil, notFoundIfNoRows(err)
+	err := s.db.QueryRowContext(ctx, query, spaceId).Scan(&image.ContentType, &image.Data, &image.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return image, nil
 }
 
 func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string, contentType string, data []byte) (*models.Space, error) {
-	var space *models.Space
-
-	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		if err := requireRow(ctx, tx, schema.SpacesTable, schema.Spaces_ID, spaceId); err != nil {
-			return err
-		}
-
-		upsert := `
-			INSERT INTO ` + schema.SpaceBackgroundImagesTable + ` (` + schema.SpaceBackgroundImages_SPACE_ID + `, ` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + `)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (` + schema.SpaceBackgroundImages_SPACE_ID + `) DO UPDATE
-			SET ` + schema.SpaceBackgroundImages_CONTENT_TYPE + ` = excluded.` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + ` = excluded.` + schema.SpaceBackgroundImages_DATA
-		if _, err := tx.ExecContext(ctx, upsert, spaceId, contentType, data); err != nil {
-			return err
-		}
-
-		var err error
-		space, err = setBackgroundImageUpdatedAt(ctx, tx, spaceId, time.Now().UnixMilli())
-		return err
-	})
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback()
+
+	target := `SELECT 1 FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
+	var found int
+	err = tx.QueryRowContext(ctx, target, spaceId).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	upsert := `
+		INSERT INTO ` + schema.SpaceBackgroundImagesTable + ` (` + schema.SpaceBackgroundImages_SPACE_ID + `, ` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + `)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (` + schema.SpaceBackgroundImages_SPACE_ID + `) DO UPDATE
+		SET ` + schema.SpaceBackgroundImages_CONTENT_TYPE + ` = excluded.` + schema.SpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.SpaceBackgroundImages_DATA + ` = excluded.` + schema.SpaceBackgroundImages_DATA
+	if _, err := tx.ExecContext(ctx, upsert, spaceId, contentType, data); err != nil {
+		return nil, err
+	}
+
+	touch := `
+		UPDATE ` + schema.SpacesTable + `
+		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1
+		WHERE ` + schema.Spaces_ID + ` = $2
+		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT
+	space := &models.Space{}
+	err = tx.QueryRowContext(ctx, touch, time.Now().UnixMilli(), spaceId).
+		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	space.Build()
 
 	return space, nil
 }
 
 func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.Space, error) {
-	var space *models.Space
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
-	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
-		query := `DELETE FROM ` + schema.SpaceBackgroundImagesTable + ` WHERE ` + schema.SpaceBackgroundImages_SPACE_ID + ` = $1`
-		if err := notFoundIfNoneAffected(tx.ExecContext(ctx, query, spaceId)); err != nil {
-			return err
-		}
-
-		var err error
-		space, err = setBackgroundImageUpdatedAt(ctx, tx, spaceId, 0)
-		return err
-	})
+	query := `DELETE FROM ` + schema.SpaceBackgroundImagesTable + ` WHERE ` + schema.SpaceBackgroundImages_SPACE_ID + ` = $1`
+	result, err := tx.ExecContext(ctx, query, spaceId)
 	if err != nil {
 		return nil, err
 	}
 
-	return space, nil
-}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if affected == 0 {
+		return nil, repository.ErrNotFound
+	}
 
-func setBackgroundImageUpdatedAt(ctx context.Context, tx *sql.Tx, spaceId string, updatedAt int64) (*models.Space, error) {
-	query := `
+	touch := `
 		UPDATE ` + schema.SpacesTable + `
-		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = $1
-		WHERE ` + schema.Spaces_ID + ` = $2
+		SET ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT + ` = 0
+		WHERE ` + schema.Spaces_ID + ` = $1
 		RETURNING ` + schema.Spaces_ID + `, ` + schema.Spaces_NAME + `, ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + `, ` + schema.Spaces_BACKGROUND_IMAGE_UPDATED_AT
-
 	space := &models.Space{}
-	err := tx.QueryRowContext(ctx, query, updatedAt, spaceId).
+	err = tx.QueryRowContext(ctx, touch, spaceId).
 		Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
 	space.Build()
 
 	return space, nil

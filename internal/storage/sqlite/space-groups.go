@@ -2,9 +2,11 @@ package sqlite
 
 import (
 	"acrocuit/internal/models"
+	"acrocuit/internal/storage/repository"
 	"acrocuit/schema"
 	"context"
 	"database/sql"
+	"errors"
 )
 
 const sqliteSpaceGroupRole = `'` + schema.SpaceGroupACLs_ROLE_OWNER + `'`
@@ -59,8 +61,12 @@ func (s *sqliteSpaceGroups) GetSpaceGroup(ctx context.Context, _ string, spaceGr
 	query := `SELECT ` + keys + ` FROM ` + schema.SpaceGroupsTable + ` WHERE ` + schema.FullSpaceGroups_ID + ` = $1`
 
 	sg := &models.SpaceGroup{}
-	if err := s.db.QueryRowContext(ctx, query, spaceGroupId).Scan(sg.Values(fields)...); err != nil {
-		return nil, notFoundIfNoRows(err)
+	err = s.db.QueryRowContext(ctx, query, spaceGroupId).Scan(sg.Values(fields)...)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return sg, nil
@@ -71,8 +77,12 @@ func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, sp
 		RETURNING ` + schema.SpaceGroups_ID + `, ` + schema.SpaceGroups_NAME + `, ` + sqliteSpaceGroupRole
 
 	sg := &models.SpaceGroup{}
-	if err := s.db.QueryRowContext(ctx, query, name, spaceGroupId).Scan(&sg.Id, &sg.Name, &sg.Role); err != nil {
-		return nil, notFoundIfNoRows(err)
+	err := s.db.QueryRowContext(ctx, query, name, spaceGroupId).Scan(&sg.Id, &sg.Name, &sg.Role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return sg, nil
@@ -80,5 +90,18 @@ func (s *sqliteSpaceGroups) EditSpaceGroupName(ctx context.Context, _ string, sp
 
 func (s *sqliteSpaceGroups) DelSpaceGroup(ctx context.Context, _ string, spaceGroupId string) error {
 	query := `DELETE FROM ` + schema.SpaceGroupsTable + ` WHERE ` + schema.SpaceGroups_ID + ` = $1`
-	return notFoundIfNoneAffected(s.db.ExecContext(ctx, query, spaceGroupId))
+	result, err := s.db.ExecContext(ctx, query, spaceGroupId)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return repository.ErrNotFound
+	}
+
+	return nil
 }
