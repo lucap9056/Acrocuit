@@ -6,15 +6,15 @@ import (
 )
 
 type Devices interface {
-	GetDevices(ctx context.Context, userEmail string, spaceId string, include string) ([]models.Device, error)
-	GetDevice(ctx context.Context, userEmail string, deviceId string, include string) (*models.Device, error)
-	AddDevice(ctx context.Context, userEmail string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.Device, error)
-	SetDevice(ctx context.Context, userEmail string, deviceId string, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error)
-	SetDevicePosition(ctx context.Context, userEmail string, deviceId string, position models.Position) (*models.Device, error)
-	DelDevice(ctx context.Context, userEmail string, deviceId string) error
-	GetDeviceSwitches(ctx context.Context, userEmail string, deviceId string, include string) ([]models.LinkedSwitch, error)
-	AddDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error)
-	SetDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error)
-	DelDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string) error
-	GetDeviceUpstream(ctx context.Context, userEmail string, deviceId string) (*models.PowerChain, error)
+	GetDevices(ctx context.Context, userEmail string, spaceId models.SpaceId, include string) ([]models.Device, error)
+	GetDevice(ctx context.Context, userEmail string, deviceId models.DeviceId, include string) (*models.Device, error)
+	AddDevice(ctx context.Context, userEmail string, spaceId models.SpaceId, name string, position *models.Position, attributes models.Attributes) (*models.Device, error)
+	SetDevice(ctx context.Context, userEmail string, deviceId models.DeviceId, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error)
+	SetDevicePosition(ctx context.Context, userEmail string, deviceId models.DeviceId, position models.Position) (*models.Device, error)
+	DelDevice(ctx context.Context, userEmail string, deviceId models.DeviceId) error
+	GetDeviceSwitches(ctx context.Context, userEmail string, deviceId models.DeviceId, include string) ([]models.LinkedSwitch, error)
+	AddDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error)
+	SetDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error)
+	DelDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId) error
+	GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChain, error)
 }

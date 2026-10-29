@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"acrocuit/internal/auth"
+	"acrocuit/internal/models"
 	"acrocuit/internal/response"
 	"errors"
 	"fmt"
@@ -26,7 +27,7 @@ var backgroundImageTypes = map[string]bool{
 
 func (ctr *spacesController) GetBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -51,7 +52,7 @@ func (ctr *spacesController) GetBackgroundImage(c *gin.Context) {
 
 func (ctr *spacesController) SetBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -78,7 +79,7 @@ func (ctr *spacesController) SetBackgroundImage(c *gin.Context) {
 
 func (ctr *spacesController) DelBackgroundImage(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}

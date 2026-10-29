@@ -14,22 +14,22 @@ const DEVICE_WITH_POSITION_COLUMNS = DEVICE_ALL_COLUMNS + "," + schema.FullDevic
 var deviceWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6}
 
 type Device struct {
-	Id           string     `json:"id"`
-	Name         string     `json:"name"`
-	Attributes   Attributes `json:"attributes"`
-	SpaceId      string     `json:"-"`
-	SpaceGroupId string     `json:"-"`
-	PositionX    *int       `json:"-"`
-	PositionY    *int       `json:"-"`
-	PositionZ    *int       `json:"-"`
+	Id           DeviceId     `json:"id"`
+	Name         string       `json:"name"`
+	Attributes   Attributes   `json:"attributes"`
+	SpaceId      SpaceId      `json:"-"`
+	SpaceGroupId SpaceGroupId `json:"-"`
+	PositionX    *int         `json:"-"`
+	PositionY    *int         `json:"-"`
+	PositionZ    *int         `json:"-"`
 
-	Space    *Ref      `json:"space"`
-	Position *Position `json:"position"`
+	Space    *Ref[SpaceId] `json:"space"`
+	Position *Position     `json:"position"`
 }
 
 func (d *Device) Build() {
 	if d.Space == nil && d.SpaceId != "" {
-		d.Space = &Ref{Id: d.SpaceId}
+		d.Space = &Ref[SpaceId]{Id: d.SpaceId}
 	}
 	if d.Position == nil && d.PositionX != nil {
 		d.Position = &Position{X: *d.PositionX, Y: *d.PositionY, Z: *d.PositionZ}

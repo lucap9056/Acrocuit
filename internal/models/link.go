@@ -7,8 +7,8 @@ const SWITCH_LINK_COLUMNS = schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + "," + sc
 const DEVICE_LINK_COLUMNS = schema.FullDeviceSwitches_DEVICE_ID + "," + schema.FullDeviceSwitches_SWITCH_ID + "," + schema.FullDeviceSwitches_ATTRIBUTES
 
 type SwitchLink struct {
-	UpstreamSwitchId   string     `json:"upstream_switch_id"`
-	DownstreamSwitchId string     `json:"downstream_switch_id"`
+	UpstreamSwitchId   SwitchId   `json:"upstream_switch_id"`
+	DownstreamSwitchId SwitchId   `json:"downstream_switch_id"`
 	Attributes         Attributes `json:"attributes"`
 }
 
@@ -17,8 +17,8 @@ func (l *SwitchLink) Values() []any {
 }
 
 type DeviceLink struct {
-	DeviceId   string     `json:"device_id"`
-	SwitchId   string     `json:"switch_id"`
+	DeviceId   DeviceId   `json:"device_id"`
+	SwitchId   SwitchId   `json:"switch_id"`
 	Attributes Attributes `json:"attributes"`
 }
 

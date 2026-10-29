@@ -18,7 +18,7 @@ type pgSwitches struct {
 	pool *pgxpool.Pool
 }
 
-func (s *pgSwitches) GetSwitches(ctx context.Context, userEmail string, switchPanelId string, include string) ([]models.Switch, error) {
+func (s *pgSwitches) GetSwitches(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, include string) ([]models.Switch, error) {
 	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (s *pgSwitches) GetSwitches(ctx context.Context, userEmail string, switchPa
 	return switches, rows.Err()
 }
 
-func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId string, include string) (*models.Switch, error) {
+func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, include string) (*models.Switch, error) {
 	keys, fields, err := models.ParseSwitchColumns(include)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (s *pgSwitches) GetSwitch(ctx context.Context, userEmail string, switchId s
 	return &sw, nil
 }
 
-func (s *pgSwitches) AddSwitch(ctx context.Context, userEmail string, switchPanelId string, name string, attributes models.Attributes) (*models.Switch, error) {
+func (s *pgSwitches) AddSwitch(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, name string, attributes models.Attributes) (*models.Switch, error) {
 	query := `
 		WITH permitted AS (
 			SELECT ` + schema.FullSwitchPanels_SPACE_GROUP_ID + `
@@ -120,7 +120,7 @@ func (s *pgSwitches) AddSwitch(ctx context.Context, userEmail string, switchPane
 	return sw, nil
 }
 
-func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId string, displayOrder int) ([]models.Switch, error) {
+func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, displayOrder int) ([]models.Switch, error) {
 	query := `SELECT ` + schema.FnMoveSwitch_OUTPUTS + ` FROM ` + schema.FnMoveSwitch + `($1, $2, $3)`
 
 	rows, err := s.pool.Query(ctx, query, userEmail, switchId, displayOrder)
@@ -149,7 +149,7 @@ func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId 
 	return switches, nil
 }
 
-func (s *pgSwitches) SetSwitch(ctx context.Context, userEmail string, switchId string, name *string, attributes models.Attributes) (*models.Switch, error) {
+func (s *pgSwitches) SetSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, name *string, attributes models.Attributes) (*models.Switch, error) {
 	query := `SELECT ` + schema.FnSetSwitch_OUTPUTS + ` FROM ` + schema.FnSetSwitch + `($1, $2, $3, $4)`
 
 	sw := &models.Switch{}
@@ -166,7 +166,7 @@ func (s *pgSwitches) SetSwitch(ctx context.Context, userEmail string, switchId s
 	return sw, nil
 }
 
-func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId string) error {
+func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId models.SwitchId) error {
 	query := `
 		DELETE FROM ` + schema.SwitchesTable + `
 		WHERE ` + schema.FullSwitches_ID + ` = $1 AND EXISTS (
@@ -186,7 +186,7 @@ func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId s
 	return nil
 }
 
-func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, switchId string, include string) ([]models.LinkedSwitch, error) {
+func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, switchId models.SwitchId, include string) ([]models.LinkedSwitch, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.SwitchesTable + `
@@ -232,7 +232,7 @@ func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, s
 	return upstreams, rows.Err()
 }
 
-func (s *pgSwitches) AddSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId string, attributes models.Attributes) (*models.SwitchLink, error) {
+func (s *pgSwitches) AddSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId, attributes models.Attributes) (*models.SwitchLink, error) {
 	query := `SELECT ` + schema.FnAddSwitchUpstream_OUTPUTS + ` FROM ` + schema.FnAddSwitchUpstream + `($1, $2, $3, $4)`
 
 	var link models.SwitchLink
@@ -258,7 +258,7 @@ func (s *pgSwitches) AddSwitchUpstream(ctx context.Context, userEmail string, sw
 	return &link, nil
 }
 
-func (s *pgSwitches) SetSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId string, attributes models.Attributes) (*models.SwitchLink, error) {
+func (s *pgSwitches) SetSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId, attributes models.Attributes) (*models.SwitchLink, error) {
 	query := `
 		UPDATE ` + schema.SwitchLinksTable + `
 		SET ` + schema.SwitchLinks_ATTRIBUTES + ` = $1
@@ -280,7 +280,7 @@ func (s *pgSwitches) SetSwitchUpstream(ctx context.Context, userEmail string, sw
 	return &link, nil
 }
 
-func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId string) error {
+func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId) error {
 	query := `
 		DELETE FROM ` + schema.SwitchLinksTable + `
 		WHERE ` + schema.FullSwitchLinks_DOWNSTREAM_SWITCH_ID + ` = $1 AND ` + schema.FullSwitchLinks_UPSTREAM_SWITCH_ID + ` = $2 AND EXISTS (
@@ -299,7 +299,7 @@ func (s *pgSwitches) DelSwitchUpstream(ctx context.Context, userEmail string, sw
 	return nil
 }
 
-func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId string) (*models.PowerChain, error) {
+func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, switchId models.SwitchId) (*models.PowerChain, error) {
 	switchRows, err := s.pool.Query(ctx, `
 		WITH RECURSIVE switch_chain(id) AS (
 			SELECT `+schema.FullSwitches_ID+`
@@ -333,7 +333,7 @@ func (s *pgSwitches) GetSwitchDownstream(ctx context.Context, userEmail string, 
 		Devices:     make([]models.Device, 0),
 		DeviceLinks: make([]models.DeviceLink, 0),
 	}
-	switchIds := make([]string, 0)
+	switchIds := make([]models.SwitchId, 0)
 	for switchRows.Next() {
 		var sw models.ChainSwitch
 		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {

@@ -1,5 +1,5 @@
 package models
 
-type Ref struct {
-	Id string `json:"id"`
+type Ref[T ~string] struct {
+	Id T `json:"id"`
 }

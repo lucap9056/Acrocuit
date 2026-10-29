@@ -14,7 +14,7 @@ type sqliteSpaces struct {
 	db *sql.DB
 }
 
-func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId string, include string) ([]models.Space, error) {
+func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId models.SpaceGroupId, include string) ([]models.Space, error) {
 	keys, fields, err := models.ParseSpaceColumns(include)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (s *sqliteSpaces) GetSpaces(ctx context.Context, _ string, spaceGroupId str
 	return spaces, rows.Err()
 }
 
-func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId string, include string) (*models.Space, error) {
+func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId models.SpaceId, include string) (*models.Space, error) {
 	keys, fields, err := models.ParseSpaceColumns(include)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (s *sqliteSpaces) GetSpace(ctx context.Context, _ string, spaceId string, i
 	return &space, nil
 }
 
-func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId string, name string) (*models.Space, error) {
+func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId models.SpaceGroupId, name string) (*models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId stri
 	return space, nil
 }
 
-func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, displayOrder int) ([]models.Space, error) {
+func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId models.SpaceId, displayOrder int) ([]models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, 
 	defer tx.Rollback()
 
 	current := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
-	var spaceGroupId string
+	var spaceGroupId models.SpaceGroupId
 	var currentOrder int
 	err = tx.QueryRowContext(ctx, current, spaceId).Scan(&spaceGroupId, &currentOrder)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -188,7 +188,7 @@ func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId string, 
 	return spaces, nil
 }
 
-func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId string, name *string) (*models.Space, error) {
+func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId models.SpaceId, name *string) (*models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId string, n
 	return space, nil
 }
 
-func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId string) error {
+func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId models.SpaceId) error {
 	query := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
 	result, err := s.db.ExecContext(ctx, query, spaceId)
 	if err != nil {
@@ -251,7 +251,7 @@ func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId string) e
 	return nil
 }
 
-func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.BackgroundImage, error) {
+func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId models.SpaceId) (*models.BackgroundImage, error) {
 	query := `
 		SELECT ` + schema.FullSpaceBackgroundImages_CONTENT_TYPE + `, ` + schema.FullSpaceBackgroundImages_DATA + `, ` + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT + `
 		FROM ` + schema.SpaceBackgroundImagesTable + `
@@ -271,7 +271,7 @@ func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return image, nil
 }
 
-func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId string, contentType string, data []byte) (*models.Space, error) {
+func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, spaceId models.SpaceId, contentType string, data []byte) (*models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -318,7 +318,7 @@ func (s *sqliteSpaces) SetSpaceBackgroundImage(ctx context.Context, _ string, sp
 	return space, nil
 }
 
-func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId string) (*models.Space, error) {
+func (s *sqliteSpaces) DelSpaceBackgroundImage(ctx context.Context, _ string, spaceId models.SpaceId) (*models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err

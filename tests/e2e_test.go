@@ -154,7 +154,7 @@ func idsOf(ids map[string]string, names ...string) []string {
 func switchIds(switches []models.Switch) []string {
 	result := make([]string, len(switches))
 	for i, b := range switches {
-		result[i] = b.Id
+		result[i] = string(b.Id)
 	}
 	return result
 }
@@ -162,20 +162,20 @@ func switchIds(switches []models.Switch) []string {
 func chainSwitchIds(switches []models.ChainSwitch) []string {
 	result := make([]string, len(switches))
 	for i, b := range switches {
-		result[i] = b.Id
+		result[i] = string(b.Id)
 	}
 	return result
 }
 
 func hasDeviceOnSwitch(chain models.PowerChain, deviceId, switchId string) bool {
 	return slices.ContainsFunc(chain.DeviceLinks, func(l models.DeviceLink) bool {
-		return l.DeviceId == deviceId && l.SwitchId == switchId
+		return string(l.DeviceId) == deviceId && string(l.SwitchId) == switchId
 	})
 }
 
 func findSwitchLink(chain models.PowerChain, upstreamId, downstreamId string) (models.SwitchLink, bool) {
 	index := slices.IndexFunc(chain.SwitchLinks, func(l models.SwitchLink) bool {
-		return l.UpstreamSwitchId == upstreamId && l.DownstreamSwitchId == downstreamId
+		return string(l.UpstreamSwitchId) == upstreamId && string(l.DownstreamSwitchId) == downstreamId
 	})
 	if index < 0 {
 		return models.SwitchLink{}, false
@@ -188,19 +188,19 @@ func logTree(t *testing.T, rootId string, chain models.PowerChain) {
 
 	names := make(map[string]string, len(chain.Switches))
 	for _, b := range chain.Switches {
-		names[b.Id] = b.Name
+		names[string(b.Id)] = b.Name
 	}
 	children := make(map[string][]string)
 	for _, l := range chain.SwitchLinks {
-		children[l.UpstreamSwitchId] = append(children[l.UpstreamSwitchId], l.DownstreamSwitchId)
+		children[string(l.UpstreamSwitchId)] = append(children[string(l.UpstreamSwitchId)], string(l.DownstreamSwitchId))
 	}
 	devices := make(map[string]models.Device, len(chain.Devices))
 	for _, d := range chain.Devices {
-		devices[d.Id] = d
+		devices[string(d.Id)] = d
 	}
 	attached := make(map[string][]models.Device)
 	for _, l := range chain.DeviceLinks {
-		attached[l.SwitchId] = append(attached[l.SwitchId], devices[l.DeviceId])
+		attached[string(l.SwitchId)] = append(attached[string(l.SwitchId)], devices[string(l.DeviceId)])
 	}
 
 	var sb strings.Builder
@@ -275,7 +275,7 @@ func TestE2E(t *testing.T) {
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, &space)
 		require.Equal(t, http.StatusOK, status, "create space %s", name)
-		spaces[name] = space.Id
+		spaces[name] = string(space.Id)
 	}
 
 	switchPanels := make(map[string]string)
@@ -293,7 +293,7 @@ func TestE2E(t *testing.T) {
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, &switchPanel)
 		require.Equal(t, http.StatusOK, status, "create switch panel %s", tc.name)
-		switchPanels[tc.name] = switchPanel.Id
+		switchPanels[tc.name] = string(switchPanel.Id)
 	}
 
 	switches := make(map[string]string)
@@ -317,7 +317,7 @@ func TestE2E(t *testing.T) {
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, &sw)
 		require.Equal(t, http.StatusOK, status, "create switch %s", tc.name)
-		switches[tc.name] = sw.Id
+		switches[tc.name] = string(sw.Id)
 
 		if tc.upstream != "" {
 			path := fmt.Sprintf("/switches/%s/upstreams", sw.Id)
@@ -399,7 +399,7 @@ func TestE2E(t *testing.T) {
 		req := newRequest(t, http.MethodPost, path, body)
 		status := c.Send(req, &device)
 		require.Equal(t, http.StatusOK, status, "create device %s", tc.name)
-		devices[tc.name] = device.Id
+		devices[tc.name] = string(device.Id)
 	}
 
 	shared := devices["device9"]
@@ -478,7 +478,7 @@ func TestE2E(t *testing.T) {
 		assert.Len(t, chain.SwitchLinks, len(want)-1, "upstream switch links of device9")
 		linked := make([]string, len(chain.DeviceLinks))
 		for i, l := range chain.DeviceLinks {
-			linked[i] = l.SwitchId
+			linked[i] = string(l.SwitchId)
 		}
 		assert.ElementsMatch(t, []string{left, right}, linked, "device links of device9")
 	})
@@ -501,7 +501,7 @@ func TestE2E(t *testing.T) {
 			panel := sw.SwitchPanel
 			require.NotNil(t, panel, "%s: switch #%s panel", source, sw.Id)
 			require.NotNil(t, panel.Space, "%s: switch #%s panel space", source, sw.Id)
-			if panel.Id == switchPanels["group4"] {
+			if string(panel.Id) == switchPanels["group4"] {
 				assert.Equal(t, "group4", panel.Name, "%s: panel name", source)
 				assert.Equal(t, spaces["space4"], panel.Space.Id, "%s: panel space", source)
 				assert.Equal(t, &panelPosition, panel.Position, "%s: panel position", source)
@@ -516,7 +516,7 @@ func TestE2E(t *testing.T) {
 			assertPanel(sw, "downstream")
 		}
 		for _, d := range chain.Devices {
-			if d.Id == devices["device8"] {
+			if string(d.Id) == devices["device8"] {
 				assert.Equal(t, &devicePosition, d.Position, "downstream device8 position")
 			} else {
 				assert.Nil(t, d.Position, "downstream device #%s position", d.Id)

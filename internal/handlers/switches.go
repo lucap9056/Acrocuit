@@ -42,7 +42,7 @@ type setAttributesRequest struct {
 
 func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -58,7 +58,7 @@ func (ctr *switchesController) GetSwitchDownstream(c *gin.Context) {
 
 func (ctr *switchesController) GetSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -80,7 +80,7 @@ type setSwitchRequest struct {
 
 func (ctr *switchesController) SetSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -101,7 +101,7 @@ func (ctr *switchesController) SetSwitch(c *gin.Context) {
 
 func (ctr *switchesController) DelSwitch(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -116,7 +116,7 @@ func (ctr *switchesController) DelSwitch(c *gin.Context) {
 
 func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -137,7 +137,7 @@ func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 
 func (ctr *switchesController) GetSwitchUpstreams(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -159,7 +159,7 @@ type addSwitchUpstreamRequest struct {
 
 func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
@@ -169,7 +169,7 @@ func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 		return
 	}
 
-	link, err := ctr.Switches.AddSwitchUpstream(c.Request.Context(), userEmail, switchId, req.UpstreamSwitchId.String(), req.Attributes.OrEmpty())
+	link, err := ctr.Switches.AddSwitchUpstream(c.Request.Context(), userEmail, switchId, models.SwitchId(req.UpstreamSwitchId.String()), req.Attributes.OrEmpty())
 	if err != nil {
 		handleStorageErr(c, err)
 		return
@@ -180,11 +180,11 @@ func (ctr *switchesController) AddSwitchUpstream(c *gin.Context) {
 
 func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
-	upstreamSwitchId, ok := uuidParam(c, paramUpstreamSwitchID)
+	upstreamSwitchId, ok := uuidParam[models.SwitchId](c, paramUpstreamSwitchID)
 	if !ok {
 		return
 	}
@@ -205,11 +205,11 @@ func (ctr *switchesController) SetSwitchUpstream(c *gin.Context) {
 
 func (ctr *switchesController) DelSwitchUpstream(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	switchId, ok := uuidParam(c, paramSwitchID)
+	switchId, ok := uuidParam[models.SwitchId](c, paramSwitchID)
 	if !ok {
 		return
 	}
-	upstreamSwitchId, ok := uuidParam(c, paramUpstreamSwitchID)
+	upstreamSwitchId, ok := uuidParam[models.SwitchId](c, paramUpstreamSwitchID)
 	if !ok {
 		return
 	}

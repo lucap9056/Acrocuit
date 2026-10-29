@@ -48,7 +48,7 @@ func (s *pgSpaceGroups) GetSpaceGroups(ctx context.Context, userEmail, include s
 	return spaceGroups, rows.Err()
 }
 
-func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name string) (string, error) {
+func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name string) (models.SpaceGroupId, error) {
 	if userEmail == models.PublicAccessEmail {
 		return "", repository.ErrAnonymous
 	}
@@ -61,7 +61,7 @@ func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name strin
 		SELECT $2, ` + schema.SpaceGroups_ID + `, $3 FROM new_group
 		RETURNING ` + schema.SpaceGroupACLs_SPACE_GROUP_ID + `
 	`
-	var spaceGroupId string
+	var spaceGroupId models.SpaceGroupId
 	if err := s.pool.QueryRow(ctx, query, name, userEmail, schema.SpaceGroupACLs_ROLE_OWNER).Scan(&spaceGroupId); err != nil {
 		return "", err
 	}
@@ -69,7 +69,7 @@ func (s *pgSpaceGroups) AddSpaceGroup(ctx context.Context, userEmail, name strin
 	return spaceGroupId, nil
 }
 
-func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spaceGroupId string, include string) (*models.SpaceGroup, error) {
+func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spaceGroupId models.SpaceGroupId, include string) (*models.SpaceGroup, error) {
 	keys, fields, err := models.ParseSpaceGroupColumns(include, schema.FullSpaceGroupACLs_ROLE)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (s *pgSpaceGroups) GetSpaceGroup(ctx context.Context, userEmail string, spa
 	return sg, nil
 }
 
-func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string, spaceGroupId string, name string) (*models.SpaceGroup, error) {
+func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string, spaceGroupId models.SpaceGroupId, name string) (*models.SpaceGroup, error) {
 	query := `
 		WITH updated AS (
 			UPDATE ` + schema.SpaceGroupsTable + `
@@ -123,7 +123,7 @@ func (s *pgSpaceGroups) EditSpaceGroupName(ctx context.Context, userEmail string
 	return sg, nil
 }
 
-func (s *pgSpaceGroups) DelSpaceGroup(ctx context.Context, userEmail string, spaceGroupId string) error {
+func (s *pgSpaceGroups) DelSpaceGroup(ctx context.Context, userEmail string, spaceGroupId models.SpaceGroupId) error {
 	query := `
 		DELETE FROM ` + schema.SpaceGroupsTable + `
 		WHERE ` + schema.FullSpaceGroups_ID + ` = $1 AND EXISTS (

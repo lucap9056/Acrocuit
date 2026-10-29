@@ -70,7 +70,7 @@ func (ctr *spaceGroupsController) AddSpaceGroup(c *gin.Context) {
 
 func (ctr *spaceGroupsController) GetSpaceGroup(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam[models.SpaceGroupId](c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -87,7 +87,7 @@ func (ctr *spaceGroupsController) GetSpaceGroup(c *gin.Context) {
 
 func (ctr *spaceGroupsController) EditSpaceGroupName(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam[models.SpaceGroupId](c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -108,7 +108,7 @@ func (ctr *spaceGroupsController) EditSpaceGroupName(c *gin.Context) {
 
 func (ctr *spaceGroupsController) DelSpaceGroup(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam[models.SpaceGroupId](c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -123,7 +123,7 @@ func (ctr *spaceGroupsController) DelSpaceGroup(c *gin.Context) {
 
 func (ctr *spaceGroupsController) GetSpaces(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam[models.SpaceGroupId](c, paramSpaceGroupID)
 	if !ok {
 		return
 	}
@@ -149,7 +149,7 @@ type createSpaceRequest struct {
 
 func (ctr *spaceGroupsController) AddSpace(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceGroupId, ok := uuidParam(c, paramSpaceGroupID)
+	spaceGroupId, ok := uuidParam[models.SpaceGroupId](c, paramSpaceGroupID)
 	if !ok {
 		return
 	}

@@ -15,7 +15,7 @@ type pgSwitchPanels struct {
 	pool *pgxpool.Pool
 }
 
-func (panel *pgSwitchPanels) GetSwitchPanels(ctx context.Context, userEmail string, spaceId string, include string) ([]models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) GetSwitchPanels(ctx context.Context, userEmail string, spaceId models.SpaceId, include string) ([]models.SwitchPanel, error) {
 	keys, fields, includePosition, err := models.ParseSwitchPanelColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (panel *pgSwitchPanels) GetSwitchPanels(ctx context.Context, userEmail stri
 	return switchPanels, rows.Err()
 }
 
-func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail string, switchPanelId string, include string) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, include string) (*models.SwitchPanel, error) {
 	keys, fields, includePosition, err := models.ParseSwitchPanelColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (panel *pgSwitchPanels) GetSwitchPanel(ctx context.Context, userEmail strin
 	return &group, nil
 }
 
-func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail string, spaceId models.SpaceId, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -133,7 +133,7 @@ func (panel *pgSwitchPanels) AddSwitchPanel(ctx context.Context, userEmail strin
 	return group, nil
 }
 
-func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail string, switchPanelId string, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
 	query := `
 		WITH permitted AS (
 			SELECT ` + schema.FullSwitchPanels_ID + `
@@ -178,7 +178,7 @@ func (panel *pgSwitchPanels) SetSwitchPanel(ctx context.Context, userEmail strin
 	return group, nil
 }
 
-func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEmail string, switchPanelId string, position models.Position) (*models.SwitchPanel, error) {
+func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, position models.Position) (*models.SwitchPanel, error) {
 	query := `
 		WITH permitted AS (
 			SELECT ` + schema.FullSwitchPanels_ID + `
@@ -229,7 +229,7 @@ func (panel *pgSwitchPanels) SetSwitchPanelPosition(ctx context.Context, userEma
 	return group, nil
 }
 
-func (panel *pgSwitchPanels) DelSwitchPanel(ctx context.Context, userEmail string, switchPanelId string) error {
+func (panel *pgSwitchPanels) DelSwitchPanel(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId) error {
 	query := `
 		DELETE FROM ` + schema.SwitchPanelsTable + `
 		WHERE ` + schema.FullSwitchPanels_ID + ` = $1 AND EXISTS (

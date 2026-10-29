@@ -17,7 +17,7 @@ type sqliteDevices struct {
 	db *sql.DB
 }
 
-func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId string, include string) ([]models.Device, error) {
+func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId models.SpaceId, include string) ([]models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (d *sqliteDevices) GetDevices(ctx context.Context, _ string, spaceId string
 	return devices, rows.Err()
 }
 
-func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId string, include string) (*models.Device, error) {
+func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId models.DeviceId, include string) (*models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (d *sqliteDevices) GetDevice(ctx context.Context, _ string, deviceId string
 	return &device, nil
 }
 
-func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId models.SpaceId, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (d *sqliteDevices) AddDevice(ctx context.Context, _ string, spaceId string,
 	return device, nil
 }
 
-func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId string, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId models.DeviceId, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -173,11 +173,11 @@ func (d *sqliteDevices) SetDevice(ctx context.Context, _ string, deviceId string
 	return device, nil
 }
 
-func (d *sqliteDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId string, position models.Position) (*models.Device, error) {
+func (d *sqliteDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId models.DeviceId, position models.Position) (*models.Device, error) {
 	return d.SetDevice(ctx, userEmail, deviceId, nil, &position, nil)
 }
 
-func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId string) error {
+func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId models.DeviceId) error {
 	query := `DELETE FROM ` + schema.DevicesTable + ` WHERE ` + schema.Devices_ID + ` = $1`
 	result, err := d.db.ExecContext(ctx, query, deviceId)
 	if err != nil {
@@ -195,7 +195,7 @@ func (d *sqliteDevices) DelDevice(ctx context.Context, _ string, deviceId string
 	return nil
 }
 
-func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceId string, include string) ([]models.LinkedSwitch, error) {
+func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceId models.DeviceId, include string) ([]models.LinkedSwitch, error) {
 	target := `SELECT 1 FROM ` + schema.DevicesTable + ` WHERE ` + schema.Devices_ID + ` = $1`
 	var found int
 	err := d.db.QueryRowContext(ctx, target, deviceId).Scan(&found)
@@ -235,7 +235,7 @@ func (d *sqliteDevices) GetDeviceSwitches(ctx context.Context, _ string, deviceI
 	return linkedSwitches, rows.Err()
 }
 
-func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error) {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -248,7 +248,7 @@ func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId,
 		JOIN ` + schema.SpacesTable + ` ON ` + schema.JoinDevices_Spaces + `
 		WHERE ` + schema.FullDevices_ID + ` = $1
 	`
-	var spaceGroupId string
+	var spaceGroupId models.SpaceGroupId
 	err = tx.QueryRowContext(ctx, spaceGroup, deviceId).Scan(&spaceGroupId)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repository.ErrNotFound
@@ -287,7 +287,7 @@ func (d *sqliteDevices) AddDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return &models.DeviceLink{DeviceId: deviceId, SwitchId: switchId, Attributes: attributes}, nil
 }
 
-func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error) {
 	query := `
 		UPDATE ` + schema.DeviceSwitchesTable + `
 		SET ` + schema.DeviceSwitches_ATTRIBUTES + ` = $1
@@ -306,7 +306,7 @@ func (d *sqliteDevices) SetDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return &link, nil
 }
 
-func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId, switchId string) error {
+func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId models.DeviceId, switchId models.SwitchId) error {
 	query := `
 		DELETE FROM ` + schema.DeviceSwitchesTable + `
 		WHERE ` + schema.DeviceSwitches_DEVICE_ID + ` = $1 AND ` + schema.DeviceSwitches_SWITCH_ID + ` = $2
@@ -327,7 +327,7 @@ func (d *sqliteDevices) DelDeviceSwitch(ctx context.Context, _ string, deviceId,
 	return nil
 }
 
-func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId string) (*models.PowerChain, error) {
+func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceId models.DeviceId) (*models.PowerChain, error) {
 	deviceRows, err := d.db.QueryContext(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
@@ -384,7 +384,7 @@ func (d *sqliteDevices) GetDeviceUpstream(ctx context.Context, _ string, deviceI
 	}
 	defer switchRows.Close()
 
-	switchIds := make([]string, 0)
+	switchIds := make([]models.SwitchId, 0)
 	for switchRows.Next() {
 		var sw models.ChainSwitch
 		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {

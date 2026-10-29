@@ -10,18 +10,18 @@ import (
 const SPACE_ALL_COLUMNS = schema.FullSpaces_ID + "," + schema.FullSpaces_NAME + "," + schema.FullSpaces_SPACE_GROUP_ID + "," + schema.FullSpaces_DISPLAY_ORDER + "," + schema.FullSpaces_BACKGROUND_IMAGE_UPDATED_AT
 
 type Space struct {
-	Id                       string `json:"id"`
-	Name                     string `json:"name"`
-	DisplayOrder             int    `json:"display_order"`
-	BackgroundImageUpdatedAt int64  `json:"background_image_updated_at"`
-	SpaceGroupId             string `json:"-"`
+	Id                       SpaceId      `json:"id"`
+	Name                     string       `json:"name"`
+	DisplayOrder             int          `json:"display_order"`
+	BackgroundImageUpdatedAt int64        `json:"background_image_updated_at"`
+	SpaceGroupId             SpaceGroupId `json:"-"`
 
-	SpaceGroup *Ref `json:"space_group"`
+	SpaceGroup *Ref[SpaceGroupId] `json:"space_group"`
 }
 
 func (s *Space) Build() {
 	if s.SpaceGroup == nil && s.SpaceGroupId != "" {
-		s.SpaceGroup = &Ref{Id: s.SpaceGroupId}
+		s.SpaceGroup = &Ref[SpaceGroupId]{Id: s.SpaceGroupId}
 	}
 }
 

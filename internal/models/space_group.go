@@ -10,9 +10,9 @@ import (
 const SPACE_GROUP_ALL_COLUMNS = schema.FullSpaceGroups_ID + "," + schema.FullSpaceGroups_NAME
 
 type SpaceGroup struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
+	Id   SpaceGroupId `json:"id"`
+	Name string       `json:"name"`
+	Role string       `json:"role"`
 }
 
 func ParseSpaceGroupColumns(columnsStr, roleColumn string) (string, []uint8, error) {

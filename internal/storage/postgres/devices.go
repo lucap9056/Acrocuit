@@ -15,7 +15,7 @@ type pgDevices struct {
 	pool *pgxpool.Pool
 }
 
-func (d *pgDevices) GetDevices(ctx context.Context, userEmail string, spaceId string, include string) ([]models.Device, error) {
+func (d *pgDevices) GetDevices(ctx context.Context, userEmail string, spaceId models.SpaceId, include string) ([]models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (d *pgDevices) GetDevices(ctx context.Context, userEmail string, spaceId st
 	return devices, rows.Err()
 }
 
-func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId string, include string) (*models.Device, error) {
+func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId models.DeviceId, include string) (*models.Device, error) {
 	keys, fields, includePosition, err := models.ParseDeviceColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (d *pgDevices) GetDevice(ctx context.Context, userEmail string, deviceId st
 	return &device, nil
 }
 
-func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId models.SpaceId, name string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -130,7 +130,7 @@ func (d *pgDevices) AddDevice(ctx context.Context, userEmail string, spaceId str
 	return device, nil
 }
 
-func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId string, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
+func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId models.DeviceId, name *string, position *models.Position, attributes models.Attributes) (*models.Device, error) {
 	var posX, posY, posZ *int
 	if position != nil {
 		posX, posY, posZ = &position.X, &position.Y, &position.Z
@@ -194,11 +194,11 @@ func (d *pgDevices) SetDevice(ctx context.Context, userEmail string, deviceId st
 	return device, nil
 }
 
-func (d *pgDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId string, position models.Position) (*models.Device, error) {
+func (d *pgDevices) SetDevicePosition(ctx context.Context, userEmail string, deviceId models.DeviceId, position models.Position) (*models.Device, error) {
 	return d.SetDevice(ctx, userEmail, deviceId, nil, &position, nil)
 }
 
-func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId string) error {
+func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId models.DeviceId) error {
 	query := `
 		DELETE FROM ` + schema.DevicesTable + `
 		WHERE ` + schema.FullDevices_ID + ` = $1 AND EXISTS (
@@ -218,7 +218,7 @@ func (d *pgDevices) DelDevice(ctx context.Context, userEmail string, deviceId st
 	return nil
 }
 
-func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, deviceId string, include string) ([]models.LinkedSwitch, error) {
+func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, deviceId models.DeviceId, include string) ([]models.LinkedSwitch, error) {
 	existsQuery := `
 		SELECT EXISTS (
 			SELECT 1 FROM ` + schema.DevicesTable + `
@@ -265,7 +265,7 @@ func (d *pgDevices) GetDeviceSwitches(ctx context.Context, userEmail string, dev
 	return linkedSwitches, rows.Err()
 }
 
-func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error) {
 	var result int
 	query := `SELECT ` + schema.FnAddDeviceSwitch_O_RESULT + ` FROM ` + schema.FnAddDeviceSwitch + `($1, $2, $3, $4)`
 	err := d.pool.QueryRow(ctx, query, userEmail, deviceId, switchId, attributes).Scan(&result)
@@ -283,7 +283,7 @@ func (d *pgDevices) AddDeviceSwitch(ctx context.Context, userEmail string, devic
 	}
 }
 
-func (d *pgDevices) SetDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string, attributes models.Attributes) (*models.DeviceLink, error) {
+func (d *pgDevices) SetDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId, attributes models.Attributes) (*models.DeviceLink, error) {
 	query := `
 		UPDATE ` + schema.DeviceSwitchesTable + `
 		SET ` + schema.DeviceSwitches_ATTRIBUTES + ` = $1
@@ -305,7 +305,7 @@ func (d *pgDevices) SetDeviceSwitch(ctx context.Context, userEmail string, devic
 	return &link, nil
 }
 
-func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, deviceId, switchId string) error {
+func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, deviceId models.DeviceId, switchId models.SwitchId) error {
 	query := `
 		DELETE FROM ` + schema.DeviceSwitchesTable + `
 		USING ` + schema.SwitchesTable + `
@@ -325,7 +325,7 @@ func (d *pgDevices) DelDeviceSwitch(ctx context.Context, userEmail string, devic
 	return nil
 }
 
-func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId string) (*models.PowerChain, error) {
+func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, deviceId models.DeviceId) (*models.PowerChain, error) {
 	deviceRows, err := d.pool.Query(ctx, `
 		SELECT `+models.DEVICE_WITH_POSITION_COLUMNS+`
 		FROM `+schema.DevicesTable+`
@@ -388,7 +388,7 @@ func (d *pgDevices) GetDeviceUpstream(ctx context.Context, userEmail string, dev
 	}
 	defer switchRows.Close()
 
-	switchIds := make([]string, 0)
+	switchIds := make([]models.SwitchId, 0)
 	for switchRows.Next() {
 		var sw models.ChainSwitch
 		if err := switchRows.Scan(sw.ValuesWithPanel()...); err != nil {

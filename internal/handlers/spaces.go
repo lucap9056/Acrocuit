@@ -39,7 +39,7 @@ func spacesHandlers(r *gin.RouterGroup, base controller) {
 
 func (ctr *spacesController) GetSpace(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -60,7 +60,7 @@ type setSpaceRequest struct {
 
 func (ctr *spacesController) SetSpace(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -81,7 +81,7 @@ func (ctr *spacesController) SetSpace(c *gin.Context) {
 
 func (ctr *spacesController) DelSpace(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -100,7 +100,7 @@ type setOrderRequest struct {
 
 func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -121,7 +121,7 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 
 func (ctr *spacesController) GetSwitchPanels(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -144,7 +144,7 @@ type createSwitchPanelRequest struct {
 
 func (ctr *spacesController) AddSwitchPanel(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -165,7 +165,7 @@ func (ctr *spacesController) AddSwitchPanel(c *gin.Context) {
 
 func (ctr *spacesController) GetDevices(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}
@@ -188,7 +188,7 @@ type createDeviceRequest struct {
 
 func (ctr *spacesController) AddDevice(c *gin.Context) {
 	userEmail := auth.UserEmail(c)
-	spaceId, ok := uuidParam(c, paramSpaceID)
+	spaceId, ok := uuidParam[models.SpaceId](c, paramSpaceID)
 	if !ok {
 		return
 	}

@@ -13,13 +13,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func uuidParam(c *gin.Context, name string) (string, bool) {
+func uuidParam[T ~string](c *gin.Context, name string) (T, bool) {
 	v, err := uuid.Parse(c.Param(name))
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, fmt.Sprintf("invalid %s", name))
 		return "", false
 	}
-	return v.String(), true
+	return T(v.String()), true
 }
 
 func requireUser(c *gin.Context) {

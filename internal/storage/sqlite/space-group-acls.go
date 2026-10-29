@@ -6,30 +6,30 @@ import (
 	"context"
 )
 
-func (s *sqliteSpaceGroups) GetSpaceGroupMembers(context.Context, string, string) (*models.SpaceGroupMembers, error) {
+func (s *sqliteSpaceGroups) GetSpaceGroupMembers(context.Context, string, models.SpaceGroupId) (*models.SpaceGroupMembers, error) {
 	return nil, repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) AddSpaceGroupMember(context.Context, string, string, string, string) error {
+func (s *sqliteSpaceGroups) AddSpaceGroupMember(context.Context, string, models.SpaceGroupId, string, string) error {
 	return repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) DelSpaceGroupMember(context.Context, string, string, string) error {
+func (s *sqliteSpaceGroups) DelSpaceGroupMember(context.Context, string, models.SpaceGroupId, string) error {
 	return repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) SetSpaceGroupMemberRole(context.Context, string, string, string, string) error {
+func (s *sqliteSpaceGroups) SetSpaceGroupMemberRole(context.Context, string, models.SpaceGroupId, string, string) error {
 	return repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) TransferSpaceGroupOwner(context.Context, string, string, string) error {
+func (s *sqliteSpaceGroups) TransferSpaceGroupOwner(context.Context, string, models.SpaceGroupId, string) error {
 	return repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) SetSpaceGroupPublic(context.Context, string, string, bool) error {
+func (s *sqliteSpaceGroups) SetSpaceGroupPublic(context.Context, string, models.SpaceGroupId, bool) error {
 	return repository.ErrNotSupported
 }
 
-func (s *sqliteSpaceGroups) LeaveSpaceGroup(context.Context, string, string) error {
+func (s *sqliteSpaceGroups) LeaveSpaceGroup(context.Context, string, models.SpaceGroupId) error {
 	return repository.ErrNotSupported
 }

@@ -13,7 +13,7 @@ type sqliteSwitchPanels struct {
 	db *sql.DB
 }
 
-func (panel *sqliteSwitchPanels) GetSwitchPanels(ctx context.Context, _ string, spaceId string, include string) ([]models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) GetSwitchPanels(ctx context.Context, _ string, spaceId models.SpaceId, include string) ([]models.SwitchPanel, error) {
 	keys, fields, includePosition, err := models.ParseSwitchPanelColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (panel *sqliteSwitchPanels) GetSwitchPanels(ctx context.Context, _ string, 
 	return switchPanels, rows.Err()
 }
 
-func (panel *sqliteSwitchPanels) GetSwitchPanel(ctx context.Context, _ string, switchPanelId string, include string) (*models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) GetSwitchPanel(ctx context.Context, _ string, switchPanelId models.SwitchPanelId, include string) (*models.SwitchPanel, error) {
 	keys, fields, includePosition, err := models.ParseSwitchPanelColumns(include, true)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (panel *sqliteSwitchPanels) GetSwitchPanel(ctx context.Context, _ string, s
 	return &group, nil
 }
 
-func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, spaceId string, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, spaceId models.SpaceId, name string, position *models.Position, attributes models.Attributes) (*models.SwitchPanel, error) {
 	tx, err := panel.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (panel *sqliteSwitchPanels) AddSwitchPanel(ctx context.Context, _ string, s
 	return group, nil
 }
 
-func (panel *sqliteSwitchPanels) SetSwitchPanel(ctx context.Context, _ string, switchPanelId string, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) SetSwitchPanel(ctx context.Context, _ string, switchPanelId models.SwitchPanelId, name *string, attributes models.Attributes) (*models.SwitchPanel, error) {
 	tx, err := panel.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (panel *sqliteSwitchPanels) SetSwitchPanel(ctx context.Context, _ string, s
 	return group, nil
 }
 
-func (panel *sqliteSwitchPanels) SetSwitchPanelPosition(ctx context.Context, _ string, switchPanelId string, position models.Position) (*models.SwitchPanel, error) {
+func (panel *sqliteSwitchPanels) SetSwitchPanelPosition(ctx context.Context, _ string, switchPanelId models.SwitchPanelId, position models.Position) (*models.SwitchPanel, error) {
 	tx, err := panel.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (panel *sqliteSwitchPanels) SetSwitchPanelPosition(ctx context.Context, _ s
 	return group, nil
 }
 
-func (panel *sqliteSwitchPanels) DelSwitchPanel(ctx context.Context, _ string, switchPanelId string) error {
+func (panel *sqliteSwitchPanels) DelSwitchPanel(ctx context.Context, _ string, switchPanelId models.SwitchPanelId) error {
 	query := `DELETE FROM ` + schema.SwitchPanelsTable + ` WHERE ` + schema.SwitchPanels_ID + ` = $1`
 	result, err := panel.db.ExecContext(ctx, query, switchPanelId)
 	if err != nil {

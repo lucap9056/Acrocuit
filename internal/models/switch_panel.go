@@ -14,17 +14,17 @@ const SWITCH_PANEL_WITH_POSITION_COLUMNS = SWITCH_PANEL_ALL_COLUMNS + "," + sche
 var switchPanelWithPositionFields = []uint8{0, 1, 2, 3, 4, 5, 6, 7}
 
 type SwitchPanel struct {
-	Id           string     `json:"id"`
-	Name         string     `json:"name"`
-	Attributes   Attributes `json:"attributes"`
-	SpaceId      string     `json:"-"`
-	SpaceGroupId string     `json:"-"`
-	PositionX    *int       `json:"-"`
-	PositionY    *int       `json:"-"`
-	PositionZ    *int       `json:"-"`
+	Id           SwitchPanelId `json:"id"`
+	Name         string        `json:"name"`
+	Attributes   Attributes    `json:"attributes"`
+	SpaceId      SpaceId       `json:"-"`
+	SpaceGroupId SpaceGroupId  `json:"-"`
+	PositionX    *int          `json:"-"`
+	PositionY    *int          `json:"-"`
+	PositionZ    *int          `json:"-"`
 
-	Space    *Ref      `json:"space"`
-	Position *Position `json:"position"`
+	Space    *Ref[SpaceId] `json:"space"`
+	Position *Position     `json:"position"`
 }
 
 func (panel *SwitchPanel) Build() {
@@ -32,7 +32,7 @@ func (panel *SwitchPanel) Build() {
 		return
 	}
 	if panel.Space == nil && panel.SpaceId != "" {
-		panel.Space = &Ref{Id: panel.SpaceId}
+		panel.Space = &Ref[SpaceId]{Id: panel.SpaceId}
 	}
 	if panel.Position == nil && panel.PositionX != nil {
 		panel.Position = &Position{X: *panel.PositionX, Y: *panel.PositionY, Z: *panel.PositionZ}
