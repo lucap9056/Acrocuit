@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CloudSlashIcon from "phosphor-svelte/lib/CloudSlashIcon";
   import SignInIcon from "phosphor-svelte/lib/SignInIcon";
   import SignOutIcon from "phosphor-svelte/lib/SignOutIcon";
   import api, {
@@ -21,6 +22,7 @@
   } from "@/lib/hash-routers";
   import { t } from "@/lib/i18n";
   import { onMount } from "@/lib/lifecycle";
+  import { writeLocalMode } from "@/lib/local-backend/mode";
   import { createWorkspace } from "@/lib/workspace";
   import Login from "../login.svelte";
   import styles from "./dashboard.module.css";
@@ -102,9 +104,49 @@
     });
   };
 
+  const openLocalMode = () => {
+    dialog.push({
+      text: t("auth.enterLocalModeConfirm"),
+      buttons: [
+        {
+          text: t("common.cancel"),
+          type: "",
+          onclick: () => true,
+        },
+        {
+          text: t("common.confirm"),
+          type: "primary",
+          onclick: () => {
+            writeLocalMode(true);
+            location.assign("/");
+            return true;
+          },
+        },
+      ],
+    });
+  };
+
   const logout = () => {
     if (session.kind === "local") {
-      location.assign("/");
+      dialog.push({
+        text: t("auth.exitLocalModeConfirm"),
+        buttons: [
+          {
+            text: t("common.cancel"),
+            type: "",
+            onclick: () => true,
+          },
+          {
+            text: t("common.confirm"),
+            type: "primary",
+            onclick: () => {
+              writeLocalMode(false);
+              location.assign("/");
+              return true;
+            },
+          },
+        ],
+      });
       return;
     }
 
@@ -123,7 +165,9 @@
   };
 </script>
 
-{#snippet loginContent({ dismiss }: DialogContentProps)}
+{#snippet loginContent({
+  dismiss,
+}: DialogContentProps)}
   <Login
     embedded
     onsuccess={(token) => {
@@ -143,6 +187,17 @@
       <HeaderTitle />
     </div>
     <div class={styles.right}>
+      {#if session.kind !== "local"}
+        <button
+          class="icon_button"
+          onclick={openLocalMode}
+          {@attach tooltip(t("auth.localMode"))}
+        >
+          <CloudSlashIcon />
+        </button>
+      {:else}
+        <span class={styles.local_mode_hint}>{t("auth.inLocalMode")}</span>
+      {/if}
       {#if session.kind !== "guest"}
         <button
           class="icon_button"
