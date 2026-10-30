@@ -1,0 +1,80 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: API Tests (${{ matrix.database }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: sqlite
+            dsn: sqlite:///dev/shm/acrocuit/acrocuit.db
+            identity_secret: ""
+          - database: postgres
+            dsn: postgres://acrocuit:acrocuit@localhost:5432/acrocuit?sslmode=disable
+            identity_secret: acrocuit-test-identity-secret-0123456789
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: acrocuit
+          POSTGRES_PASSWORD: acrocuit
+          POSTGRES_DB: acrocuit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U acrocuit"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_DSN: ${{ matrix.dsn }}
+      IDENTITY_JWT_SECRET: ${{ matrix.identity_secret }}
+      HTTP_ADDR: :8080
+      ACROCUIT_HOST: http://localhost:8080
+      ACROCUIT_IDENTITY_SECRET: ${{ matrix.identity_secret }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: |
+          go build -tags noweb -o bin/acrocuit ./cmd/acrocuit
+          go build -o bin/dbinit ./cmd/dbinit
+
+      - name: Initialize database
+        run: |
+          ./bin/dbinit
+          ./bin/dbinit
+
+      - name: Start server
+        run: |
+          ./bin/acrocuit > server.log 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sf -o /dev/null "${ACROCUIT_HOST}/api/meta" && exit 0
+            sleep 1
+          done
+          cat server.log
+          exit 1
+
+      - name: Run tests
+        run: go test -count=1 -v ./tests
+
+      - name: Show server log
+        if: failure()
+        run: cat server.log
