@@ -30,7 +30,7 @@ func newClient(t *testing.T) *client {
 		t:             t,
 		http:          &http.Client{Timeout: 10 * time.Second},
 		base:          base,
-		identityToken: identityToken,
+		identityToken: identityToken(t),
 		accessToken:   accessToken,
 	}
 	c.requireServer()

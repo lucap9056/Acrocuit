@@ -36,8 +36,8 @@ func call(t *testing.T, method, path string, body any) {
 		t.Fatalf("new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if identityToken != "" {
-		req.Header.Set("X-Forwarded-Identity", identityToken)
+	if token := identityToken(t); token != "" {
+		req.Header.Set("X-Forwarded-Identity", token)
 	}
 
 	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
