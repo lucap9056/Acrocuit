@@ -5,15 +5,11 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 )
 
 var (
-	host             = env("ACROCUIT_HOST", "http://localhost:8080")
-	apiPath          = "/api"
-	identityToken    = env("ACROCUIT_IDENTITY_TOKEN", "")
 	spaceGroupId     = env("ACROCUIT_SPACE_GROUP_ID", "1")
 	spaceId          = env("ACROCUIT_SPACE_ID", "1")
 	switchPanelId    = env("ACROCUIT_SWITCH_PANEL_ID", "1")
@@ -21,13 +17,6 @@ var (
 	upstreamSwitchId = env("ACROCUIT_UPSTREAM_SWITCH_ID", "2")
 	deviceId         = env("ACROCUIT_DEVICE_ID", "1")
 )
-
-func env(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
 
 func call(t *testing.T, method, path string, body any) {
 	t.Helper()
