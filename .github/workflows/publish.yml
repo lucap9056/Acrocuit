@@ -10,8 +10,14 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   publish:
     name: Build & Publish ${{ matrix.image }} Image
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
