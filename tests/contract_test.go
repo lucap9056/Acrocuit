@@ -100,7 +100,7 @@ func spaceShape() shape {
 		"name":                        text,
 		"display_order":               integer,
 		"background_image_updated_at": integer,
-		"space_group":                 nullable(spaceGroupShape()),
+		"space_group":                 nullable(refShape()),
 	})
 }
 
@@ -112,11 +112,17 @@ func positionShape() shape {
 	})
 }
 
+func refShape() shape {
+	return object(map[string]shape{
+		"id": text,
+	})
+}
+
 func switchPanelShape() shape {
 	return switchPanelShapeWith(attributes)
 }
 
-func switchPanelRefShape() shape {
+func chainSwitchPanelShape() shape {
 	return switchPanelShapeWith(nullable(attributes))
 }
 
@@ -125,7 +131,7 @@ func switchPanelShapeWith(attributesShape shape) shape {
 		"id":         text,
 		"name":       text,
 		"attributes": attributesShape,
-		"space":      nullable(spaceShape()),
+		"space":      nullable(refShape()),
 		"position":   nullable(positionShape()),
 	})
 }
@@ -136,7 +142,17 @@ func switchShape() shape {
 		"name":          text,
 		"display_order": integer,
 		"attributes":    attributes,
-		"switch_panel":  nullable(switchPanelRefShape()),
+		"switch_panel":  nullable(refShape()),
+	})
+}
+
+func chainSwitchShape() shape {
+	return object(map[string]shape{
+		"id":            text,
+		"name":          text,
+		"display_order": integer,
+		"attributes":    attributes,
+		"switch_panel":  nullable(chainSwitchPanelShape()),
 	})
 }
 
@@ -146,7 +162,7 @@ func linkedSwitchShape() shape {
 		"name":          text,
 		"display_order": integer,
 		"attributes":    attributes,
-		"switch_panel":  nullable(switchPanelRefShape()),
+		"switch_panel":  nullable(refShape()),
 		"link": object(map[string]shape{
 			"attributes": attributes,
 		}),
@@ -158,7 +174,7 @@ func deviceShape() shape {
 		"id":         text,
 		"name":       text,
 		"attributes": attributes,
-		"space":      nullable(spaceShape()),
+		"space":      nullable(refShape()),
 		"position":   nullable(positionShape()),
 	})
 }
@@ -187,7 +203,7 @@ func metaShape() shape {
 
 func powerChainShape() shape {
 	return object(map[string]shape{
-		"switches":     arrayOf(switchShape()),
+		"switches":     arrayOf(chainSwitchShape()),
 		"switch_links": arrayOf(switchLinkShape()),
 		"devices":      arrayOf(deviceShape()),
 		"device_links": arrayOf(deviceLinkShape()),

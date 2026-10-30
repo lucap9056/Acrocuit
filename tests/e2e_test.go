@@ -49,7 +49,7 @@ func (c *client) requireServer() {
 	c.t.Helper()
 	res, err := c.http.Get(c.base.String())
 	if err != nil {
-		c.t.Skipf("server unreachable at %s: %v", c.base, err)
+		c.t.Fatalf("server unreachable at %s: %v", c.base, err)
 	}
 	res.Body.Close()
 }
@@ -448,8 +448,8 @@ func TestE2E(t *testing.T) {
 
 		assert.ElementsMatch(t, idsOf(switches, allSwitches...), chainSwitchIds(chain.Switches), "downstream switches")
 		for _, l := range chain.SwitchLinks {
-			assert.Contains(t, chainSwitchIds(chain.Switches), l.UpstreamSwitchId, "downstream link upstream end")
-			assert.Contains(t, chainSwitchIds(chain.Switches), l.DownstreamSwitchId, "downstream link downstream end")
+			assert.Contains(t, chainSwitchIds(chain.Switches), string(l.UpstreamSwitchId), "downstream link upstream end")
+			assert.Contains(t, chainSwitchIds(chain.Switches), string(l.DownstreamSwitchId), "downstream link downstream end")
 		}
 		assert.Len(t, chain.Devices, len(devices), "downstream devices")
 		assert.True(t, hasDeviceOnSwitch(chain, shared, left), "device9 should appear under switch10")
@@ -503,7 +503,7 @@ func TestE2E(t *testing.T) {
 			require.NotNil(t, panel.Space, "%s: switch #%s panel space", source, sw.Id)
 			if string(panel.Id) == switchPanels["group4"] {
 				assert.Equal(t, "group4", panel.Name, "%s: panel name", source)
-				assert.Equal(t, spaces["space4"], panel.Space.Id, "%s: panel space", source)
+				assert.Equal(t, spaces["space4"], string(panel.Space.Id), "%s: panel space", source)
 				assert.Equal(t, &panelPosition, panel.Position, "%s: panel position", source)
 			} else {
 				assert.NotEmpty(t, panel.Name, "%s: switch #%s panel name", source, sw.Id)

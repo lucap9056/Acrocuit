@@ -53,7 +53,7 @@ func call(t *testing.T, method, path string, body any) {
 
 	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
 	if err != nil {
-		t.Skipf("%s %s: %v", method, path, err)
+		t.Fatalf("%s %s: %v", method, path, err)
 	}
 	defer res.Body.Close()
 
