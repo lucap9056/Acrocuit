@@ -48,8 +48,13 @@ export type LoginChallenge = {
   verifier?: Verifier;
 };
 
-const login = () =>
-  fetch(appUrl("auth/login")).then(unwrapResponse<LoginChallenge>);
+const loginUrl = () => {
+  const url = appUrl("auth/login");
+  url.searchParams.set("redirect_uri", appUrl("callback/").href);
+  return url;
+};
+
+const login = () => fetch(loginUrl()).then(unwrapResponse<LoginChallenge>);
 
 export type RefreshToken = Brand<string, "RefreshToken">;
 export type AccessToken = Brand<string, "AccessToken">;
