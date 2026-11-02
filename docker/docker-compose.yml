@@ -45,7 +45,7 @@ services:
       IDENTITY_JWT_SECRET: "${IDENTITY_JWT_SECRET:?set IDENTITY_JWT_SECRET in docker/.env}"
 
   corvauth-schema:
-    image: ghcr.io/lucap9056/corvauth:0.3.0
+    image: ghcr.io/lucap9056/corvauth:0.4.0
     container_name: acrocuit-corvauth-schema
     command: ["schema", "apply"]
     depends_on:
@@ -56,7 +56,7 @@ services:
     restart: "no"
 
   corvauth:
-    image: ghcr.io/lucap9056/corvauth:0.3.0
+    image: ghcr.io/lucap9056/corvauth:0.4.0
     container_name: acrocuit-corvauth
     depends_on:
       corvauth-schema:
@@ -67,6 +67,7 @@ services:
       ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
       IDENTITY_JWT_SECRET: "${IDENTITY_JWT_SECRET:?set IDENTITY_JWT_SECRET in docker/.env}"
       OAUTH2_REDIRECT_URL: "${OAUTH2_REDIRECT_URL:-${PUBLIC_URL:-http://localhost:8080}/auth/callback}"
+      OAUTH2_ALLOWED_REDIRECT_URLS: "${OAUTH2_ALLOWED_REDIRECT_URLS:-}"
       OAUTH2_PROVIDER: "${OAUTH2_PROVIDER:-}"
       OIDC_ISSUER_URL: "${OIDC_ISSUER_URL:-}"
       OAUTH2_CLIENT_ID: "${OAUTH2_CLIENT_ID:-}"
