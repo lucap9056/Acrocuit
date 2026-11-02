@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vite";
 
@@ -16,16 +15,6 @@ export default defineConfig({
   },
   worker: {
     format: "es",
-  },
-  build: {
-    rolldownOptions: {
-      input: {
-        main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        callback: fileURLToPath(
-          new URL("./callback/index.html", import.meta.url),
-        ),
-      },
-    },
   },
   server: {
     port: 5173,

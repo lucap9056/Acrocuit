@@ -1,10 +1,25 @@
 import { mount } from "svelte";
 import "@/app.css";
-import { drawingFontsReady } from "@/components/iso-scene/layout/typography";
+import { appUrl } from "@/lib/app-url";
 import { ready as i18nReady } from "@/lib/i18n";
-import App from "@/pages/main/main.svelte";
 
-await Promise.all([i18nReady, drawingFontsReady]);
+const isLoginCallback = location.pathname === appUrl("callback").pathname;
+
+const loadMainPage = () =>
+  Promise.all([
+    import("@/pages/main/main.svelte"),
+    import("@/components/iso-scene/layout/typography").then(
+      (typography) => typography.drawingFontsReady,
+    ),
+  ]).then(([page]) => page.default);
+
+const loadCallbackPage = () =>
+  import("@/pages/callback/callback.svelte").then((page) => page.default);
+
+const [Page] = await Promise.all([
+  isLoginCallback ? loadCallbackPage() : loadMainPage(),
+  i18nReady,
+]);
 
 const target =
   document.getElementById("app") ??
@@ -15,6 +30,6 @@ const target =
     return div;
   })();
 
-const app = mount(App, { target });
+const app = mount(Page, { target });
 
 export default app;

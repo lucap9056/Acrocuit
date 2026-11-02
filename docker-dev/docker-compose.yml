@@ -73,7 +73,7 @@ services:
       HTTP_MODE: "development"
       ALLOW_REGISTRATION: "true"
       IDENTITY_JWT_SECRET: *identity-jwt-secret
-      OAUTH2_REDIRECT_URL: "http://localhost:5173/callback/"
+      OAUTH2_REDIRECT_URL: "http://localhost:5173/callback"
       OAUTH2_PROVIDER: "dex"
       OAUTH2_CLIENT_ID: "acrocuit-dev"
       OAUTH2_CLIENT_SECRET: "acrocuit-dev-secret"

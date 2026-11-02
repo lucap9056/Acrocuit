@@ -50,7 +50,7 @@ export type LoginChallenge = {
 
 const loginUrl = () => {
   const url = appUrl("auth/login");
-  url.searchParams.set("redirect_uri", appUrl("callback/").href);
+  url.searchParams.set("redirect_uri", appUrl("callback").href);
   return url;
 };
 
