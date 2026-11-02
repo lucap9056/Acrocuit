@@ -44,6 +44,10 @@ services:
       APP_ENV: "${APP_ENV:-development}"
       DATABASE_DSN: "postgres://acrocuit:${POSTGRES_PASSWORD:-postgres}@postgres:5432/acrocuit?sslmode=disable"
       IDENTITY_JWT_SECRET: "${IDENTITY_JWT_SECRET:?set IDENTITY_JWT_SECRET in docker/.env}"
+      # Listen on a Unix socket instead of TCP (also switch APP_UPSTREAM and the volumes below)
+      # HTTP_ADDR: "unix:///app/run/app.sock"
+    # volumes:
+    #   - app-socket:/app/run
 
   corvauth-schema:
     image: ghcr.io/lucap9056/corvauth:0.4.0
@@ -86,10 +90,14 @@ services:
       - corvauth
     environment:
       BASE_PATH: "${BASE_PATH:-}"
+      APP_UPSTREAM: "http://app:8080"
+      # APP_UPSTREAM: "http://unix:/run/acrocuit/app.sock:"
     ports:
       - "8080:80"
     volumes:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      # - app-socket:/run/acrocuit
 
 volumes:
   postgres-data:
+  # app-socket:

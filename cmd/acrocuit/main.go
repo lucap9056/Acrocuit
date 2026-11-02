@@ -10,7 +10,11 @@ import (
 	"acrocuit/internal/storage"
 	"context"
 	"errors"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,9 +55,14 @@ func main() {
 		r.Use(logs.RequestLogger(), response.Recovery())
 		handlers.New(r, s, requireIdentity, cfg.Options)
 
-		server := &http.Server{Addr: cfg.HTTP.Addr, Handler: r}
+		listener, err := createListener(cfg.HTTP.Addr)
+		if err != nil {
+			return err
+		}
+
+		server := &http.Server{Handler: r}
 		go func() {
-			if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				lc.Exitf("server error: %v", err)
 			}
 		}()
@@ -82,4 +91,32 @@ func main() {
 	if err != nil {
 		logs.Out.Fatal("acrocuit exited with error", zap.Error(err))
 	}
+}
+
+func createListener(addr string) (net.Listener, error) {
+	path, ok := strings.CutPrefix(addr, "unix://")
+	if !ok {
+		return net.Listen("tcp", addr)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
+		return nil, err
+	}
+	temp := path + ".temp"
+	os.Remove(temp)
+	os.Remove(path)
+	l, err := net.Listen("unix", temp)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Chmod(temp, 0666); err != nil {
+		l.Close()
+		os.Remove(temp)
+		return nil, err
+	}
+	if err := os.Rename(temp, path); err != nil {
+		l.Close()
+		os.Remove(temp)
+		return nil, err
+	}
+	return l, nil
 }
