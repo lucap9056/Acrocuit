@@ -132,7 +132,7 @@ go run ./cmd/acrocuit
 | :--- | :--- |
 | `DATABASE_DSN` | 執行檔所在目錄的 `data/acrocuit.db`；可設為 `postgres://...` 或 `sqlite://<path>` |
 | `IDENTITY_JWT_SECRET` | 未設定（見[身份驗證](#身份驗證)） |
-| `HTTP_ADDR` | `:8080` |
+| `HTTP_ADDR` | `:8080`；可設為 `unix://<path>` 改聽 Unix socket |
 | `APP_ENV` | `production` |
 | `LOG_LEVEL` | `info` |
 | `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console（可選 `json`） |

@@ -132,7 +132,7 @@ go run ./cmd/acrocuit
 | :--- | :--- |
 | `DATABASE_DSN` | `data/acrocuit.db` next to the executable; or `postgres://...` / `sqlite://<path>` |
 | `IDENTITY_JWT_SECRET` | unset (see [Authentication](#authentication)) |
-| `HTTP_ADDR` | `:8080` |
+| `HTTP_ADDR` | `:8080`; or `unix://<path>` to listen on a Unix socket |
 | `APP_ENV` | `production` |
 | `LOG_LEVEL` | `info` |
 | `LOG_STD_FORMAT` / `LOG_FILE_FORMAT` | console (`json` optional) |
