@@ -61,10 +61,6 @@ RUN if [ "${WEB}" = "none" ]; then GO_TAGS=noweb; fi \
  && CGO_ENABLED=0 go build -tags "${GO_TAGS}" -trimpath -ldflags="-s -w" -o /out/acrocuit ./cmd/acrocuit \
  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/dbinit ./cmd/dbinit  && mkdir -p /out/data
 
-FROM gcr.io/distroless/static-debian12:nonroot AS dbinit
-COPY --from=build /out/dbinit /dbinit
-ENTRYPOINT ["/dbinit"]
-
 FROM gcr.io/distroless/static-debian12:nonroot AS app
 WORKDIR /app
 
@@ -72,6 +68,7 @@ ENV HTTP_ADDR=:8080
 EXPOSE 8080
 
 COPY --from=build /out/acrocuit ./acrocuit
+COPY --from=build /out/dbinit ./dbinit
 COPY --from=build --chown=nonroot:nonroot /out/data ./data
 
 ENTRYPOINT ["/app/acrocuit"]

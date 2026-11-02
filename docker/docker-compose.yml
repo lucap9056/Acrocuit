@@ -21,8 +21,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      target: dbinit
+      target: app
     container_name: acrocuit-dbinit
+    entrypoint: ["/app/dbinit"]
     depends_on:
       postgres:
         condition: service_healthy

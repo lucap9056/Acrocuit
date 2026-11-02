@@ -24,8 +24,6 @@ jobs:
         include:
           - target: app
             image: acrocuit
-          - target: dbinit
-            image: acrocuit-dbinit
     steps:
       - name: Checkout
         uses: actions/checkout@v4
