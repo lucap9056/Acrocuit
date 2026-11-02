@@ -1,6 +1,7 @@
 import type en from "@public/locales/en.json";
 import i18next from "i18next";
 import HttpBackend from "i18next-http-backend";
+import { appBaseUrl } from "@/lib/app-url";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -18,7 +19,7 @@ export const ready = i18next.use(HttpBackend).init({
   fallbackLng: { zh: ["zh-TW", baseLocale], default: [baseLocale] },
   load: "currentOnly",
   backend: {
-    loadPath: `${import.meta.env.BASE_URL}locales/{{lng}}.json`,
+    loadPath: `${appBaseUrl.href}locales/{{lng}}.json`,
   },
   interpolation: { escapeValue: false },
 });

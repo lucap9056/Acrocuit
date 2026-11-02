@@ -1,6 +1,7 @@
 import type { AccessToken, TokenPair } from "@/api/auth";
 import auth, { AuthError } from "@/api/auth";
 import meta from "@/api/meta";
+import { appUrl } from "@/lib/app-url";
 import type { LocalAuthSession } from "./local-auth-session";
 
 const refreshAheadMs = 60_000;
@@ -47,8 +48,8 @@ export const connectSession = async (
 export class GuestAuthSession {
   readonly kind = "guest";
 
-  public fetch(input: RequestInfo | URL, init: RequestInit = {}) {
-    return fetch(input, init);
+  public fetch(path: string, init: RequestInit = {}) {
+    return fetch(appUrl(path), init);
   }
 }
 
@@ -83,14 +84,14 @@ export class MemberAuthSession {
     return this.accessToken;
   }
 
-  public async fetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  public async fetch(path: string, init: RequestInit = {}) {
     if (!this.authRequired) {
-      return fetch(input, init);
+      return fetch(appUrl(path), init);
     }
     const accessToken = await this.getAccessToken();
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${accessToken}`);
-    return fetch(input, { ...init, headers });
+    return fetch(appUrl(path), { ...init, headers });
   }
 
   private refresh() {

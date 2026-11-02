@@ -8,7 +8,7 @@ import type {
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
-const base = "/api/spaces";
+const base = "api/spaces";
 
 const getSpace = (auth: AuthSession, spaceId: SpaceId) => {
   return auth

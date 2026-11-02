@@ -1,3 +1,4 @@
+import { appUrl } from "@/lib/app-url";
 import { currentLocale } from "@/lib/i18n";
 
 export type IconRef = string;
@@ -239,8 +240,6 @@ export const localize = (text: LocalizedText, fallback: string) =>
 
 export const iconLabel = (icon: PackIcon) => localize(icon.labels, icon.name);
 
-const appBaseUrl = () => new URL(import.meta.env.BASE_URL, location.href);
-
 const readStoredSources = (): string[] => {
   try {
     const stored = JSON.parse(
@@ -331,7 +330,7 @@ class IconRegistry {
   load() {
     return Promise.allSettled([
       ...BUILT_IN_MANIFESTS.map((path) =>
-        this.#loadSource(new URL(path, appBaseUrl()).href, true),
+        this.#loadSource(appUrl(path).href, true),
       ),
       ...readStoredSources().map((source) => this.#loadSource(source, false)),
     ]).then((results) => {

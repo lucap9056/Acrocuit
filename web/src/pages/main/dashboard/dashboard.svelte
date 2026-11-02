@@ -14,6 +14,7 @@
   import load from "@/components/loading-bar";
   import { tooltip } from "@/components/tooltip";
   import WorkspaceView from "@/components/workspace-view/workspace-view.svelte";
+  import { appBaseUrl } from "@/lib/app-url";
   import { fetchSpaceGroups } from "@/lib/cache/space-groups";
   import type {
     HashRouter,
@@ -118,7 +119,7 @@
           type: "primary",
           onclick: () => {
             writeLocalMode(true);
-            location.assign("/");
+            location.assign(appBaseUrl);
             return true;
           },
         },
@@ -141,7 +142,7 @@
             type: "primary",
             onclick: () => {
               writeLocalMode(false);
-              location.assign("/");
+              location.assign(appBaseUrl);
               return true;
             },
           },
@@ -154,7 +155,7 @@
     api.auth
       .logout()
       .then(() => {
-        location.assign("/");
+        location.assign(appBaseUrl);
       })
       .catch((err) => {
         console.error(err);

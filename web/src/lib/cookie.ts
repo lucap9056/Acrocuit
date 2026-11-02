@@ -1,3 +1,5 @@
+import { appBaseUrl } from "@/lib/app-url";
+
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export const readCookie = (name: string): string | undefined => {
@@ -17,7 +19,7 @@ export const writeCookie = (
 ) => {
   document.cookie = [
     `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
-    `path=${import.meta.env.BASE_URL}`,
+    `path=${appBaseUrl.pathname}`,
     `max-age=${maxAgeSeconds}`,
     "SameSite=Lax",
   ].join("; ");

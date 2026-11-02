@@ -9,7 +9,7 @@ import type {
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
-const base = "/api/switches";
+const base = "api/switches";
 
 const getSwitch = (auth: AuthSession, switchId: SwitchId) => {
   return auth

@@ -8,7 +8,7 @@ import type {
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
-const base = "/api/switch-panels";
+const base = "api/switch-panels";
 
 const getSwitchPanel = (auth: AuthSession, switchPanelId: SwitchPanelId) => {
   return auth

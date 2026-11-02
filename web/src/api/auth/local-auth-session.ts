@@ -14,10 +14,8 @@ type Pending = {
 const localOrigin = "http://acrocuit.local";
 const jsonContentType = "application/json; charset=utf-8";
 
-const toRequest = (input: RequestInfo | URL, init: RequestInit) =>
-  input instanceof Request
-    ? new Request(input, init)
-    : new Request(new URL(input, localOrigin), init);
+const toRequest = (path: string, init: RequestInit) =>
+  new Request(new URL(path, localOrigin), init);
 
 const readBody = (
   request: Request,
@@ -82,8 +80,8 @@ export class LocalAuthSession {
     };
   }
 
-  public fetch(input: RequestInfo | URL, init: RequestInit = {}) {
-    return toLocalRequest(this.nextId++, toRequest(input, init)).then(
+  public fetch(path: string, init: RequestInit = {}) {
+    return toLocalRequest(this.nextId++, toRequest(path, init)).then(
       (request) => this.send(request).then(toResponse),
       invalidBody,
     );

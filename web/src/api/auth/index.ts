@@ -1,3 +1,5 @@
+import { appUrl } from "@/lib/app-url";
+
 type Body<T> =
   | { success: true; message: T }
   | { success: false; message: string };
@@ -46,7 +48,8 @@ export type LoginChallenge = {
   verifier?: Verifier;
 };
 
-const login = () => fetch(`/auth/login`).then(unwrapResponse<LoginChallenge>);
+const login = () =>
+  fetch(appUrl("auth/login")).then(unwrapResponse<LoginChallenge>);
 
 export type RefreshToken = Brand<string, "RefreshToken">;
 export type AccessToken = Brand<string, "AccessToken">;
@@ -72,16 +75,20 @@ const loginCallback = (
   if (verifier) {
     headers.set("X-PKCE-Verifier", verifier);
   }
-  return fetch(`/auth/callback?${new URLSearchParams(search)}`, {
+  const url = appUrl("auth/callback");
+  url.search = new URLSearchParams(search).toString();
+  return fetch(url, {
     headers,
   }).then(unwrapResponse<TokenPair>);
 };
 
 const refresh = () =>
-  fetch(`/auth/refresh`, { method: "POST" }).then(unwrapResponse<TokenPair>);
+  fetch(appUrl("auth/refresh"), { method: "POST" }).then(
+    unwrapResponse<TokenPair>,
+  );
 
 const refreshAccess = () =>
-  fetch(`/auth/refresh-access`, { method: "POST" }).then(
+  fetch(appUrl("auth/refresh-access"), { method: "POST" }).then(
     unwrapResponse<AccessToken>,
   );
 
@@ -92,15 +99,17 @@ export type SessionStatus = {
 };
 
 const refreshStatus = () =>
-  fetch(`/auth/refresh-status`, { method: "POST" }).then(
+  fetch(appUrl("auth/refresh-status"), { method: "POST" }).then(
     unwrapResponse<SessionStatus>,
   );
 
 const logout = () =>
-  fetch(`/auth/logout`, { method: "POST" }).then(unwrapResponse<string>);
+  fetch(appUrl("auth/logout"), { method: "POST" }).then(unwrapResponse<string>);
 
 const deleteMe = () =>
-  fetch(`/auth/users/me`, { method: "DELETE" }).then(unwrapResponse<string>);
+  fetch(appUrl("auth/users/me"), { method: "DELETE" }).then(
+    unwrapResponse<string>,
+  );
 
 export default {
   login,

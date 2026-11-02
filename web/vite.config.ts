@@ -6,6 +6,7 @@ const acrocuitUrl = process.env.ACROCUIT_URL ?? "http://localhost:8080";
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: "./",
   plugins: [svelte()],
   resolve: {
     tsconfigPaths: true,

@@ -11,7 +11,7 @@ import type {
 } from "@/api/models";
 import { unwrapApiResponse } from "@/api/response";
 
-const base = "/api/devices";
+const base = "api/devices";
 
 const getDevice = (auth: AuthSession, deviceId: DeviceId) => {
   return auth
