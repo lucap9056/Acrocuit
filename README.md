@@ -113,7 +113,7 @@ Open `http://localhost:8080` and sign in with your provider. See [Deployment](#d
 - Runs PostgreSQL, the app, [corvauth](https://github.com/lucap9056/corvauth), and nginx
   - `dbinit` and `corvauth-schema` create their tables before startup
   - Only nginx is published (`http://localhost:8080`)
-- Register `<PUBLIC_URL>/auth/callback` as the provider's redirect URL
+- Register `<PUBLIC_URL>/callback` as the provider's redirect URL
 - Sign in via `/auth/login`, then call `/api` with `Authorization: Bearer <access_token>`
 
 #### PostgreSQL

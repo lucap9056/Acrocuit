@@ -113,7 +113,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 - 包含 PostgreSQL、app、[corvauth](https://github.com/lucap9056/corvauth) 與 nginx
   - `dbinit` 與 `corvauth-schema` 在啟動前建立 table
   - 只有 nginx 對外（`http://localhost:8080`）
-- 在 provider 註冊 `<PUBLIC_URL>/auth/callback` 為 redirect URL
+- 在 provider 註冊 `<PUBLIC_URL>/callback` 為 redirect URL
 - 經 `/auth/login` 登入後，以 `Authorization: Bearer <access_token>` 呼叫 `/api`
 
 #### PostgreSQL
