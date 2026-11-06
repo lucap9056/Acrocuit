@@ -1,9 +1,11 @@
 <script lang="ts">
   import CloudSlashIcon from "phosphor-svelte/lib/CloudSlashIcon";
+  import DevicesIcon from "phosphor-svelte/lib/DevicesIcon";
   import SignInIcon from "phosphor-svelte/lib/SignInIcon";
   import SignOutIcon from "phosphor-svelte/lib/SignOutIcon";
   import api, {
     type AuthSession,
+    type MemberAuthSession,
     type SpaceGroup,
     type SpaceGroupId,
     type TokenPair,
@@ -27,6 +29,7 @@
   import { createWorkspace } from "@/lib/workspace";
   import Login from "../login.svelte";
   import styles from "./dashboard.module.css";
+  import DeviceSessions from "./device-sessions/device-sessions.svelte";
   import SpaceGroupSelector from "./space-group-selector.svelte";
   import SpaceGroupView from "./space-group-view/space-group-view.svelte";
 
@@ -127,6 +130,62 @@
     });
   };
 
+  const signOutAllDevices = (memberSession: MemberAuthSession) => {
+    const loading = load.begin(t("loading.signOutAllDevices"));
+    return api.auth
+      .deleteAllSessions(memberSession)
+      .then(() => {
+        location.assign(appBaseUrl);
+        return true;
+      })
+      .catch((err) => {
+        console.error(err);
+        return false;
+      })
+      .finally(() => {
+        loading.release();
+      });
+  };
+
+  const confirmSignOutAllDevices = (memberSession: MemberAuthSession) => {
+    dialog.push({
+      text: t("auth.signOutAllDevicesConfirm"),
+      buttons: [
+        {
+          text: t("common.cancel"),
+          type: "",
+          onclick: () => true,
+        },
+        {
+          text: t("auth.signOutAllDevices"),
+          type: "danger",
+          onclick: () => signOutAllDevices(memberSession),
+        },
+      ],
+    });
+    return false;
+  };
+
+  const showDeviceSessions = (memberSession: MemberAuthSession) => {
+    dialog.push({
+      content: deviceSessionsContent,
+      maxWidth: "28rem",
+      buttons: [
+        {
+          text: t("auth.signOutAllDevices"),
+          type: "danger",
+          align: "start",
+          onclick: () => confirmSignOutAllDevices(memberSession),
+        },
+        {
+          text: t("common.close"),
+          type: "",
+          onclick: () => true,
+        },
+      ],
+    });
+  };
+
   const logout = () => {
     if (session.kind === "local") {
       dialog.push({
@@ -179,6 +238,12 @@
   />
 {/snippet}
 
+{#snippet deviceSessionsContent()}
+  {#if session.kind === "member"}
+    <DeviceSessions {session} />
+  {/if}
+{/snippet}
+
 <div class={styles.dashboard}>
   <div class={styles.header}>
     <div class={styles.left}>
@@ -198,6 +263,15 @@
         </button>
       {:else}
         <span class={styles.local_mode_hint}>{t("auth.inLocalMode")}</span>
+      {/if}
+      {#if session.kind === "member" && session.authRequired}
+        <button
+          class="icon_button"
+          onclick={() => showDeviceSessions(session)}
+          {@attach tooltip(t("auth.deviceSessions"))}
+        >
+          <DevicesIcon />
+        </button>
       {/if}
       {#if session.kind !== "guest"}
         <button

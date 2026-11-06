@@ -18,6 +18,10 @@
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
+    "signOutAllDevices": "Sign out all devices",
+    "signOutAllDevicesConfirm": "Sign out of every device, including this one?",
+    "deviceSessions": "Signed-in devices",
+    "currentDevice": "This device",
     "localMode": "Local mode",
     "inLocalMode": "In local mode",
     "exitLocalModeConfirm": "Exit local mode? Local data stays in this browser.",
@@ -235,6 +239,7 @@
     "connect": "Connecting…",
     "signIn": "Signing in…",
     "signOut": "Signing out…",
+    "signOutAllDevices": "Signing out all devices…",
     "fetchSpaceGroups": "Loading space groups…",
     "createSpaceGroup": "Creating space group…",
     "renameSpaceGroup": "Renaming space group…",

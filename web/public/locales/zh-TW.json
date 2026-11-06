@@ -18,6 +18,10 @@
   "auth": {
     "signIn": "登入",
     "signOut": "登出",
+    "signOutAllDevices": "登出所有裝置",
+    "signOutAllDevicesConfirm": "要登出所有裝置嗎？包含目前這個裝置",
+    "deviceSessions": "已登入的裝置",
+    "currentDevice": "目前裝置",
     "localMode": "本機模式",
     "inLocalMode": "目前為本機模式",
     "exitLocalModeConfirm": "要退出本機模式嗎？本機資料會保留在這個瀏覽器中",
@@ -235,6 +239,7 @@
     "connect": "連線中…",
     "signIn": "登入中…",
     "signOut": "登出中…",
+    "signOutAllDevices": "登出所有裝置中…",
     "fetchSpaceGroups": "載入空間群組中…",
     "createSpaceGroup": "建立空間群組中…",
     "renameSpaceGroup": "重新命名空間群組中…",
