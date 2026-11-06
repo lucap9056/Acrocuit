@@ -4,7 +4,13 @@ type Body<T> =
   | { success: true; message: T }
   | { success: false; message: string };
 
-export type AuthErrorReason = "device_not_found" | "invalid_signature";
+export type AuthErrorReason =
+  | "device_not_found"
+  | "invalid_signature"
+  | "invalid_device_tag"
+  | "unexpected_algorithm"
+  | "invalid_issuer"
+  | "spoofed_identity_header";
 
 export class AuthError extends Error {
   readonly status: number;
@@ -48,13 +54,12 @@ export type LoginChallenge = {
   verifier?: Verifier;
 };
 
-const loginUrl = () => {
-  const url = appUrl("auth/login");
-  url.searchParams.set("redirect_uri", appUrl("callback").href);
-  return url;
-};
-
-const login = () => fetch(loginUrl()).then(unwrapResponse<LoginChallenge>);
+const login = () =>
+  fetch(appUrl("auth/sessions"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ redirect_uri: appUrl("callback").href }),
+  }).then(unwrapResponse<LoginChallenge>);
 
 export type RefreshToken = Brand<string, "RefreshToken">;
 export type AccessToken = Brand<string, "AccessToken">;
@@ -80,7 +85,7 @@ const loginCallback = (
   if (verifier) {
     headers.set("X-PKCE-Verifier", verifier);
   }
-  const url = appUrl("auth/callback");
+  const url = appUrl("auth/sessions/callback");
   url.search = new URLSearchParams(search).toString();
   return fetch(url, {
     headers,
@@ -88,12 +93,12 @@ const loginCallback = (
 };
 
 const refresh = () =>
-  fetch(appUrl("auth/refresh"), { method: "POST" }).then(
+  fetch(appUrl("auth/sessions/current/tokens"), { method: "POST" }).then(
     unwrapResponse<TokenPair>,
   );
 
 const refreshAccess = () =>
-  fetch(appUrl("auth/refresh-access"), { method: "POST" }).then(
+  fetch(appUrl("auth/sessions/current/access-token"), { method: "POST" }).then(
     unwrapResponse<AccessToken>,
   );
 
@@ -104,12 +109,12 @@ export type SessionStatus = {
 };
 
 const refreshStatus = () =>
-  fetch(appUrl("auth/refresh-status"), { method: "POST" }).then(
+  fetch(appUrl("auth/sessions/current")).then(
     unwrapResponse<SessionStatus>,
   );
 
 const logout = () =>
-  fetch(appUrl("auth/logout"), { method: "POST" }).then(unwrapResponse<string>);
+  fetch(appUrl("auth/sessions/current"), { method: "DELETE" }).then(unwrapResponse<string>);
 
 const deleteMe = () =>
   fetch(appUrl("auth/users/me"), { method: "DELETE" }).then(

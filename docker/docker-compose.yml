@@ -50,7 +50,7 @@ services:
     #   - app-socket:/app/run
 
   corvauth-schema:
-    image: ghcr.io/lucap9056/corvauth:0.4.0
+    image: ghcr.io/lucap9056/corvauth:0.5.0
     container_name: acrocuit-corvauth-schema
     command: ["schema", "apply"]
     depends_on:
@@ -61,7 +61,7 @@ services:
     restart: "no"
 
   corvauth:
-    image: ghcr.io/lucap9056/corvauth:0.4.0
+    image: ghcr.io/lucap9056/corvauth:0.5.0
     container_name: acrocuit-corvauth
     depends_on:
       corvauth-schema:
