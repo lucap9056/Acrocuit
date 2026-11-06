@@ -105,7 +105,7 @@ const refreshAccess = () =>
 export type SessionStatus = {
   device_id: string;
   issued_at: number;
-  expired_at: number;
+  expires_at: number;
 };
 
 const refreshStatus = () =>
