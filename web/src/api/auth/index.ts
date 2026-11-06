@@ -1,3 +1,4 @@
+import type { MemberAuthSession } from "@/api/auth/auth-session";
 import { appUrl } from "@/lib/app-url";
 
 type Body<T> =
@@ -116,6 +117,21 @@ const refreshStatus = () =>
 const logout = () =>
   fetch(appUrl("auth/sessions/current"), { method: "DELETE" }).then(unwrapResponse<string>);
 
+export type DeviceSession = {
+  device_id: string;
+  device_name: string;
+  updated_at: number;
+  current: boolean;
+};
+
+const listSessions = (session: MemberAuthSession) =>
+  session.fetch("auth/sessions").then(unwrapResponse<DeviceSession[]>);
+
+const deleteAllSessions = (session: MemberAuthSession) =>
+  session
+    .fetch("auth/sessions", { method: "DELETE" })
+    .then(unwrapResponse<string>);
+
 const deleteMe = () =>
   fetch(appUrl("auth/users/me"), { method: "DELETE" }).then(
     unwrapResponse<string>,
@@ -128,5 +144,7 @@ export default {
   refreshAccess,
   refreshStatus,
   logout,
+  listSessions,
+  deleteAllSessions,
   deleteMe,
 };
