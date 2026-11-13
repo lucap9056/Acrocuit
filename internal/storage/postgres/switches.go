@@ -166,24 +166,35 @@ func (s *pgSwitches) SetSwitch(ctx context.Context, userEmail string, switchId m
 	return sw, nil
 }
 
-func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId models.SwitchId) error {
-	query := `
-		DELETE FROM ` + schema.SwitchesTable + `
-		WHERE ` + schema.FullSwitches_ID + ` = $1 AND EXISTS (
-			SELECT 1 FROM ` + schema.SwitchPanelsTable + `
-			JOIN ` + schema.SpaceGroupACLsTable + ` ON ` + schema.JoinSpaceGroupACLs_SwitchPanels + `
-			WHERE ` + schema.JoinSwitches_SwitchPanels + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
-		)
-	`
-	t, err := s.pool.Exec(ctx, query, switchId, userEmail)
+func (s *pgSwitches) DelSwitch(ctx context.Context, userEmail string, switchId models.SwitchId) ([]models.Switch, error) {
+	query := `SELECT ` + schema.FnDelSwitch_OUTPUTS + ` FROM ` + schema.FnDelSwitch + `($1, $2)`
+
+	rows, err := s.pool.Query(ctx, query, userEmail, switchId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if t.RowsAffected() == 0 {
-		return repository.ErrNotFound
+	defer rows.Close()
+
+	switches := make([]models.Switch, 0)
+	for rows.Next() {
+		var sw models.Switch
+		if err := rows.Scan(sw.AllValues()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		switches = append(switches, sw)
 	}
 
-	return nil
+	err = rows.Err()
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == schema.FnDelSwitch_ERR_NOT_FOUND {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return switches, nil
 }
 
 func (s *pgSwitches) GetSwitchUpstreams(ctx context.Context, userEmail string, switchId models.SwitchId, include string) ([]models.LinkedSwitch, error) {

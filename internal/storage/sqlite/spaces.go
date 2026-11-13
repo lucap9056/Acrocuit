@@ -233,22 +233,82 @@ func (s *sqliteSpaces) SetSpace(ctx context.Context, _ string, spaceId models.Sp
 	return space, nil
 }
 
-func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId models.SpaceId) error {
-	query := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
-	result, err := s.db.ExecContext(ctx, query, spaceId)
+func (s *sqliteSpaces) DelSpace(ctx context.Context, _ string, spaceId models.SpaceId) ([]models.Space, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	current := `SELECT ` + schema.Spaces_SPACE_GROUP_ID + `, ` + schema.Spaces_DISPLAY_ORDER + ` FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
+	var spaceGroupId models.SpaceGroupId
+	var deletedOrder int
+	err = tx.QueryRowContext(ctx, current, spaceId).Scan(&spaceGroupId, &deletedOrder)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return repository.ErrNotFound
+	del := `DELETE FROM ` + schema.SpacesTable + ` WHERE ` + schema.Spaces_ID + ` = $1`
+	if _, err := tx.ExecContext(ctx, del, spaceId); err != nil {
+		return nil, err
 	}
 
-	return nil
+	// SQLite checks UNIQUE row by row, so shifting in place collides; park the tail at negatives first.
+	park := `
+		UPDATE ` + schema.SpacesTable + `
+		SET ` + schema.Spaces_DISPLAY_ORDER + ` = 1 - ` + schema.Spaces_DISPLAY_ORDER + `
+		WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $1 AND ` + schema.Spaces_DISPLAY_ORDER + ` > $2
+	`
+	if _, err := tx.ExecContext(ctx, park, spaceGroupId, deletedOrder); err != nil {
+		return nil, err
+	}
+
+	restore := `
+		UPDATE ` + schema.SpacesTable + `
+		SET ` + schema.Spaces_DISPLAY_ORDER + ` = -` + schema.Spaces_DISPLAY_ORDER + `
+		WHERE ` + schema.Spaces_SPACE_GROUP_ID + ` = $1 AND ` + schema.Spaces_DISPLAY_ORDER + ` < 0
+	`
+	if _, err := tx.ExecContext(ctx, restore, spaceGroupId); err != nil {
+		return nil, err
+	}
+
+	keys, fields, err := models.ParseSpaceColumns("")
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT ` + keys + `
+		FROM ` + schema.SpacesTable + `
+		WHERE ` + schema.FullSpaces_SPACE_GROUP_ID + ` = $1
+		ORDER BY ` + schema.FullSpaces_DISPLAY_ORDER
+
+	rows, err := tx.QueryContext(ctx, query, spaceGroupId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	spaces := make([]models.Space, 0)
+	for rows.Next() {
+		var space models.Space
+		if err := rows.Scan(space.Values(fields)...); err != nil {
+			return nil, err
+		}
+		space.Build()
+		spaces = append(spaces, space)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return spaces, nil
 }
 
 func (s *sqliteSpaces) GetSpaceBackgroundImage(ctx context.Context, _ string, spaceId models.SpaceId) (*models.BackgroundImage, error) {

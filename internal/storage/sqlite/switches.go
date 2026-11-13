@@ -222,22 +222,76 @@ func (s *sqliteSwitches) SetSwitch(ctx context.Context, _ string, switchId model
 	return sw, nil
 }
 
-func (s *sqliteSwitches) DelSwitch(ctx context.Context, _ string, switchId models.SwitchId) error {
-	query := `DELETE FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
-	result, err := s.db.ExecContext(ctx, query, switchId)
+func (s *sqliteSwitches) DelSwitch(ctx context.Context, _ string, switchId models.SwitchId) ([]models.Switch, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	current := `SELECT ` + schema.Switches_SWITCH_PANEL_ID + `, ` + schema.Switches_DISPLAY_ORDER + ` FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
+	var switchPanelId models.SwitchPanelId
+	var deletedOrder int
+	err = tx.QueryRowContext(ctx, current, switchId).Scan(&switchPanelId, &deletedOrder)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return repository.ErrNotFound
+	del := `DELETE FROM ` + schema.SwitchesTable + ` WHERE ` + schema.Switches_ID + ` = $1`
+	if _, err := tx.ExecContext(ctx, del, switchId); err != nil {
+		return nil, err
 	}
 
-	return nil
+	// SQLite checks UNIQUE row by row, so shifting in place collides; park the tail at negatives first.
+	park := `
+		UPDATE ` + schema.SwitchesTable + `
+		SET ` + schema.Switches_DISPLAY_ORDER + ` = 1 - ` + schema.Switches_DISPLAY_ORDER + `
+		WHERE ` + schema.Switches_SWITCH_PANEL_ID + ` = $1 AND ` + schema.Switches_DISPLAY_ORDER + ` > $2
+	`
+	if _, err := tx.ExecContext(ctx, park, switchPanelId, deletedOrder); err != nil {
+		return nil, err
+	}
+
+	restore := `
+		UPDATE ` + schema.SwitchesTable + `
+		SET ` + schema.Switches_DISPLAY_ORDER + ` = -` + schema.Switches_DISPLAY_ORDER + `
+		WHERE ` + schema.Switches_SWITCH_PANEL_ID + ` = $1 AND ` + schema.Switches_DISPLAY_ORDER + ` < 0
+	`
+	if _, err := tx.ExecContext(ctx, restore, switchPanelId); err != nil {
+		return nil, err
+	}
+
+	query := `SELECT ` + models.SWITCH_ALL_COLUMNS + `
+		FROM ` + schema.SwitchesTable + `
+		WHERE ` + schema.FullSwitches_SWITCH_PANEL_ID + ` = $1
+		ORDER BY ` + schema.FullSwitches_DISPLAY_ORDER
+	rows, err := tx.QueryContext(ctx, query, switchPanelId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	switches := make([]models.Switch, 0)
+	for rows.Next() {
+		var sw models.Switch
+		if err := rows.Scan(sw.AllValues()...); err != nil {
+			return nil, err
+		}
+		sw.Build()
+		switches = append(switches, sw)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return switches, nil
 }
 
 func (s *sqliteSwitches) GetSwitchUpstreams(ctx context.Context, _ string, switchId models.SwitchId, include string) ([]models.LinkedSwitch, error) {

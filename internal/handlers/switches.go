@@ -106,12 +106,13 @@ func (ctr *switchesController) DelSwitch(c *gin.Context) {
 		return
 	}
 
-	if err := ctr.Switches.DelSwitch(c.Request.Context(), userEmail, switchId); err != nil {
+	switches, err := ctr.Switches.DelSwitch(c.Request.Context(), userEmail, switchId)
+	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.Empty(c, http.StatusOK)
+	response.OK(c, switches)
 }
 
 func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {

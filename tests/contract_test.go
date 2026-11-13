@@ -285,9 +285,18 @@ func TestContract(t *testing.T) {
 
 	t.Run("Deletes", func(t *testing.T) {
 		c := c.with(t)
-		for _, path := range []string{devicePath, childPath, switchPanelPath, spacePath, spaceGroupPath} {
-			req := newRequest(t, http.MethodDelete, path, nil)
-			c.checkShape(req, http.StatusOK, successShape(equals(nil)))
+		for _, tc := range []struct {
+			path string
+			data shape
+		}{
+			{devicePath, equals(nil)},
+			{childPath, arrayOf(switchShape())},
+			{switchPanelPath, equals(nil)},
+			{spacePath, arrayOf(spaceShape())},
+			{spaceGroupPath, equals(nil)},
+		} {
+			req := newRequest(t, http.MethodDelete, tc.path, nil)
+			c.checkShape(req, http.StatusOK, successShape(tc.data))
 		}
 	})
 }

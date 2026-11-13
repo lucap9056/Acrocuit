@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -170,23 +171,35 @@ func (s *pgSpaces) MoveSpace(ctx context.Context, userEmail string, spaceId mode
 	return spaces, nil
 }
 
-func (s *pgSpaces) DelSpace(ctx context.Context, userEmail string, spaceId models.SpaceId) error {
-	query := `
-		DELETE FROM ` + schema.SpacesTable + `
-		WHERE ` + schema.FullSpaces_ID + ` = $1 AND EXISTS (
-			SELECT 1 FROM ` + schema.SpaceGroupACLsTable + `
-			WHERE ` + schema.JoinSpaceGroupACLs_Spaces + ` AND ` + schema.FullSpaceGroupACLs_USER_EMAIL + ` = $2 AND ` + schema.FilterSpaceGroupACLs_IsEditor + `
-		)
-	`
-	t, err := s.pool.Exec(ctx, query, spaceId, userEmail)
+func (s *pgSpaces) DelSpace(ctx context.Context, userEmail string, spaceId models.SpaceId) ([]models.Space, error) {
+	query := `SELECT ` + schema.FnDelSpace_OUTPUTS + ` FROM ` + schema.FnDelSpace + `($1, $2)`
+
+	rows, err := s.pool.Query(ctx, query, userEmail, spaceId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if t.RowsAffected() == 0 {
-		return repository.ErrNotFound
+	defer rows.Close()
+
+	spaces := make([]models.Space, 0)
+	for rows.Next() {
+		var space models.Space
+		if err := rows.Scan(&space.Id, &space.Name, &space.SpaceGroupId, &space.DisplayOrder, &space.BackgroundImageUpdatedAt); err != nil {
+			return nil, err
+		}
+		space.Build()
+		spaces = append(spaces, space)
 	}
 
-	return nil
+	err = rows.Err()
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == schema.FnDelSpace_ERR_NOT_FOUND {
+		return nil, repository.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return spaces, nil
 }
 
 func (s *pgSpaces) GetSpaceBackgroundImage(ctx context.Context, userEmail string, spaceId models.SpaceId) (*models.BackgroundImage, error) {

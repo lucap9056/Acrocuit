@@ -88,6 +88,49 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS {{fn_del_space.func}}(TEXT, UUID);
+
+CREATE OR REPLACE FUNCTION {{fn_del_space.func}}(
+    p_user_email TEXT,
+    p_space_id UUID
+) RETURNS TABLE (
+    {{fn_del_space.o_id}} UUID,
+    {{fn_del_space.o_name}} VARCHAR(255),
+    {{fn_del_space.o_space_group_id}} UUID,
+    {{fn_del_space.o_display_order}} INT,
+    {{fn_del_space.o_background_image_updated_at}} BIGINT
+) LANGUAGE plpgsql AS $$
+DECLARE
+    v_space_group_id UUID;
+    v_display_order INT;
+BEGIN
+    SELECT s.{{spaces.space_group_id}}, s.{{spaces.display_order}}
+    INTO v_space_group_id, v_display_order
+    FROM {{spaces.table}} s
+    JOIN {{space_groups.table}} sg ON sg.{{space_groups.id}} = s.{{spaces.space_group_id}}
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = sg.{{space_groups.id}}
+    WHERE s.{{spaces.id}} = p_space_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
+    FOR UPDATE OF sg;
+
+    IF v_space_group_id IS NULL THEN
+        RAISE EXCEPTION 'space % not found', p_space_id
+            USING ERRCODE = '{{fn_del_space.err_not_found}}';
+    END IF;
+
+    DELETE FROM {{spaces.table}} WHERE {{spaces.id}} = p_space_id;
+
+    UPDATE {{spaces.table}}
+    SET {{spaces.display_order}} = {{spaces.display_order}} - 1
+    WHERE {{spaces.space_group_id}} = v_space_group_id AND {{spaces.display_order}} > v_display_order;
+
+    RETURN QUERY
+    SELECT s.{{spaces.id}}, s.{{spaces.name}}, s.{{spaces.space_group_id}}, s.{{spaces.display_order}}, s.{{spaces.background_image_updated_at}}
+    FROM {{spaces.table}} s
+    WHERE s.{{spaces.space_group_id}} = v_space_group_id
+    ORDER BY s.{{spaces.display_order}};
+END;
+$$;
+
 DROP FUNCTION IF EXISTS {{fn_set_switch.func}}(TEXT, UUID, VARCHAR, JSON);
 
 CREATE OR REPLACE FUNCTION {{fn_set_switch.func}}(
@@ -173,6 +216,50 @@ BEGIN
             WHERE {{switches.switch_panel_id}} = v_switch_panel_id AND {{switches.display_order}} >= p_display_order AND {{switches.display_order}} <= v_current_order;
         END IF;
     END IF;
+
+    RETURN QUERY
+    SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.attributes}}
+    FROM {{switches.table}} b
+    WHERE b.{{switches.switch_panel_id}} = v_switch_panel_id
+    ORDER BY b.{{switches.display_order}};
+END;
+$$;
+
+DROP FUNCTION IF EXISTS {{fn_del_switch.func}}(TEXT, UUID);
+
+CREATE OR REPLACE FUNCTION {{fn_del_switch.func}}(
+    p_user_email TEXT,
+    p_switch_id UUID
+) RETURNS TABLE (
+    {{fn_del_switch.o_id}} UUID,
+    {{fn_del_switch.o_name}} VARCHAR(255),
+    {{fn_del_switch.o_switch_panel_id}} UUID,
+    {{fn_del_switch.o_space_group_id}} UUID,
+    {{fn_del_switch.o_display_order}} INT,
+    {{fn_del_switch.o_attributes}} JSON
+) LANGUAGE plpgsql AS $$
+DECLARE
+    v_switch_panel_id UUID;
+    v_display_order INT;
+BEGIN
+    SELECT b.{{switches.switch_panel_id}}, b.{{switches.display_order}}
+    INTO v_switch_panel_id, v_display_order
+    FROM {{switches.table}} b
+    JOIN {{switch_panels.table}} bg ON bg.{{switch_panels.id}} = b.{{switches.switch_panel_id}}
+    JOIN {{space_group_acls.table}} acl ON acl.{{space_group_acls.space_group_id}} = bg.{{switch_panels.space_group_id}}
+    WHERE b.{{switches.id}} = p_switch_id AND acl.{{space_group_acls.user_email}} = p_user_email AND acl.{{space_group_acls.role}} <> '{{space_group_acls.viewer}}'
+    FOR UPDATE OF bg;
+
+    IF v_switch_panel_id IS NULL THEN
+        RAISE EXCEPTION 'switch % not found', p_switch_id
+            USING ERRCODE = '{{fn_del_switch.err_not_found}}';
+    END IF;
+
+    DELETE FROM {{switches.table}} WHERE {{switches.id}} = p_switch_id;
+
+    UPDATE {{switches.table}}
+    SET {{switches.display_order}} = {{switches.display_order}} - 1
+    WHERE {{switches.switch_panel_id}} = v_switch_panel_id AND {{switches.display_order}} > v_display_order;
 
     RETURN QUERY
     SELECT b.{{switches.id}}, b.{{switches.name}}, b.{{switches.switch_panel_id}}, b.{{switches.space_group_id}}, b.{{switches.display_order}}, b.{{switches.attributes}}

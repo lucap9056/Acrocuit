@@ -4,7 +4,6 @@ import (
 	"acrocuit/internal/auth"
 	"acrocuit/internal/models"
 	"acrocuit/internal/response"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -86,12 +85,13 @@ func (ctr *spacesController) DelSpace(c *gin.Context) {
 		return
 	}
 
-	if err := ctr.Spaces.DelSpace(c.Request.Context(), userEmail, spaceId); err != nil {
+	spaces, err := ctr.Spaces.DelSpace(c.Request.Context(), userEmail, spaceId)
+	if err != nil {
 		handleStorageErr(c, err)
 		return
 	}
 
-	response.Empty(c, http.StatusOK)
+	response.OK(c, spaces)
 }
 
 type setOrderRequest struct {
