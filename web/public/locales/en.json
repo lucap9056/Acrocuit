@@ -55,6 +55,7 @@
     "new": "New space",
     "loading": "Loading spaces…",
     "empty": "No spaces yet.",
+    "confirmDelete": "Delete \"{{name}}\"? Its switch panels, switches and devices are deleted too.",
     "dragToReorder": "Drag to reorder",
     "confirmMove": "Move \"{{name}}\" to position {{position}}?"
   },

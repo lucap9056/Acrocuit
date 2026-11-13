@@ -55,6 +55,7 @@
     "new": "新增空間",
     "loading": "載入空間中…",
     "empty": "目前還沒有空間",
+    "confirmDelete": "要刪除「{{name}}」嗎？其中的開關面板、開關與裝置也會一併刪除",
     "dragToReorder": "拖曳以調整順序",
     "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？"
   },

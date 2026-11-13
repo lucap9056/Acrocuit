@@ -156,7 +156,10 @@
   };
 
   const remove = (space: Space) => {
-    confirmAction("", t("common.remove")).then(() => {
+    confirmAction(
+      t("spaces.confirmDelete", { name: space.name }),
+      t("common.delete"),
+    ).then(() => {
       const loading = load.begin(t("loading.removeSpace"));
       removeSpace(session, withSpaceGroup(space))
         .then((s) => {
