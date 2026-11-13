@@ -403,10 +403,22 @@ Returns the space, as in `GET /api/spaces/{spaceId}`.
 
 Deletes the space with its background image, switch panels, switches, devices and links.
 
+Returns the remaining spaces in the space group, ordered by `display_order`.
+
 ```json
 {
   "success": true,
-  "data": null
+  "data": [
+    {
+      "id": "019a2b3d-df23-7f11-8432-ac56cf00e328",
+      "name": "B3",
+      "display_order": 1,
+      "background_image_updated_at": 1793011394640,
+      "space_group": {
+        "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
+      }
+    }
+  ]
 }
 ```
 
@@ -694,10 +706,29 @@ Returns the switch.
 
 Deletes the switch with its links to other switches and devices.
 
+Returns the remaining switches in the switch panel, ordered by `display_order`.
+
 ```json
 {
   "success": true,
-  "data": null
+  "data": [
+    {
+      "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
+      "name": "UPS-5 Input",
+      "display_order": 1,
+      "attributes": {
+        "circuit_label": "UPS",
+        "switch_type": "nfb",
+        "max_current": 100,
+        "rated_voltage": 380,
+        "phase": "three",
+        "poles": 3
+      },
+      "switch_panel": {
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
+      }
+    }
+  ]
 }
 ```
 

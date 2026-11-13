@@ -403,10 +403,22 @@ GET /api/spaces/019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3?include=id,name
 
 刪除空間，連同其背景圖、開關面板、開關、裝置與連結
 
+回傳空間群組內剩餘的空間，依 `display_order` 排序
+
 ```json
 {
   "success": true,
-  "data": null
+  "data": [
+    {
+      "id": "019a2b3d-df23-7f11-8432-ac56cf00e328",
+      "name": "B3",
+      "display_order": 1,
+      "background_image_updated_at": 1793011394640,
+      "space_group": {
+        "id": "019a2b3c-a9cd-77aa-aa3f-c0799f042a8f"
+      }
+    }
+  ]
 }
 ```
 
@@ -694,10 +706,29 @@ curl -X PUT -F image=@5f.png http://localhost:8080/api/spaces/019a2b3e-b7ac-761e
 
 刪除開關，連同其與其他開關、裝置的連結
 
+回傳開關面板內剩餘的開關，依 `display_order` 排序
+
 ```json
 {
   "success": true,
-  "data": null
+  "data": [
+    {
+      "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
+      "name": "UPS-5 Input",
+      "display_order": 1,
+      "attributes": {
+        "circuit_label": "UPS",
+        "switch_type": "nfb",
+        "max_current": 100,
+        "rated_voltage": 380,
+        "phase": "three",
+        "poles": 3
+      },
+      "switch_panel": {
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
+      }
+    }
+  ]
 }
 ```
 
