@@ -36,7 +36,7 @@
 | `400` | 路徑 ID 不是 UUID、body 不合法、`include` 含未知欄位、開關以自己為上游、連結會形成環，或成員的角色或 email 無效 |
 | `401` | 缺少或無效的身份，或匿名呼叫須帶身份的路由 |
 | `404` | 資源不存在，或呼叫者的角色不允許該操作 |
-| `409` | 連結或成員已存在，或擁有者離開時沒有編輯者可接手 |
+| `409` | 連結或成員已存在、擁有者離開時沒有編輯者可接手，或要移動的空間或開關已不在 `from_display_order` |
 | `413` | 背景圖超過 10 MB |
 | `415` | 背景圖不是 PNG、JPEG、WebP 或 GIF |
 | `501` | 在 SQLite 後端使用成員管理 |
@@ -428,9 +428,17 @@ GET /api/spaces/019a2b3e-b7ac-761e-be1b-1c7a58fd6ec3?include=id,name
 
 ```json
 {
-  "display_order": 3
+  "display_order": 3,
+  "from_display_order": 5
 }
 ```
+
+| 欄位 | 規則 |
+| :--- | :--- |
+| `display_order` | 必填 |
+| `from_display_order` | 必填，呼叫者最後看到的該空間 `display_order` |
+
+- 空間已不在 `from_display_order` 時回傳 `409`
 
 回傳空間群組內所有空間，依 `display_order` 排序
 
@@ -738,11 +746,43 @@ curl -X PUT -F image=@5f.png http://localhost:8080/api/spaces/019a2b3e-b7ac-761e
 
 ```json
 {
-  "display_order": 2
+  "display_order": 2,
+  "from_display_order": 4
 }
 ```
 
-回傳開關面板內所有開關，依 `display_order` 排序，格式同 `GET /api/switch-panels/{switchPanelId}/switches`
+| 欄位 | 規則 |
+| :--- | :--- |
+| `display_order` | 必填 |
+| `from_display_order` | 必填，呼叫者最後看到的該開關 `display_order` |
+
+- 開關已不在 `from_display_order` 時回傳 `409`
+
+回傳開關面板內所有開關，依 `display_order` 排序
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
+      "name": "UPS-5 Input",
+      "display_order": 1,
+      "attributes": {
+        "circuit_label": "UPS",
+        "switch_type": "nfb",
+        "max_current": 100,
+        "rated_voltage": 380,
+        "phase": "three",
+        "poles": 3
+      },
+      "switch_panel": {
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
+      }
+    }
+  ]
+}
+```
 
 ## 開關連結
 

@@ -36,7 +36,7 @@ Failure:
 | `400` | A path ID that is not a UUID, invalid body, an unknown `include` column, a switch fed by itself, a link that would form a cycle, or an invalid member role or email |
 | `401` | Missing or invalid identity, or an anonymous request to a route that needs one |
 | `404` | The resource does not exist, or the caller's role does not allow the action |
-| `409` | The link or member already exists, or the owner leaves with no editor to take over |
+| `409` | The link or member already exists, the owner leaves with no editor to take over, or the space or switch to move is no longer at `from_display_order` |
 | `413` | Background image over 10 MB |
 | `415` | Background image is not PNG, JPEG, WebP or GIF |
 | `501` | Member management on the SQLite backend |
@@ -428,9 +428,17 @@ Moves the space to `display_order`; the spaces in between shift by one.
 
 ```json
 {
-  "display_order": 3
+  "display_order": 3,
+  "from_display_order": 5
 }
 ```
+
+| Field | Rule |
+| :--- | :--- |
+| `display_order` | Required |
+| `from_display_order` | Required, the space's `display_order` as the caller last saw it |
+
+- `409` when the space is no longer at `from_display_order`
 
 Returns every space in the space group, ordered by `display_order`.
 
@@ -738,11 +746,43 @@ Moves the switch to `display_order` within its switch panel; the switches in bet
 
 ```json
 {
-  "display_order": 2
+  "display_order": 2,
+  "from_display_order": 4
 }
 ```
 
-Returns every switch in the switch panel, ordered by `display_order`, in the same shape as `GET /api/switch-panels/{switchPanelId}/switches`.
+| Field | Rule |
+| :--- | :--- |
+| `display_order` | Required |
+| `from_display_order` | Required, the switch's `display_order` as the caller last saw it |
+
+- `409` when the switch is no longer at `from_display_order`
+
+Returns every switch in the switch panel, ordered by `display_order`.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "019a2b52-4aea-7072-b438-e2b9a519e640",
+      "name": "UPS-5 Input",
+      "display_order": 1,
+      "attributes": {
+        "circuit_label": "UPS",
+        "switch_type": "nfb",
+        "max_current": 100,
+        "rated_voltage": 380,
+        "phase": "three",
+        "poles": 3
+      },
+      "switch_panel": {
+        "id": "019a2b3f-ed02-77fa-80cb-3ac593bac529"
+      }
+    }
+  ]
+}
+```
 
 ## Switch Links
 
