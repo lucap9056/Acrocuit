@@ -17,6 +17,7 @@ func TestE2E(t *testing.T) {
 		{"DeleteSpaceRemovesCrossSpaceReferences", testDeleteSpaceRemovesCrossSpaceReferences},
 		{"DeleteSpaceGroupCascades", testDeleteSpaceGroupCascades},
 		{"DeleteCompactsDisplayOrder", testDeleteCompactsDisplayOrder},
+		{"MoveRejectsStaleDisplayOrder", testMoveRejectsStaleDisplayOrder},
 	} {
 		t.Run(step.name, func(t *testing.T) {
 			step.run(t, c.with(t), b)

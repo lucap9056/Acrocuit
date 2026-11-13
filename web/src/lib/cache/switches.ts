@@ -5,7 +5,7 @@ import type {
   Switch,
   SwitchPanelId,
 } from "@/api";
-import api from "@/api";
+import api, { ApiError } from "@/api";
 import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
 import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
 import { createListCache } from "@/lib/cache/list-cache";
@@ -58,12 +58,24 @@ export const setSwitchAttributes = (
       return switches;
     });
 
-export const moveSwitch = (s: AuthSession, sw: CompleteSwitch) => {
+export const moveSwitch = (
+  s: AuthSession,
+  sw: CompleteSwitch,
+  displayOrder: number,
+) => {
   const panel = sw.switch_panel.id;
 
   return api.switches
-    .updateSwitchOrder(s, sw.id, sw.display_order)
-    .then((switches) => cache.set(panel, switches));
+    .updateSwitchOrder(s, sw.id, displayOrder, sw.display_order)
+    .then(
+      (switches) => cache.set(panel, switches),
+      (err) => {
+        if (err instanceof ApiError && err.status === 409) {
+          clearCache(panel);
+        }
+        throw err;
+      },
+    );
 };
 
 export const removeSwitch = (s: AuthSession, sw: CompleteSwitch) =>

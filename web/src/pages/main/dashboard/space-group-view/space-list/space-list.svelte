@@ -10,12 +10,20 @@
     dragHandleZone,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
   } from "svelte-dnd-action";
-  import type { AuthSession, Space, SpaceGroup, SpaceId } from "@/api";
+  import {
+    ApiError,
+    type AuthSession,
+    type Space,
+    type SpaceGroup,
+    type SpaceId,
+  } from "@/api";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
+  import toast from "@/components/toast";
   import { tooltip } from "@/components/tooltip";
   import {
     addSpace,
+    fetchSpaces,
     moveSpace,
     removeSpace,
     renameSpace,
@@ -44,6 +52,7 @@
   type DndSpace = Space & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
 
   const FLIP_DURATION_MS = 150;
+  const ORDER_CHANGED_TOAST_MS = 5000;
 
   const editable = $derived(canEdit(spaceGroup));
 
@@ -202,14 +211,17 @@
     )
       .then(() => {
         const loading = load.begin(t("loading.moveSpace"));
-        moveSpace(session, {
-          ...withSpaceGroup(space),
-          display_order: target.display_order,
-        })
+        moveSpace(session, withSpaceGroup(space), target.display_order)
           .then((s) => {
             spaces = s;
           })
           .catch((err) => {
+            if (err instanceof ApiError && err.status === 409) {
+              toast.push(t("spaces.orderChanged"), ORDER_CHANGED_TOAST_MS);
+              return fetchSpaces(session, spaceGroup.id).then((s) => {
+                spaces = s;
+              });
+            }
             console.error(err);
           })
           .finally(() => {

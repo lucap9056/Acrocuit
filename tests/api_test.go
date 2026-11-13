@@ -101,7 +101,7 @@ func TestDelSpace(t *testing.T) {
 }
 
 func TestSetSpaceOrder(t *testing.T) {
-	call(t, http.MethodPatch, "/spaces/"+spaceId+"/order", map[string]any{"display_order": 1})
+	call(t, http.MethodPatch, "/spaces/"+spaceId+"/order", map[string]any{"display_order": 1, "from_display_order": 1})
 }
 
 func TestSetSpaceBackgroundImage(t *testing.T) {
@@ -173,7 +173,7 @@ func TestDelSwitch(t *testing.T) {
 }
 
 func TestSetSwitchOrder(t *testing.T) {
-	call(t, http.MethodPatch, "/switches/"+switchId+"/order", map[string]any{"display_order": 1})
+	call(t, http.MethodPatch, "/switches/"+switchId+"/order", map[string]any{"display_order": 1, "from_display_order": 1})
 }
 
 func TestGetSwitchUpstreams(t *testing.T) {

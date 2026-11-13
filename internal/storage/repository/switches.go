@@ -10,7 +10,7 @@ type Switches interface {
 	GetSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, include string) (*models.Switch, error)
 	AddSwitch(ctx context.Context, userEmail string, switchPanelId models.SwitchPanelId, name string, attributes models.Attributes) (*models.Switch, error)
 	SetSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, name *string, attributes models.Attributes) (*models.Switch, error)
-	MoveSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, displayOrder int) ([]models.Switch, error)
+	MoveSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, displayOrder, fromDisplayOrder int) ([]models.Switch, error)
 	DelSwitch(ctx context.Context, userEmail string, switchId models.SwitchId) ([]models.Switch, error)
 	GetSwitchUpstreams(ctx context.Context, userEmail string, switchId models.SwitchId, include string) ([]models.LinkedSwitch, error)
 	AddSwitchUpstream(ctx context.Context, userEmail string, switchId, upstreamSwitchId models.SwitchId, attributes models.Attributes) (*models.SwitchLink, error)

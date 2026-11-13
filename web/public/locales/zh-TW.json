@@ -57,7 +57,8 @@
     "empty": "目前還沒有空間",
     "confirmDelete": "要刪除「{{name}}」嗎？其中的開關面板、開關與裝置也會一併刪除",
     "dragToReorder": "拖曳以調整順序",
-    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？"
+    "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？",
+    "orderChanged": "空間順序已被其他人變更，已重新載入列表，請再試一次"
   },
   "switchPanels": {
     "title": "開關面板",
@@ -75,7 +76,8 @@
     "columns": "欄",
     "dragToReorder": "拖曳以調整順序",
     "confirmMove": "要將「{{name}}」移到第 {{position}} 個位置嗎？",
-    "full": "已達可放置開關數上限（{{count}}）"
+    "full": "已達可放置開關數上限（{{count}}）",
+    "orderChanged": "開關順序已被其他人變更，已重新載入列表，請再試一次"
   },
   "switchEditor": {
     "name": "名稱",

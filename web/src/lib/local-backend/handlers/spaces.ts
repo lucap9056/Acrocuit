@@ -4,7 +4,7 @@ import { include, json, type Router } from "@/lib/local-backend/router";
 import type { LocalBackend } from "@/lib/local-backend/storage/types";
 
 type SetSpaceBody = { name?: string };
-type OrderBody = { display_order: number };
+type OrderBody = { display_order: number; from_display_order: number };
 type CreateBody = {
   name: string;
   position?: Position;
@@ -32,12 +32,14 @@ export const spacesHandlers = (
     Spaces.DelSpace(params.spaceId as SpaceId).then(ok),
   );
 
-  router.patch(`${space}/order`, ({ request, params }) =>
-    Spaces.MoveSpace(
+  router.patch(`${space}/order`, ({ request, params }) => {
+    const body = json<OrderBody>(request);
+    return Spaces.MoveSpace(
       params.spaceId as SpaceId,
-      json<OrderBody>(request).display_order,
-    ).then(ok),
-  );
+      body.display_order,
+      body.from_display_order,
+    ).then(ok);
+  });
 
   router.get(`${space}/switch-panels`, ({ request, params }) =>
     SwitchPanels.GetSwitchPanels(

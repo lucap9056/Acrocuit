@@ -20,6 +20,7 @@ const (
 	baseErrSelfReference = "err_self_reference"
 	baseErrCycleDetected = "err_cycle_detected"
 	baseErrNotFound      = "err_not_found"
+	baseErrOrderMismatch = "err_order_mismatch"
 
 	FnSetSpace                               = "fn_set_space"
 	FnSetSpace_O_ID                          = baseOutID
@@ -34,6 +35,7 @@ const (
 	FnMoveSpace_O_SPACE_GROUP_ID              = baseOutSpaceGroupID
 	FnMoveSpace_O_DISPLAY_ORDER               = baseOutDisplayOrder
 	FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT = FnSetSpace_O_BACKGROUND_IMAGE_UPDATED_AT
+	FnMoveSpace_ERR_ORDER_MISMATCH            = "AC004"
 
 	FnDelSpace                               = "fn_del_space"
 	FnDelSpace_O_ID                          = baseOutID
@@ -51,13 +53,14 @@ const (
 	FnSetSwitch_O_DISPLAY_ORDER   = baseOutDisplayOrder
 	FnSetSwitch_O_ATTRIBUTES      = baseOutAttributes
 
-	FnMoveSwitch                   = "fn_move_switch"
-	FnMoveSwitch_O_ID              = baseOutID
-	FnMoveSwitch_O_NAME            = baseOutName
-	FnMoveSwitch_O_SWITCH_PANEL_ID = baseOutSwitchPanelID
-	FnMoveSwitch_O_SPACE_GROUP_ID  = baseOutSpaceGroupID
-	FnMoveSwitch_O_DISPLAY_ORDER   = baseOutDisplayOrder
-	FnMoveSwitch_O_ATTRIBUTES      = baseOutAttributes
+	FnMoveSwitch                    = "fn_move_switch"
+	FnMoveSwitch_O_ID               = baseOutID
+	FnMoveSwitch_O_NAME             = baseOutName
+	FnMoveSwitch_O_SWITCH_PANEL_ID  = baseOutSwitchPanelID
+	FnMoveSwitch_O_SPACE_GROUP_ID   = baseOutSpaceGroupID
+	FnMoveSwitch_O_DISPLAY_ORDER    = baseOutDisplayOrder
+	FnMoveSwitch_O_ATTRIBUTES       = baseOutAttributes
+	FnMoveSwitch_ERR_ORDER_MISMATCH = "AC004"
 
 	FnDelSwitch                   = "fn_del_switch"
 	FnDelSwitch_O_ID              = baseOutID
@@ -120,6 +123,7 @@ func init() {
 			FnMoveSpace_O_SPACE_GROUP_ID:              FnMoveSpace_O_SPACE_GROUP_ID,
 			FnMoveSpace_O_DISPLAY_ORDER:               FnMoveSpace_O_DISPLAY_ORDER,
 			FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT: FnMoveSpace_O_BACKGROUND_IMAGE_UPDATED_AT,
+			baseErrOrderMismatch:                      FnMoveSpace_ERR_ORDER_MISMATCH,
 		}
 	}
 	funcMap[FnDelSpace] = func() map[string]string {
@@ -153,6 +157,7 @@ func init() {
 			FnMoveSwitch_O_SPACE_GROUP_ID:  FnMoveSwitch_O_SPACE_GROUP_ID,
 			FnMoveSwitch_O_DISPLAY_ORDER:   FnMoveSwitch_O_DISPLAY_ORDER,
 			FnMoveSwitch_O_ATTRIBUTES:      FnMoveSwitch_O_ATTRIBUTES,
+			baseErrOrderMismatch:           FnMoveSwitch_ERR_ORDER_MISMATCH,
 		}
 	}
 	funcMap[FnDelSwitch] = func() map[string]string {

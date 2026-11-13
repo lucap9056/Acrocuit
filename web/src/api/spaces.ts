@@ -42,6 +42,7 @@ const updateSpaceOrder = (
   auth: AuthSession,
   spaceId: SpaceId,
   displayOrder: number,
+  fromDisplayOrder: number,
 ) => {
   return auth
     .fetch(`${base}/${spaceId}/order`, {
@@ -49,7 +50,10 @@ const updateSpaceOrder = (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ display_order: displayOrder }),
+      body: JSON.stringify({
+        display_order: displayOrder,
+        from_display_order: fromDisplayOrder,
+      }),
     })
     .then(unwrapApiResponse<Space[]>);
 };

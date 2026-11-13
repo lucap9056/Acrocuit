@@ -33,11 +33,13 @@ END;
 $$;
 
 DROP FUNCTION IF EXISTS {{fn_move_space.func}}(TEXT, UUID, INT);
+DROP FUNCTION IF EXISTS {{fn_move_space.func}}(TEXT, UUID, INT, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_move_space.func}}(
     p_user_email TEXT,
     p_space_id UUID,
-    p_display_order INT
+    p_display_order INT,
+    p_from_display_order INT
 ) RETURNS TABLE (
     {{fn_move_space.o_id}} UUID,
     {{fn_move_space.o_name}} VARCHAR(255),
@@ -60,6 +62,11 @@ BEGIN
 
     IF v_space_group_id IS NULL THEN
         RETURN;
+    END IF;
+
+    IF v_current_order <> p_from_display_order THEN
+        RAISE EXCEPTION 'space % is at %, not %', p_space_id, v_current_order, p_from_display_order
+            USING ERRCODE = '{{fn_move_space.err_order_mismatch}}';
     END IF;
 
     IF p_display_order <> v_current_order THEN
@@ -169,11 +176,13 @@ END;
 $$;
 
 DROP FUNCTION IF EXISTS {{fn_move_switch.func}}(TEXT, UUID, INT);
+DROP FUNCTION IF EXISTS {{fn_move_switch.func}}(TEXT, UUID, INT, INT);
 
 CREATE OR REPLACE FUNCTION {{fn_move_switch.func}}(
     p_user_email TEXT,
     p_switch_id UUID,
-    p_display_order INT
+    p_display_order INT,
+    p_from_display_order INT
 ) RETURNS TABLE (
     {{fn_move_switch.o_id}} UUID,
     {{fn_move_switch.o_name}} VARCHAR(255),
@@ -197,6 +206,11 @@ BEGIN
 
     IF v_switch_panel_id IS NULL THEN
         RETURN;
+    END IF;
+
+    IF v_current_order <> p_from_display_order THEN
+        RAISE EXCEPTION 'switch % is at %, not %', p_switch_id, v_current_order, p_from_display_order
+            USING ERRCODE = '{{fn_move_switch.err_order_mismatch}}';
     END IF;
 
     IF p_display_order <> v_current_order THEN

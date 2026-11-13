@@ -63,6 +63,7 @@ const updateSwitchOrder = (
   auth: AuthSession,
   switchId: SwitchId,
   displayOrder: number,
+  fromDisplayOrder: number,
 ) => {
   return auth
     .fetch(`${base}/${switchId}/order`, {
@@ -70,7 +71,10 @@ const updateSwitchOrder = (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ display_order: displayOrder }),
+      body: JSON.stringify({
+        display_order: displayOrder,
+        from_display_order: fromDisplayOrder,
+      }),
     })
     .then(unwrapApiResponse<Switch[]>);
 };

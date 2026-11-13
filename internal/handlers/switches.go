@@ -127,7 +127,7 @@ func (ctr *switchesController) SetSwitchOrder(c *gin.Context) {
 		return
 	}
 
-	switches, err := ctr.Switches.MoveSwitch(c.Request.Context(), userEmail, switchId, req.DisplayOrder)
+	switches, err := ctr.Switches.MoveSwitch(c.Request.Context(), userEmail, switchId, req.DisplayOrder, req.FromDisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return

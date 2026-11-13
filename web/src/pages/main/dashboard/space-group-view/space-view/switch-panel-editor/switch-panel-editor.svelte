@@ -33,12 +33,19 @@
     dragHandleZone,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
   } from "svelte-dnd-action";
-  import type { Attributes, AuthSession, Switch, SwitchPanel } from "@/api";
+  import {
+    ApiError,
+    type Attributes,
+    type AuthSession,
+    type Switch,
+    type SwitchPanel,
+  } from "@/api";
   import AttributesSection from "@/components/attributes-section/attributes-section.svelte";
   import dialog from "@/components/dialog";
   import load from "@/components/loading-bar";
   import Spinner from "@/components/spinner/spinner.svelte";
   import Textbox from "@/components/textbox/textbox.svelte";
+  import toast from "@/components/toast";
   import { tooltip } from "@/components/tooltip";
   import {
     SWITCH_PANEL_ATTRIBUTE_FIELDS,
@@ -78,6 +85,7 @@
   type DndSwitch = Switch & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
 
   const FLIP_DURATION_MS = 150;
+  const ORDER_CHANGED_TOAST_MS = 5000;
 
   const canModify = $derived(editable && !readonly);
 
@@ -215,11 +223,12 @@
     )
       .then(() => {
         update(t("loading.moveSwitch"), () =>
-          moveSwitch(session, {
-            ...withSwitchPanel(sw),
-            display_order: target.display_order,
-          }),
+          moveSwitch(session, withSwitchPanel(sw), target.display_order),
         ).catch((err) => {
+          if (err instanceof ApiError && err.status === 409) {
+            toast.push(t("switches.orderChanged"), ORDER_CHANGED_TOAST_MS);
+            return;
+          }
           console.error(err);
         });
       })

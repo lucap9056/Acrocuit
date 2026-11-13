@@ -142,10 +142,10 @@ func (s *pgSpaces) SetSpace(ctx context.Context, userEmail string, spaceId model
 	return space, nil
 }
 
-func (s *pgSpaces) MoveSpace(ctx context.Context, userEmail string, spaceId models.SpaceId, displayOrder int) ([]models.Space, error) {
-	query := `SELECT ` + schema.FnMoveSpace_OUTPUTS + ` FROM ` + schema.FnMoveSpace + `($1, $2, $3)`
+func (s *pgSpaces) MoveSpace(ctx context.Context, userEmail string, spaceId models.SpaceId, displayOrder, fromDisplayOrder int) ([]models.Space, error) {
+	query := `SELECT ` + schema.FnMoveSpace_OUTPUTS + ` FROM ` + schema.FnMoveSpace + `($1, $2, $3, $4)`
 
-	rows, err := s.pool.Query(ctx, query, userEmail, spaceId, displayOrder)
+	rows, err := s.pool.Query(ctx, query, userEmail, spaceId, displayOrder, fromDisplayOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,12 @@ func (s *pgSpaces) MoveSpace(ctx context.Context, userEmail string, spaceId mode
 		space.Build()
 		spaces = append(spaces, space)
 	}
-	if err := rows.Err(); err != nil {
+	err = rows.Err()
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == schema.FnMoveSpace_ERR_ORDER_MISMATCH {
+		return nil, repository.ErrConflict
+	}
+	if err != nil {
 		return nil, err
 	}
 

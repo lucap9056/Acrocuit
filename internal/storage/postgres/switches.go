@@ -120,10 +120,10 @@ func (s *pgSwitches) AddSwitch(ctx context.Context, userEmail string, switchPane
 	return sw, nil
 }
 
-func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, displayOrder int) ([]models.Switch, error) {
-	query := `SELECT ` + schema.FnMoveSwitch_OUTPUTS + ` FROM ` + schema.FnMoveSwitch + `($1, $2, $3)`
+func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId models.SwitchId, displayOrder, fromDisplayOrder int) ([]models.Switch, error) {
+	query := `SELECT ` + schema.FnMoveSwitch_OUTPUTS + ` FROM ` + schema.FnMoveSwitch + `($1, $2, $3, $4)`
 
-	rows, err := s.pool.Query(ctx, query, userEmail, switchId, displayOrder)
+	rows, err := s.pool.Query(ctx, query, userEmail, switchId, displayOrder, fromDisplayOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,12 @@ func (s *pgSwitches) MoveSwitch(ctx context.Context, userEmail string, switchId 
 		sw.Build()
 		switches = append(switches, sw)
 	}
-	if err := rows.Err(); err != nil {
+	err = rows.Err()
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == schema.FnMoveSwitch_ERR_ORDER_MISMATCH {
+		return nil, repository.ErrConflict
+	}
+	if err != nil {
 		return nil, err
 	}
 

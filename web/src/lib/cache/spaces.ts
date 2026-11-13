@@ -1,5 +1,5 @@
 import type { AuthSession, Ref, Space, SpaceGroupId } from "@/api";
-import api from "@/api";
+import api, { ApiError } from "@/api";
 import { clearCache as clearDeviceSwitchesCache } from "@/lib/cache/device-switches";
 import { clearCache as clearDevicesCache } from "@/lib/cache/devices";
 import { clearCache as clearSpaceImagesCache } from "@/lib/cache/space-images";
@@ -65,12 +65,24 @@ export const addSpace = (s: AuthSession, sg: SpaceGroupId, name: string) =>
     },
   );
 
-export const moveSpace = (s: AuthSession, space: CompleteSpace) => {
+export const moveSpace = (
+  s: AuthSession,
+  space: CompleteSpace,
+  displayOrder: number,
+) => {
   const sg = space.space_group.id;
 
   return api.spaces
-    .updateSpaceOrder(s, space.id, space.display_order)
-    .then((spaces) => updateCache(sg, spaces));
+    .updateSpaceOrder(s, space.id, displayOrder, space.display_order)
+    .then(
+      (spaces) => updateCache(sg, spaces),
+      (err) => {
+        if (err instanceof ApiError && err.status === 409) {
+          clearCache(sg);
+        }
+        throw err;
+      },
+    );
 };
 
 export const removeSpace = (s: AuthSession, space: CompleteSpace) =>

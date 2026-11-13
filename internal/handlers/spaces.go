@@ -95,7 +95,8 @@ func (ctr *spacesController) DelSpace(c *gin.Context) {
 }
 
 type setOrderRequest struct {
-	DisplayOrder int `json:"display_order" binding:"required"`
+	DisplayOrder     int `json:"display_order" binding:"required"`
+	FromDisplayOrder int `json:"from_display_order" binding:"required"`
 }
 
 func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
@@ -110,7 +111,7 @@ func (ctr *spacesController) SetSpaceOrder(c *gin.Context) {
 		return
 	}
 
-	spaces, err := ctr.Spaces.MoveSpace(c.Request.Context(), userEmail, spaceId, req.DisplayOrder)
+	spaces, err := ctr.Spaces.MoveSpace(c.Request.Context(), userEmail, spaceId, req.DisplayOrder, req.FromDisplayOrder)
 	if err != nil {
 		handleStorageErr(c, err)
 		return

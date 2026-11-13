@@ -102,7 +102,7 @@ func (s *sqliteSwitches) AddSwitch(ctx context.Context, _ string, switchPanelId 
 	return sw, nil
 }
 
-func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId models.SwitchId, displayOrder int) ([]models.Switch, error) {
+func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId models.SwitchId, displayOrder, fromDisplayOrder int) ([]models.Switch, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -118,6 +118,9 @@ func (s *sqliteSwitches) MoveSwitch(ctx context.Context, _ string, switchId mode
 	}
 	if err != nil {
 		return nil, err
+	}
+	if currentOrder != fromDisplayOrder {
+		return nil, repository.ErrConflict
 	}
 
 	if displayOrder != currentOrder {

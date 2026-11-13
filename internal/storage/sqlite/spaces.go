@@ -103,7 +103,7 @@ func (s *sqliteSpaces) AddSpace(ctx context.Context, _ string, spaceGroupId mode
 	return space, nil
 }
 
-func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId models.SpaceId, displayOrder int) ([]models.Space, error) {
+func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId models.SpaceId, displayOrder, fromDisplayOrder int) ([]models.Space, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -119,6 +119,9 @@ func (s *sqliteSpaces) MoveSpace(ctx context.Context, _ string, spaceId models.S
 	}
 	if err != nil {
 		return nil, err
+	}
+	if currentOrder != fromDisplayOrder {
+		return nil, repository.ErrConflict
 	}
 
 	if displayOrder != currentOrder {

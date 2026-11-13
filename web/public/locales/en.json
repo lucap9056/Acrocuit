@@ -57,7 +57,8 @@
     "empty": "No spaces yet.",
     "confirmDelete": "Delete \"{{name}}\"? Its switch panels, switches and devices are deleted too.",
     "dragToReorder": "Drag to reorder",
-    "confirmMove": "Move \"{{name}}\" to position {{position}}?"
+    "confirmMove": "Move \"{{name}}\" to position {{position}}?",
+    "orderChanged": "Someone else changed the order of the spaces. The list has been reloaded; try again."
   },
   "switchPanels": {
     "title": "Switch panels",
@@ -75,7 +76,8 @@
     "columns": "Columns",
     "dragToReorder": "Drag to reorder",
     "confirmMove": "Move \"{{name}}\" to position {{position}}?",
-    "full": "Reached the switch capacity ({{count}})"
+    "full": "Reached the switch capacity ({{count}})",
+    "orderChanged": "Someone else changed the order of the switches. The list has been reloaded; try again."
   },
   "switchEditor": {
     "name": "Name",

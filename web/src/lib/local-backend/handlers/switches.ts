@@ -4,7 +4,7 @@ import { include, json, type Router } from "@/lib/local-backend/router";
 import type { LocalBackend } from "@/lib/local-backend/storage/types";
 
 type SetSwitchBody = { name?: string; attributes?: Attributes };
-type OrderBody = { display_order: number };
+type OrderBody = { display_order: number; from_display_order: number };
 type AddUpstreamBody = {
   upstream_switch_id: SwitchId;
   attributes?: Attributes;
@@ -39,12 +39,14 @@ export const switchesHandlers = (
     Switches.DelSwitch(params.switchId as SwitchId).then(ok),
   );
 
-  router.patch(`${sw}/order`, ({ request, params }) =>
-    Switches.MoveSwitch(
+  router.patch(`${sw}/order`, ({ request, params }) => {
+    const body = json<OrderBody>(request);
+    return Switches.MoveSwitch(
       params.switchId as SwitchId,
-      json<OrderBody>(request).display_order,
-    ).then(ok),
-  );
+      body.display_order,
+      body.from_display_order,
+    ).then(ok);
+  });
 
   router.get(`${sw}/upstreams`, ({ request, params }) =>
     Switches.GetSwitchUpstreams(

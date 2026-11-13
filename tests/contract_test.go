@@ -111,7 +111,7 @@ func TestContract(t *testing.T) {
 		}{
 			{http.MethodGet, spaceGroupPath + "/spaces", nil, arrayOf(spaceShape())},
 			{http.MethodPut, spacePath, map[string]any{"name": "renamed"}, spaceShape()},
-			{http.MethodPatch, spacePath + "/order", map[string]any{"display_order": 1}, arrayOf(spaceShape())},
+			{http.MethodPatch, spacePath + "/order", map[string]any{"display_order": 1, "from_display_order": 1}, arrayOf(spaceShape())},
 		} {
 			req := newRequest(t, tc.method, tc.path, tc.body)
 			c.checkShape(req, http.StatusOK, successShape(tc.data))
@@ -170,7 +170,7 @@ func TestContract(t *testing.T) {
 			data         shape
 		}{
 			{http.MethodGet, switchPanelPath + "/switches", nil, arrayOf(switchShape())},
-			{http.MethodPatch, childPath + "/order", map[string]any{"display_order": 1}, arrayOf(switchShape())},
+			{http.MethodPatch, childPath + "/order", map[string]any{"display_order": 1, "from_display_order": 2}, arrayOf(switchShape())},
 			{http.MethodGet, childPath + "/upstreams", nil, arrayOf(linkedSwitchShape())},
 			{http.MethodDelete, upstreamPath, nil, equals(nil)},
 			{http.MethodPost, childPath + "/upstreams", map[string]any{"upstream_switch_id": rootId}, switchLinkShape()},
