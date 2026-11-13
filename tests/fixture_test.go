@@ -48,6 +48,24 @@ func newSpace(t *testing.T, c *client, spaceGroupPath, name string) string {
 	return string(space.Id)
 }
 
+func newSwitchPanel(t *testing.T, c *client, spaceId, name string) string {
+	t.Helper()
+
+	var switchPanel models.SwitchPanel
+	req := newRequest(t, http.MethodPost, fmt.Sprintf("/spaces/%s/switch-panels", spaceId), map[string]any{"name": name})
+	require.Equal(t, http.StatusOK, c.Send(req, &switchPanel), "create switch panel %s", name)
+	return string(switchPanel.Id)
+}
+
+func newSwitch(t *testing.T, c *client, switchPanelId, name string) string {
+	t.Helper()
+
+	var sw models.Switch
+	req := newRequest(t, http.MethodPost, fmt.Sprintf("/switch-panels/%s/switches", switchPanelId), map[string]any{"name": name})
+	require.Equal(t, http.StatusOK, c.Send(req, &sw), "create switch %s", name)
+	return string(sw.Id)
+}
+
 func newBuilding(t *testing.T, c *client) *building {
 	t.Helper()
 

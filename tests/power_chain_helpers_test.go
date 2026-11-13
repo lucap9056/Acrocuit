@@ -39,6 +39,14 @@ func idsOf(ids map[string]string, names ...string) []string {
 	return result
 }
 
+func spaceIds(spaces []models.Space) []string {
+	result := make([]string, len(spaces))
+	for i, space := range spaces {
+		result[i] = string(space.Id)
+	}
+	return result
+}
+
 func switchIds(switches []models.Switch) []string {
 	result := make([]string, len(switches))
 	for i, b := range switches {
