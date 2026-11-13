@@ -36,7 +36,7 @@ export const switchesHandlers = (
   });
 
   router.delete(sw, ({ params }) =>
-    Switches.DelSwitch(params.switchId as SwitchId).then(empty),
+    Switches.DelSwitch(params.switchId as SwitchId).then(ok),
   );
 
   router.patch(`${sw}/order`, ({ request, params }) =>

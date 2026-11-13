@@ -1,5 +1,5 @@
 import type { Attributes, Position, SpaceId } from "@/api/models";
-import { empty, ok } from "@/lib/local-backend/response";
+import { ok } from "@/lib/local-backend/response";
 import { include, json, type Router } from "@/lib/local-backend/router";
 import type { LocalBackend } from "@/lib/local-backend/storage/types";
 
@@ -29,7 +29,7 @@ export const spacesHandlers = (
   );
 
   router.delete(space, ({ params }) =>
-    Spaces.DelSpace(params.spaceId as SpaceId).then(empty),
+    Spaces.DelSpace(params.spaceId as SpaceId).then(ok),
   );
 
   router.patch(`${space}/order`, ({ request, params }) =>

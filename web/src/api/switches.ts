@@ -56,7 +56,7 @@ const deleteSwitch = (auth: AuthSession, switchId: SwitchId) => {
     .fetch(`${base}/${switchId}`, {
       method: "DELETE",
     })
-    .then(unwrapApiResponse<undefined>);
+    .then(unwrapApiResponse<Switch[]>);
 };
 
 const updateSwitchOrder = (

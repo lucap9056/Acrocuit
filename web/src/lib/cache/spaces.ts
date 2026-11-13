@@ -74,12 +74,7 @@ export const moveSpace = (s: AuthSession, space: CompleteSpace) => {
 };
 
 export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
-  Promise.all([
-    fetchSpaces(s, space.space_group.id),
-    api.spaces.deleteSpace(s, space.id),
-  ]).then(([spaces]) => {
-    const updatedSpaces = spaces.filter((sp) => sp.id !== space.id);
-
+  api.spaces.deleteSpace(s, space.id).then((spaces) => {
     clearSwitchPanelsCache(space.id);
     clearDevicesCache();
     clearDeviceSwitchesCache();
@@ -87,7 +82,7 @@ export const removeSpace = (s: AuthSession, space: CompleteSpace) =>
     clearSpaceImagesCache(space.id);
     clearSwitchesCache();
 
-    return updateCache(space.space_group.id, updatedSpaces);
+    return updateCache(space.space_group.id, spaces);
   });
 
 export const renameSpace = (

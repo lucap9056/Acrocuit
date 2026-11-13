@@ -67,10 +67,9 @@ export const moveSwitch = (s: AuthSession, sw: CompleteSwitch) => {
 };
 
 export const removeSwitch = (s: AuthSession, sw: CompleteSwitch) =>
-  api.switches.deleteSwitch(s, sw.id).then(() => {
-    clearCache();
+  api.switches.deleteSwitch(s, sw.id).then((switches) => {
     clearDevicesCache();
     clearDeviceSwitchesCache();
     clearSwitchUpstreamsCache();
-    return fetchSwitches(s, sw.switch_panel.id);
+    return cache.set(sw.switch_panel.id, switches);
   });

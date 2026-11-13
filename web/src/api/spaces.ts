@@ -35,7 +35,7 @@ const deleteSpace = (auth: AuthSession, spaceId: SpaceId) => {
     .fetch(`${base}/${spaceId}`, {
       method: "DELETE",
     })
-    .then(unwrapApiResponse<undefined>);
+    .then(unwrapApiResponse<Space[]>);
 };
 
 const updateSpaceOrder = (
